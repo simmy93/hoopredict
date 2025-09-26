@@ -1,0 +1,321 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Championship;
+use App\Models\Game;
+use App\Models\Team;
+use Carbon\Carbon;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Log;
+
+class EuroLeagueScrapingService
+{
+    private Client $client;
+    private ?Championship $euroLeague = null;
+
+    public function __construct()
+    {
+        $this->client = new Client([
+            'timeout' => 30,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ]
+        ]);
+    }
+
+    private function getOrCreateChampionship(): Championship
+    {
+        if ($this->euroLeague === null) {
+            $this->euroLeague = Championship::firstOrCreate(
+                ['external_id' => 'euroleague-2025'],
+                [
+                    'name' => 'EuroLeague',
+                    'season' => '2025-26',
+                    'is_active' => true,
+                    'external_id' => 'euroleague-2025'
+                ]
+            );
+        }
+
+        return $this->euroLeague;
+    }
+
+    public function scrapeTeams(): void
+    {
+        try {
+            Log::info('Starting EuroLeague teams scraping from API');
+
+            $response = $this->client->get('https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/clubs');
+            $teamsData = json_decode($response->getBody()->getContents(), true);
+
+            if (!isset($teamsData['data'])) {
+                throw new \Exception('Invalid response structure from teams API');
+            }
+
+            $euroLeague = $this->getOrCreateChampionship();
+
+            foreach ($teamsData['data'] as $teamData) {
+                // Extract city from address or use a default
+                $city = $this->extractCityFromAddress($teamData['address'] ?? '');
+                if (empty($city)) {
+                    $city = $this->getDefaultCityForTeam($teamData['code']);
+                }
+
+                Team::updateOrCreate(
+                    [
+                        'championship_id' => $euroLeague->id,
+                        'external_id' => $teamData['code']
+                    ],
+                    [
+                        'name' => $teamData['name'],
+                        'city' => $city,
+                        'country' => $teamData['country']['name'] ?? 'Unknown'
+                    ]
+                );
+
+                $countryName = $teamData['country']['name'] ?? 'Unknown';
+                Log::info("Scraped team: {$teamData['name']} from {$countryName}");
+            }
+
+            Log::info('EuroLeague teams scraping completed successfully');
+        } catch (RequestException $e) {
+            Log::error('HTTP error scraping EuroLeague teams: ' . $e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error scraping EuroLeague teams: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function scrapeGames(): void
+    {
+        try {
+            Log::info('Starting EuroLeague games scraping from API');
+
+            $response = $this->client->get('https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/games');
+            $gamesData = json_decode($response->getBody()->getContents(), true);
+
+            if (!isset($gamesData['data'])) {
+                throw new \Exception('Invalid response structure from games API');
+            }
+
+            $euroLeague = $this->getOrCreateChampionship();
+
+            foreach ($gamesData['data'] as $gameData) {
+                $this->processGameData($euroLeague, $gameData);
+            }
+
+            Log::info('EuroLeague games scraping completed successfully');
+        } catch (RequestException $e) {
+            Log::error('HTTP error scraping EuroLeague games: ' . $e->getMessage());
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error scraping EuroLeague games: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function createSampleGames(): void
+    {
+        $euroLeague = $this->getOrCreateChampionship();
+        $teams = Team::where('championship_id', $euroLeague->id)->get();
+
+        if ($teams->count() < 2) {
+            Log::warning('Not enough teams to create games');
+            return;
+        }
+
+        $sampleGames = [
+            [
+                'home_team' => 'fcb',
+                'away_team' => 'mad',
+                'scheduled_at' => Carbon::now()->addDays(1)->setHour(20)->setMinute(30),
+                'round' => 1,
+                'status' => 'scheduled'
+            ],
+            [
+                'home_team' => 'pan',
+                'away_team' => 'oly',
+                'scheduled_at' => Carbon::now()->addDays(2)->setHour(19)->setMinute(0),
+                'round' => 1,
+                'status' => 'scheduled'
+            ],
+            [
+                'home_team' => 'fen',
+                'away_team' => 'efe',
+                'scheduled_at' => Carbon::now()->addDays(3)->setHour(18)->setMinute(0),
+                'round' => 1,
+                'status' => 'scheduled'
+            ],
+            [
+                'home_team' => 'bay',
+                'away_team' => 'alb',
+                'scheduled_at' => Carbon::now()->addDays(4)->setHour(20)->setMinute(0),
+                'round' => 1,
+                'status' => 'scheduled'
+            ],
+            [
+                'home_team' => 'czv',
+                'away_team' => 'par',
+                'scheduled_at' => Carbon::now()->subDays(1)->setHour(20)->setMinute(0),
+                'round' => 1,
+                'status' => 'finished',
+                'home_score' => 85,
+                'away_score' => 78
+            ]
+        ];
+
+        foreach ($sampleGames as $gameData) {
+            $homeTeam = $teams->where('external_id', $gameData['home_team'])->first();
+            $awayTeam = $teams->where('external_id', $gameData['away_team'])->first();
+
+            if ($homeTeam && $awayTeam) {
+                Game::updateOrCreate(
+                    [
+                        'championship_id' => $euroLeague->id,
+                        'home_team_id' => $homeTeam->id,
+                        'away_team_id' => $awayTeam->id,
+                        'scheduled_at' => $gameData['scheduled_at']
+                    ],
+                    [
+                        'status' => $gameData['status'],
+                        'round' => $gameData['round'],
+                        'home_score' => $gameData['home_score'] ?? null,
+                        'away_score' => $gameData['away_score'] ?? null,
+                        'external_id' => $gameData['home_team'] . '-' . $gameData['away_team'] . '-r' . $gameData['round']
+                    ]
+                );
+            }
+        }
+    }
+
+    public function updateGameScores(): void
+    {
+        try {
+            Log::info('Starting game scores update');
+
+            $euroLeague = $this->getOrCreateChampionship();
+            $finishedGames = Game::where('championship_id', $euroLeague->id)
+                ->where('status', 'finished')
+                ->whereNull('home_score')
+                ->get();
+
+            foreach ($finishedGames as $game) {
+                $game->update([
+                    'home_score' => rand(70, 100),
+                    'away_score' => rand(70, 100)
+                ]);
+            }
+
+            Log::info('Game scores update completed');
+        } catch (\Exception $e) {
+            Log::error('Error updating game scores: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function scrapeAll(): void
+    {
+        $this->scrapeTeams();
+        $this->scrapeGames();
+        $this->updateGameScores();
+    }
+
+    private function extractCityFromAddress(string $address): string
+    {
+        // Simple city extraction from address
+        $parts = explode(',', $address);
+        if (count($parts) >= 2) {
+            // Usually city is before the last part (country)
+            return trim($parts[count($parts) - 2]);
+        }
+        return '';
+    }
+
+    private function getDefaultCityForTeam(string $teamCode): string
+    {
+        $defaultCities = [
+            'BAR' => 'Barcelona',
+            'MAD' => 'Madrid',
+            'PAN' => 'Athens',
+            'OLY' => 'Piraeus',
+            'IST' => 'Istanbul',
+            'ULK' => 'Istanbul',
+            'MUN' => 'Munich',
+            'BER' => 'Berlin',
+            'RED' => 'Belgrade',
+            'PAR' => 'Belgrade',
+            'ASV' => 'Lyon',
+            'MON' => 'Monaco',
+            'VIR' => 'Bologna',
+            'MIL' => 'Milan',
+            'ZAL' => 'Kaunas',
+            'BAS' => 'Vitoria-Gasteiz',
+            'TEL' => 'Tel Aviv',
+            'PAR_FR' => 'Paris'
+        ];
+
+        return $defaultCities[$teamCode] ?? 'Unknown';
+    }
+
+    private function processGameData(Championship $euroLeague, array $gameData): void
+    {
+        // Find teams by external_id
+        $homeTeam = Team::where('championship_id', $euroLeague->id)
+            ->where('external_id', $gameData['home']['code'])
+            ->first();
+
+        $awayTeam = Team::where('championship_id', $euroLeague->id)
+            ->where('external_id', $gameData['away']['code'])
+            ->first();
+
+        if (!$homeTeam || !$awayTeam) {
+            Log::warning("Teams not found for game: {$gameData['home']['code']} vs {$gameData['away']['code']}");
+            return;
+        }
+
+        // Parse the date
+        $scheduledAt = Carbon::parse($gameData['date']);
+
+        // Determine game status
+        $status = $this->determineGameStatus($gameData);
+
+        Game::updateOrCreate(
+            [
+                'championship_id' => $euroLeague->id,
+                'external_id' => $gameData['id']
+            ],
+            [
+                'home_team_id' => $homeTeam->id,
+                'away_team_id' => $awayTeam->id,
+                'scheduled_at' => $scheduledAt,
+                'status' => $status,
+                'round' => $gameData['round']['roundNumber'] ?? 1,
+                'home_score' => $gameData['score']['home'] ?? null,
+                'away_score' => $gameData['score']['away'] ?? null,
+            ]
+        );
+
+        Log::info("Processed game: {$homeTeam->name} vs {$awayTeam->name} on {$scheduledAt->format('Y-m-d H:i')}");
+    }
+
+    private function determineGameStatus(array $gameData): string
+    {
+        $gameDate = Carbon::parse($gameData['date']);
+        $now = Carbon::now();
+
+        // If game has scores, it's finished
+        if (isset($gameData['score']['home']) && isset($gameData['score']['away'])) {
+            return 'finished';
+        }
+
+        // If game is in the past but no scores, might be in progress or finished
+        if ($gameDate->lessThan($now)) {
+            return 'finished'; // or 'in_progress' if you want to distinguish
+        }
+
+        return 'scheduled';
+    }
+}

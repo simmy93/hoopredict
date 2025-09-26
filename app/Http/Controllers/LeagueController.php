@@ -1,0 +1,303 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Game;
+use Inertia\Inertia;
+use App\Models\User;
+use App\Models\League;
+use App\Models\Prediction;
+use Illuminate\Support\Str;
+use App\Models\LeagueMember;
+use Illuminate\Http\Request;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+
+class LeagueController extends Controller
+{
+    use AuthorizesRequests;
+    public function index()
+    {
+        $userLeagues = auth()->user()->leagues()
+            ->with(['owner', 'members'])
+            ->withCount('members')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Leagues/Index', [
+            'userLeagues' => $userLeagues
+        ]);
+    }
+
+    public function create()
+    {
+        return Inertia::render('Leagues/Create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'is_private' => 'boolean',
+            'max_members' => 'integer|min:2|max:50'
+        ]);
+
+        $league = League::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'is_private' => $request->boolean('is_private', false),
+            'max_members' => $request->integer('max_members', 50),
+            'owner_id' => auth()->id(),
+            'invite_code' => Str::upper(Str::random(6))
+        ]);
+
+        LeagueMember::create([
+            'league_id' => $league->id,
+            'user_id' => auth()->id(),
+            'role' => 'owner',
+            'joined_at' => now()
+        ]);
+
+        return redirect()->route('leagues.show', $league)
+            ->with('success', 'League created successfully!');
+    }
+
+    public function show(League $league)
+    {
+        $this->authorize('view', $league);
+
+        $league->load([
+            'members.user',
+            'owner',
+            'leaderboards.user'
+        ]);
+
+        $userRole = $league->getUserRole(auth()->user());
+
+        // Get upcoming and recent games for predictions
+        $games = Game::with(['homeTeam', 'awayTeam', 'championship'])
+            ->where('status', '!=', 'cancelled')
+            ->where('scheduled_at', '>', now()->subDays(7)) // Show games from last 7 days
+            ->orderBy('scheduled_at')
+            ->get();
+
+        // Get existing predictions for this user in this league
+        $existingPredictions = Prediction::where('user_id', auth()->id())
+            ->where('league_id', $league->id)
+            ->get()
+            ->keyBy('game_id');
+
+        return Inertia::render('Leagues/Show', [
+            'league' => $league,
+            'userRole' => $userRole,
+            'members' => $league->members,
+            'leaderboard' => $league->leaderboards()->with('user')->orderBy('total_points', 'desc')->get(),
+            'games' => $games,
+            'existingPredictions' => $existingPredictions,
+            'inviteUrl' => $league->getInviteUrl()
+        ]);
+    }
+
+    public function join(Request $request)
+    {
+        $request->validate([
+            'invite_code' => 'required|string|size:6'
+        ]);
+
+        $league = League::where('invite_code', strtoupper($request->invite_code))
+            ->where('is_active', true)
+            ->first();
+
+        if (!$league) {
+            return back()->withErrors(['invite_code' => 'Invalid invite code.']);
+        }
+
+        if ($league->isFull()) {
+            return back()->withErrors(['invite_code' => 'This league is full.']);
+        }
+
+        if ($league->hasUser(auth()->user())) {
+            return back()->withErrors(['invite_code' => 'You are already a member of this league.']);
+        }
+
+        LeagueMember::create([
+            'league_id' => $league->id,
+            'user_id' => auth()->id(),
+            'role' => 'member',
+            'joined_at' => now()
+        ]);
+
+        return redirect()->route('leagues.show', $league)
+            ->with('success', 'Successfully joined the league!');
+    }
+
+    public function joinByUrl(string $inviteCode)
+    {
+        $league = League::where('invite_code', strtoupper($inviteCode))
+            ->where('is_active', true)
+            ->first();
+
+        if (!$league) {
+            return redirect()->route('leagues.index')
+                ->withErrors(['error' => 'Invalid or expired invite link.']);
+        }
+
+        if ($league->isFull()) {
+            return redirect()->route('leagues.index')
+                ->withErrors(['error' => 'This league is full.']);
+        }
+
+        if ($league->hasUser(auth()->user())) {
+            return redirect()->route('leagues.show', $league)
+                ->with('info', 'You are already a member of this league.');
+        }
+
+        LeagueMember::create([
+            'league_id' => $league->id,
+            'user_id' => auth()->id(),
+            'role' => 'member',
+            'joined_at' => now()
+        ]);
+
+        return redirect()->route('leagues.show', $league)
+            ->with('success', "🎉 Welcome to {$league->name}! You've successfully joined this league via invite link.");
+    }
+
+    public function leave(League $league)
+    {
+        $this->authorize('leave', $league);
+
+        if ($league->owner_id === auth()->id()) {
+            return back()->withErrors(['error' => 'League owners cannot leave their own league.']);
+        }
+
+        LeagueMember::where('league_id', $league->id)
+            ->where('user_id', auth()->id())
+            ->delete();
+
+        return redirect()->route('leagues.index')
+            ->with('success', 'Successfully left the league.');
+    }
+
+    public function destroy(League $league)
+    {
+        $this->authorize('delete', $league);
+
+        $league->delete();
+
+        return redirect()->route('leagues.index')
+            ->with('success', 'League deleted successfully.');
+    }
+
+    public function userPredictions(League $league, User $user)
+    {
+        $this->authorize('view', $league);
+
+        // Check if the user is a member of this league
+        if (!$league->hasUser($user)) {
+            abort(404, 'User is not a member of this league.');
+        }
+
+        // Get predictions only for games that have started or finished
+        // This prevents users from copying predictions from ongoing games
+        $predictions = Prediction::with(['game.homeTeam', 'game.awayTeam', 'game.championship'])
+            ->where('user_id', $user->id)
+            ->where('league_id', $league->id)
+            ->whereHas('game', function ($query) {
+                $query->where(function ($q) {
+                    // Games that have started (current time is past scheduled time)
+                    $q->where('scheduled_at', '<=', now())
+                        // Or games that are explicitly finished/completed
+                        ->orWhere('status', 'finished')
+                        ->orWhere('status', 'completed');
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return Inertia::render('Leagues/UserPredictions', [
+            'league' => $league,
+            'user' => $user,
+            'predictions' => $predictions,
+            'userRole' => $league->getUserRole(auth()->user()),
+        ]);
+    }
+
+    public function gamePredictions(League $league, Game $game)
+    {
+        $this->authorize('view', $league);
+
+        // Load game with its relationships
+        $game->load(['homeTeam', 'awayTeam', 'championship']);
+
+        // Check if game has started or finished (predictions are visible)
+        $gameStarted = now() >= $game->scheduled_at ||
+            in_array($game->status, ['finished', 'completed', 'live']);
+
+        // Get all league members
+        $leagueMembers = $league->members()->with('user')->get();
+
+        $predictions = collect();
+
+        if ($gameStarted) {
+            // Game has started - show all predictions with points
+            $predictions = Prediction::with('user')
+                ->where('league_id', $league->id)
+                ->where('game_id', $game->id)
+                ->get();
+        }
+
+        // Create a complete list including members without predictions
+        $allMembersPredictions = $leagueMembers->map(function ($member) use ($predictions, $gameStarted) {
+            $prediction = $predictions->firstWhere('user_id', $member->user_id);
+
+            return [
+                'user' => $member->user,
+                'prediction' => $gameStarted && $prediction ? [
+                    'id' => $prediction->id,
+                    'home_score_prediction' => $prediction->home_score_prediction,
+                    'away_score_prediction' => $prediction->away_score_prediction,
+                    'points_earned' => $prediction->points_earned,
+                    'predicted_at' => $prediction->predicted_at,
+                ] : null,
+                'role' => $member->role,
+                'joined_at' => $member->joined_at,
+            ];
+        });
+
+        // Sort by points (highest first), then by prediction time for ties
+        if ($gameStarted) {
+            $allMembersPredictions = $allMembersPredictions->sortBy([
+                fn($a, $b) => ($b['prediction']['points_earned'] ?? 0) <=> ($a['prediction']['points_earned'] ?? 0),
+                fn($a, $b) => ($a['prediction']['predicted_at'] ?? now()) <=> ($b['prediction']['predicted_at'] ?? now())
+            ])->values();
+        } else {
+            // For upcoming games, sort by join date or name
+            $allMembersPredictions = $allMembersPredictions->sortBy('user.name')->values();
+        }
+
+        return Inertia::render('Leagues/GamePredictions', [
+            'league' => $league,
+            'game' => $game,
+            'predictions' => $allMembersPredictions,
+            'gameStarted' => $gameStarted,
+            'userRole' => $league->getUserRole(auth()->user()),
+        ]);
+    }
+
+    public function kick(League $league, User $member)
+    {
+        $this->authorize('delete', $league);
+
+        // Prevent owner from being kicked
+        if ($member->id === $league->owner_id) {
+            return back()->withErrors(['error' => 'You cannot kick the league owner.']);
+        }
+
+        LeagueMember::where('league_id', $league->id)
+            ->where('user_id', $member->id)
+            ->delete();
+
+        return back()->with('success', $member->name . ' has been removed from the league.');
+    }
+}
