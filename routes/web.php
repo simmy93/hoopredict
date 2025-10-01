@@ -1,11 +1,17 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LeagueController as AdminLeagueController;
+use App\Http\Controllers\Admin\LeagueMemberController as AdminLeagueMemberController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\GameController;
+use App\Http\Controllers\FantasyLeagueController;
+use App\Http\Controllers\FantasyPlayerController;
+use App\Http\Controllers\FantasyTeamController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\PredictionController;
 use Illuminate\Support\Facades\Route;
@@ -59,9 +65,34 @@ Route::middleware('auth')->group(function () {
     Route::delete('/leagues/{league}/leave', [LeagueController::class, 'leave'])->name('leagues.leave');
     Route::delete('/leagues/{league}/members/{member}/kick', [LeagueController::class, 'kick'])->name('leagues.members.kick');
 
-    Route::resource('games', GameController::class)->only(['index', 'show']);
     Route::resource('predictions', PredictionController::class)->only(['index', 'store', 'destroy']);
+
+    // Fantasy Leagues
+    Route::prefix('fantasy')->name('fantasy.')->group(function () {
+        Route::get('/leagues', [FantasyLeagueController::class, 'index'])->name('leagues.index');
+        Route::get('/leagues/create', [FantasyLeagueController::class, 'create'])->name('leagues.create');
+        Route::post('/leagues', [FantasyLeagueController::class, 'store'])->name('leagues.store');
+        Route::get('/leagues/{league}', [FantasyLeagueController::class, 'show'])->name('leagues.show');
+        Route::post('/leagues/join', [FantasyLeagueController::class, 'join'])->name('leagues.join');
+        Route::get('/leagues/join/{inviteCode}', [FantasyLeagueController::class, 'joinByUrl'])->name('leagues.join.url');
+        Route::delete('/leagues/{league}', [FantasyLeagueController::class, 'destroy'])->name('leagues.destroy');
+
+        // Fantasy Team
+        Route::get('/leagues/{league}/team', [FantasyTeamController::class, 'show'])->name('team.show');
+
+        // Fantasy Players (marketplace)
+        Route::get('/leagues/{league}/players', [FantasyPlayerController::class, 'index'])->name('players.index');
+        Route::post('/leagues/{league}/players/{player}/buy', [FantasyPlayerController::class, 'buy'])->name('players.buy');
+        Route::delete('/leagues/{league}/players/{player}/sell', [FantasyPlayerController::class, 'sell'])->name('players.sell');
+    });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+});
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+    Route::resource('users', AdminUserController::class);
+    Route::resource('leagues', AdminLeagueController::class);
+    Route::resource('league-members', AdminLeagueMemberController::class);
 });

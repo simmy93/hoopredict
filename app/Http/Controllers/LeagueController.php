@@ -62,7 +62,7 @@ class LeagueController extends Controller
             ->with('success', 'League created successfully!');
     }
 
-    public function show(League $league)
+    public function show(League $league, Request $request)
     {
         $this->authorize('view', $league);
 
@@ -74,12 +74,36 @@ class LeagueController extends Controller
 
         $userRole = $league->getUserRole(auth()->user());
 
-        // Get upcoming and recent games for predictions
-        $games = Game::with(['homeTeam', 'awayTeam', 'championship'])
-            ->where('status', '!=', 'cancelled')
-            ->where('scheduled_at', '>', now()->subDays(7)) // Show games from last 7 days
-            ->orderBy('scheduled_at')
-            ->get();
+        // Get all games ordered by date
+        $gamesQuery = Game::with(['homeTeam', 'awayTeam', 'championship'])
+            ->whereIn('status', ['scheduled', 'live', 'finished'])
+            ->orderBy('scheduled_at', 'asc');
+
+        // If no page specified, calculate the page where today's games are
+        $perPage = 15;
+        $currentPage = $request->input('page', null);
+
+        if ($currentPage === null) {
+            // Find the first upcoming or today's game
+            $upcomingGameIndex = Game::whereIn('status', ['scheduled', 'live'])
+                ->where('scheduled_at', '>=', now()->startOfDay())
+                ->orderBy('scheduled_at', 'asc')
+                ->value('id');
+
+            if ($upcomingGameIndex) {
+                // Count how many games come before this one
+                $position = Game::whereIn('status', ['scheduled', 'live', 'finished'])
+                    ->where('scheduled_at', '<', Game::find($upcomingGameIndex)->scheduled_at)
+                    ->count();
+
+                // Calculate which page this game is on
+                $currentPage = floor($position / $perPage) + 1;
+            } else {
+                $currentPage = 1;
+            }
+        }
+
+        $games = $gamesQuery->paginate($perPage, ['*'], 'page', $currentPage);
 
         // Get existing predictions for this user in this league
         $existingPredictions = Prediction::where('user_id', auth()->id())

@@ -36,6 +36,7 @@ interface Team {
     name: string;
     city: string;
     country: string;
+    logo_url: string | null;
 }
 
 interface Championship {
@@ -78,12 +79,20 @@ interface League {
     leaderboards?: LeaderboardEntry[];
 }
 
+interface PaginatedGames {
+    data: Game[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+}
+
 interface Props {
     league: League;
     userRole: string | null;
     members: LeagueMember[];
     leaderboard: LeaderboardEntry[];
-    games: Game[];
+    games: PaginatedGames;
     existingPredictions: Record<string, Prediction>;
     inviteUrl: string;
 }
@@ -277,8 +286,8 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
         });
     };
 
-    const upcomingGames = games.filter((game) => new Date(game.scheduled_at) > new Date());
-    const finishedGames = games.filter((game) => game.status === 'finished');
+    // All games are already sorted by scheduled_at from backend
+    const allGames = games.data;
 
     return (
         <AuthenticatedLayout>
@@ -368,17 +377,17 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                 </TabsList>
 
                                 <TabsContent value="games" className="space-y-4">
-                                    {upcomingGames.length === 0 ? (
+                                    {allGames.length === 0 ? (
                                         <Card>
                                             <CardContent className="flex flex-col items-center justify-center py-12">
                                                 <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
-                                                <h3 className="mb-2 text-lg font-semibold">No Upcoming Games</h3>
-                                                <p className="text-center text-muted-foreground">Check back later for new games to predict</p>
+                                                <h3 className="mb-2 text-lg font-semibold">No Games Available</h3>
+                                                <p className="text-center text-muted-foreground">Check back later for new games</p>
                                             </CardContent>
                                         </Card>
                                     ) : (
                                         <div className="space-y-4">
-                                            {upcomingGames.map((game) => {
+                                            {allGames.map((game) => {
                                                 const { date, time } = formatDateTime(game.scheduled_at);
                                                 const prediction = existingPredictions[game.id.toString()];
                                                 const gameCanPredict = canPredict(game);
@@ -422,8 +431,18 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                                             <div className="mb-6 flex items-center justify-center space-x-8">
                                                                 {/* Home Team */}
                                                                 <div className="flex max-w-xs flex-1 flex-col items-center space-y-3">
-                                                                    <div className="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold">
-                                                                        {game.home_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                                                    <div className="flex h-16 w-16 items-center justify-center">
+                                                                        {game.home_team.logo_url ? (
+                                                                            <img
+                                                                                src={game.home_team.logo_url}
+                                                                                alt={game.home_team.name}
+                                                                                className="h-16 w-16 object-contain"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="bg-primary text-primary-foreground flex h-16 w-16 items-center justify-center rounded-full text-lg font-bold">
+                                                                                {game.home_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     <div className="text-center">
                                                                         <div className="text-lg font-bold">{game.home_team.name}</div>
@@ -438,8 +457,18 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
 
                                                                 {/* Away Team */}
                                                                 <div className="flex max-w-xs flex-1 flex-col items-center space-y-3">
-                                                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-lg font-bold text-secondary-foreground">
-                                                                        {game.away_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                                                    <div className="flex h-16 w-16 items-center justify-center">
+                                                                        {game.away_team.logo_url ? (
+                                                                            <img
+                                                                                src={game.away_team.logo_url}
+                                                                                alt={game.away_team.name}
+                                                                                className="h-16 w-16 object-contain"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary text-lg font-bold text-secondary-foreground">
+                                                                                {game.away_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                     <div className="text-center">
                                                                         <div className="text-lg font-bold">{game.away_team.name}</div>
@@ -451,79 +480,200 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                                                 </div>
                                                             </div>
 
-                                                            {/* Prediction Form - Always Visible */}
-                                                            <form onSubmit={(e) => submitPrediction(e, game.id)} className="space-y-4">
-                                                                <div className="flex items-center justify-center space-x-6">
-                                                                    <div className="flex flex-col items-center space-y-2">
-                                                                        <Label className="text-sm font-medium text-muted-foreground">Score</Label>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min="50"
-                                                                            max="150"
-                                                                            value={currentInputs.home}
-                                                                            onChange={(e) => updateGameInput(game.id, 'home', e.target.value)}
-                                                                            placeholder="80"
-                                                                            className="w-20 text-center text-lg font-semibold"
-                                                                            disabled={!gameCanPredict}
-                                                                        />
-                                                                    </div>
+                                                            {/* Show actual scores for finished games */}
+                                                            {game.status === 'finished' && game.home_score !== null ? (
+                                                                <div className="space-y-4">
+                                                                    <div className="flex items-center justify-center space-x-6 bg-muted/50 rounded-lg p-4">
+                                                                        <div className="flex flex-col items-center space-y-2">
+                                                                            <Label className="text-sm font-medium text-muted-foreground">Final Score</Label>
+                                                                            <div className="w-20 text-center text-3xl font-bold text-foreground">
+                                                                                {game.home_score}
+                                                                            </div>
+                                                                        </div>
 
-                                                                    <div className="pt-6 text-2xl font-bold text-muted-foreground">-</div>
+                                                                        <div className="pt-6 text-2xl font-bold text-muted-foreground">-</div>
 
-                                                                    <div className="flex flex-col items-center space-y-2">
-                                                                        <Label className="text-sm font-medium text-muted-foreground">Score</Label>
-                                                                        <Input
-                                                                            type="number"
-                                                                            min="50"
-                                                                            max="150"
-                                                                            value={currentInputs.away}
-                                                                            onChange={(e) => updateGameInput(game.id, 'away', e.target.value)}
-                                                                            placeholder="80"
-                                                                            className="w-20 text-center text-lg font-semibold"
-                                                                            disabled={!gameCanPredict}
-                                                                        />
-                                                                    </div>
-                                                                </div>
-
-                                                                {gameCanPredict ? (
-                                                                    <div className="flex justify-center">
-                                                                        <Button type="submit" disabled={isProcessing}>
-                                                                            {isProcessing
-                                                                                ? 'Saving...'
-                                                                                : prediction
-                                                                                  ? 'Update Prediction'
-                                                                                  : 'Save Prediction'}
-                                                                        </Button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="text-center">
-                                                                        <div className="text-sm text-muted-foreground">
-                                                                            Predictions are closed for this game
+                                                                        <div className="flex flex-col items-center space-y-2">
+                                                                            <Label className="text-sm font-medium text-muted-foreground">Final Score</Label>
+                                                                            <div className="w-20 text-center text-3xl font-bold text-foreground">
+                                                                                {game.away_score}
+                                                                            </div>
                                                                         </div>
                                                                     </div>
-                                                                )}
 
-                                                                {feedback && (
-                                                                    <div
-                                                                        className={`mt-3 flex items-center justify-center gap-2 rounded-lg p-3 ${
-                                                                            feedback.type === 'success'
-                                                                                ? 'border border-green-200 bg-green-50 text-green-700'
-                                                                                : 'border border-red-200 bg-red-50 text-red-700'
-                                                                        }`}
-                                                                    >
-                                                                        {feedback.type === 'success' ? (
-                                                                            <CheckCircle className="h-4 w-4" />
-                                                                        ) : (
-                                                                            <XCircle className="h-4 w-4" />
-                                                                        )}
-                                                                        <span className="text-sm font-medium">{feedback.message}</span>
+                                                                    {prediction && (
+                                                                        <div className="flex items-center justify-center space-x-6 border border-primary/20 rounded-lg p-4 bg-primary/5">
+                                                                            <div className="flex flex-col items-center space-y-2">
+                                                                                <Label className="text-sm font-medium text-muted-foreground">Your Prediction</Label>
+                                                                                <div className="w-20 text-center text-2xl font-semibold text-primary">
+                                                                                    {prediction.home_score_prediction}
+                                                                                </div>
+                                                                            </div>
+
+                                                                            <div className="pt-6 text-xl font-bold text-muted-foreground">-</div>
+
+                                                                            <div className="flex flex-col items-center space-y-2">
+                                                                                <Label className="text-sm font-medium text-muted-foreground">Your Prediction</Label>
+                                                                                <div className="w-20 text-center text-2xl font-semibold text-primary">
+                                                                                    {prediction.away_score_prediction}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {prediction && prediction.points_earned !== null && prediction.points_earned !== undefined && (
+                                                                        <div className="text-center">
+                                                                            <Badge variant={prediction.points_earned > 0 ? "default" : "secondary"} className="text-lg py-1 px-4">
+                                                                                {prediction.points_earned > 0 ? `+${prediction.points_earned}` : prediction.points_earned} points
+                                                                            </Badge>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                /* Prediction Form for upcoming games */
+                                                                <form onSubmit={(e) => submitPrediction(e, game.id)} className="space-y-4">
+                                                                    <div className="flex items-center justify-center space-x-6">
+                                                                        <div className="flex flex-col items-center space-y-2">
+                                                                            <Label className="text-sm font-medium text-muted-foreground">Score</Label>
+                                                                            <Input
+                                                                                type="number"
+                                                                                min="50"
+                                                                                max="150"
+                                                                                value={currentInputs.home}
+                                                                                onChange={(e) => updateGameInput(game.id, 'home', e.target.value)}
+                                                                                placeholder="80"
+                                                                                className="w-20 text-center text-lg font-semibold"
+                                                                                disabled={!gameCanPredict}
+                                                                            />
+                                                                        </div>
+
+                                                                        <div className="pt-6 text-2xl font-bold text-muted-foreground">-</div>
+
+                                                                        <div className="flex flex-col items-center space-y-2">
+                                                                            <Label className="text-sm font-medium text-muted-foreground">Score</Label>
+                                                                            <Input
+                                                                                type="number"
+                                                                                min="50"
+                                                                                max="150"
+                                                                                value={currentInputs.away}
+                                                                                onChange={(e) => updateGameInput(game.id, 'away', e.target.value)}
+                                                                                placeholder="80"
+                                                                                className="w-20 text-center text-lg font-semibold"
+                                                                                disabled={!gameCanPredict}
+                                                                            />
+                                                                        </div>
                                                                     </div>
-                                                                )}
-                                                            </form>
+
+                                                                    {gameCanPredict ? (
+                                                                        <div className="flex justify-center">
+                                                                            <Button type="submit" disabled={isProcessing}>
+                                                                                {isProcessing
+                                                                                    ? 'Saving...'
+                                                                                    : prediction
+                                                                                      ? 'Update Prediction'
+                                                                                      : 'Save Prediction'}
+                                                                            </Button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-center">
+                                                                            <div className="text-sm text-muted-foreground">
+                                                                                Predictions are closed for this game
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {feedback && (
+                                                                        <div
+                                                                            className={`mt-3 flex items-center justify-center gap-2 rounded-lg p-3 ${
+                                                                                feedback.type === 'success'
+                                                                                    ? 'border border-green-200 bg-green-50 text-green-700'
+                                                                                    : 'border border-red-200 bg-red-50 text-red-700'
+                                                                            }`}
+                                                                        >
+                                                                            {feedback.type === 'success' ? (
+                                                                                <CheckCircle className="h-4 w-4" />
+                                                                            ) : (
+                                                                                <XCircle className="h-4 w-4" />
+                                                                            )}
+                                                                            <span className="text-sm font-medium">{feedback.message}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </form>
+                                                            )}
                                                         </CardContent>
                                                     </Card>
                                                 );
                                             })}
+
+                                            {/* Pagination */}
+                                            {games.last_page > 1 && (
+                                                <div className="mt-6 flex justify-center items-center gap-2 flex-wrap">
+                                                    {/* Previous Button */}
+                                                    {games.current_page > 1 && (
+                                                        <Link
+                                                            href={`/leagues/${league.id}?page=${games.current_page - 1}`}
+                                                            preserveScroll
+                                                        >
+                                                            <Button variant="outline" size="sm">
+                                                                ← Previous
+                                                            </Button>
+                                                        </Link>
+                                                    )}
+
+                                                    {/* First Page */}
+                                                    {games.current_page > 3 && (
+                                                        <>
+                                                            <Link href={`/leagues/${league.id}?page=1`} preserveScroll>
+                                                                <Button variant="outline" size="sm">1</Button>
+                                                            </Link>
+                                                            {games.current_page > 4 && <span className="text-gray-400">...</span>}
+                                                        </>
+                                                    )}
+
+                                                    {/* Page Numbers (show current page and 2 pages on each side) */}
+                                                    {Array.from({ length: games.last_page }, (_, i) => i + 1)
+                                                        .filter(page =>
+                                                            page === games.current_page ||
+                                                            (page >= games.current_page - 2 && page <= games.current_page + 2)
+                                                        )
+                                                        .map((page) => (
+                                                            <Link
+                                                                key={page}
+                                                                href={`/leagues/${league.id}?page=${page}`}
+                                                                preserveScroll
+                                                            >
+                                                                <Button
+                                                                    variant={page === games.current_page ? 'default' : 'outline'}
+                                                                    size="sm"
+                                                                >
+                                                                    {page}
+                                                                </Button>
+                                                            </Link>
+                                                        ))}
+
+                                                    {/* Last Page */}
+                                                    {games.current_page < games.last_page - 2 && (
+                                                        <>
+                                                            {games.current_page < games.last_page - 3 && <span className="text-gray-400">...</span>}
+                                                            <Link href={`/leagues/${league.id}?page=${games.last_page}`} preserveScroll>
+                                                                <Button variant="outline" size="sm">{games.last_page}</Button>
+                                                            </Link>
+                                                        </>
+                                                    )}
+
+                                                    {/* Next Button */}
+                                                    {games.current_page < games.last_page && (
+                                                        <Link
+                                                            href={`/leagues/${league.id}?page=${games.current_page + 1}`}
+                                                            preserveScroll
+                                                        >
+                                                            <Button variant="outline" size="sm">
+                                                                Next →
+                                                            </Button>
+                                                        </Link>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </TabsContent>

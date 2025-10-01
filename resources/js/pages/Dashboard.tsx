@@ -103,7 +103,7 @@ export default function Dashboard({ user }: DashboardProps) {
                             You're successfully authenticated and ready to go.
                         </p>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
                             <Link href="/leagues" className="group">
                                 <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 p-6 hover:shadow-2xl transition-all duration-200 group-hover:scale-105">
                                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl flex items-center justify-center mb-4">
@@ -112,10 +112,24 @@ export default function Dashboard({ user }: DashboardProps) {
                                         </svg>
                                     </div>
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                        My Leagues
+                                        Prediction Leagues
                                     </h3>
                                     <p className="text-gray-600 dark:text-gray-400 text-sm">
-                                        Manage your prediction leagues and compete with friends.
+                                        Predict game outcomes and compete with friends.
+                                    </p>
+                                </div>
+                            </Link>
+
+                            <Link href="/fantasy/leagues" className="group">
+                                <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 p-6 hover:shadow-2xl transition-all duration-200 group-hover:scale-105">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl flex items-center justify-center mb-4">
+                                        <span className="text-2xl">🏀</span>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                                        Fantasy Basketball
+                                    </h3>
+                                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                        Build your dream team and compete in fantasy leagues.
                                     </p>
                                 </div>
                             </Link>

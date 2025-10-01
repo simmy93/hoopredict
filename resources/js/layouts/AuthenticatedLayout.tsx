@@ -69,13 +69,13 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
                                     href="/leagues"
                                     className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                                 >
-                                    Leagues
+                                    Prediction Leagues
                                 </Link>
                                 <Link
-                                    href="/games"
+                                    href="/fantasy/leagues"
                                     className="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                                 >
-                                    Games
+                                    Fantasy
                                 </Link>
                             </nav>
 

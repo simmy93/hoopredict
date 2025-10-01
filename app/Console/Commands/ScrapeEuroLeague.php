@@ -3,19 +3,25 @@
 namespace App\Console\Commands;
 
 use App\Services\EuroLeagueScrapingService;
+use App\Services\EuroLeaguePlayerScrapingService;
 use Illuminate\Console\Command;
 
 class ScrapeEuroLeague extends Command
 {
-    protected $signature = 'scrape:euroleague {--teams : Only scrape teams} {--games : Only scrape games} {--scores : Only update scores}';
-    protected $description = 'Scrape EuroLeague data including teams, games, and scores';
+    protected $signature = 'scrape:euroleague {--teams : Only scrape teams} {--games : Only scrape games} {--scores : Only update scores} {--players : Only scrape players}';
+    protected $description = 'Scrape EuroLeague data including teams, games, players, and scores';
 
     private EuroLeagueScrapingService $scrapingService;
+    private EuroLeaguePlayerScrapingService $playerScrapingService;
 
-    public function __construct(EuroLeagueScrapingService $scrapingService)
+    public function __construct(
+        EuroLeagueScrapingService $scrapingService,
+        EuroLeaguePlayerScrapingService $playerScrapingService
+    )
     {
         parent::__construct();
         $this->scrapingService = $scrapingService;
+        $this->playerScrapingService = $playerScrapingService;
     }
 
     public function handle(): void
@@ -32,9 +38,16 @@ class ScrapeEuroLeague extends Command
             } elseif ($this->option('scores')) {
                 $this->info('Updating scores only...');
                 $this->scrapingService->updateGameScores();
+            } elseif ($this->option('players')) {
+                $this->info('Scraping players only...');
+                $this->playerScrapingService->scrapePlayers();
             } else {
-                $this->info('Scraping all data...');
-                $this->scrapingService->scrapeAll();
+                $this->info('Scraping all data (teams, games, players)...');
+                $this->scrapingService->scrapeTeams();
+                $this->scrapingService->scrapeGames();
+                $this->playerScrapingService->scrapePlayers();
+                $this->scrapingService->updateGameScores();
+                $this->scrapingService->cleanupOldGames();
             }
 
             $this->info('EuroLeague scraping completed successfully!');

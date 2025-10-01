@@ -17,6 +17,7 @@ interface Team {
     name: string
     city: string
     country: string
+    logo_url: string | null
 }
 
 interface Championship {
@@ -151,8 +152,18 @@ export default function GamePredictions({ league, game, predictions, gameStarted
                             <div className="flex items-center justify-center space-x-8 mb-6">
                                 {/* Home Team */}
                                 <div className="flex flex-col items-center space-y-3 flex-1 max-w-xs">
-                                    <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-lg font-bold">
-                                        {game.home_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                    <div className="w-16 h-16 flex items-center justify-center">
+                                        {game.home_team.logo_url ? (
+                                            <img
+                                                src={game.home_team.logo_url}
+                                                alt={game.home_team.name}
+                                                className="h-16 w-16 object-contain"
+                                            />
+                                        ) : (
+                                            <div className="w-16 h-16 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-lg font-bold">
+                                                {game.home_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="text-center">
                                         <div className="font-bold text-lg">{game.home_team.name}</div>
@@ -186,8 +197,18 @@ export default function GamePredictions({ league, game, predictions, gameStarted
 
                                 {/* Away Team */}
                                 <div className="flex flex-col items-center space-y-3 flex-1 max-w-xs">
-                                    <div className="w-16 h-16 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center text-lg font-bold">
-                                        {game.away_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                    <div className="w-16 h-16 flex items-center justify-center">
+                                        {game.away_team.logo_url ? (
+                                            <img
+                                                src={game.away_team.logo_url}
+                                                alt={game.away_team.name}
+                                                className="h-16 w-16 object-contain"
+                                            />
+                                        ) : (
+                                            <div className="w-16 h-16 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center text-lg font-bold">
+                                                {game.away_team.name.split(' ')[0].substring(0, 3).toUpperCase()}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="text-center">
                                         <div className="font-bold text-lg">{game.away_team.name}</div>

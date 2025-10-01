@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'is_admin',
     ];
 
     /**
@@ -44,6 +45,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
         ];
     }
 
@@ -72,5 +74,15 @@ class User extends Authenticatable
     public function leaderboards(): HasMany
     {
         return $this->hasMany(LeagueLeaderboard::class);
+    }
+
+    public function fantasyTeams(): HasMany
+    {
+        return $this->hasMany(FantasyTeam::class);
+    }
+
+    public function ownedFantasyLeagues(): HasMany
+    {
+        return $this->hasMany(FantasyLeague::class, 'owner_id');
     }
 }
