@@ -1,8 +1,12 @@
-import React from 'react'
-import { Head, Link } from '@inertiajs/react'
+import React, { useState } from 'react'
+import { Head, Link, useForm } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Users, Plus } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import { Trophy, Users, Plus, LogIn } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 interface Championship {
@@ -33,6 +37,21 @@ interface Props {
 }
 
 export default function Index({ userLeagues }: Props) {
+    const [open, setOpen] = useState(false)
+    const { data, setData, post, processing, errors, reset } = useForm({
+        invite_code: '',
+    })
+
+    const handleJoin = (e: React.FormEvent) => {
+        e.preventDefault()
+        post('/fantasy/leagues/join', {
+            onSuccess: () => {
+                reset()
+                setOpen(false)
+            },
+        })
+    }
+
     return (
         <AuthenticatedLayout>
             <Head title="Fantasy Leagues" />
@@ -41,82 +60,125 @@ export default function Index({ userLeagues }: Props) {
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h1 className="text-3xl font-bold flex items-center gap-2">
-                                <Trophy className="h-8 w-8" />
-                                Fantasy Basketball
-                            </h1>
+                            <h2 className="text-2xl font-bold text-foreground">Fantasy Basketball</h2>
                             <p className="text-muted-foreground mt-1">
                                 Create your dream team and compete with friends
                             </p>
                         </div>
-                        <Link href="/fantasy/leagues/create">
-                            <Button>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create League
-                            </Button>
-                        </Link>
+                        <div className="flex gap-2">
+                            <Dialog open={open} onOpenChange={setOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="outline" className="flex items-center gap-2">
+                                        <LogIn className="h-4 w-4" />
+                                        Join League
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Join Fantasy League</DialogTitle>
+                                        <DialogDescription>
+                                            Enter the invite code to join an existing league
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleJoin} className="space-y-4">
+                                        <div>
+                                            <Label htmlFor="invite_code">Invite Code</Label>
+                                            <Input
+                                                id="invite_code"
+                                                value={data.invite_code}
+                                                onChange={(e) => setData('invite_code', e.target.value.toUpperCase())}
+                                                placeholder="ABC123"
+                                                className="uppercase"
+                                                maxLength={6}
+                                            />
+                                            {errors.invite_code && (
+                                                <p className="text-sm text-red-600 mt-1">{errors.invite_code}</p>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => setOpen(false)}
+                                                disabled={processing}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button type="submit" disabled={processing}>
+                                                {processing ? 'Joining...' : 'Join League'}
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                            <Link href="/fantasy/leagues/create">
+                                <Button className="flex items-center gap-2">
+                                    <Plus className="h-4 w-4" />
+                                    Create League
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
 
                     {userLeagues.length === 0 ? (
                         <Card>
                             <CardContent className="flex flex-col items-center justify-center py-12">
-                                <Trophy className="h-16 w-16 text-muted-foreground mb-4" />
-                                <h3 className="text-xl font-semibold mb-2">No Fantasy Leagues Yet</h3>
-                                <p className="text-muted-foreground text-center mb-6 max-w-md">
-                                    Start your fantasy basketball journey by creating a league or joining an existing one with an invite code.
+                                <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+                                <h3 className="text-lg font-semibold mb-2">No fantasy leagues yet</h3>
+                                <p className="text-muted-foreground text-center mb-4">
+                                    Create your first league or join one with an invite code
                                 </p>
-                                <div className="flex gap-3">
+                                <div className="flex gap-2">
                                     <Link href="/fantasy/leagues/create">
-                                        <Button>
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Create League
-                                        </Button>
+                                        <Button>Create League</Button>
                                     </Link>
+                                    <Button variant="outline" onClick={() => setOpen(true)}>Join League</Button>
                                 </div>
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="grid md:grid-cols-2 gap-6">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {userLeagues.map((league) => (
-                                <Link key={league.id} href={`/fantasy/leagues/${league.id}`}>
-                                    <Card className="hover:border-primary transition-colors cursor-pointer h-full">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center justify-between">
-                                                <span>{league.name}</span>
-                                                <span className="text-xs font-normal px-2 py-1 bg-primary/10 text-primary rounded">
-                                                    {league.mode === 'budget' ? 'Budget Mode' : 'Draft Mode'}
-                                                </span>
-                                            </CardTitle>
-                                            <CardDescription>
-                                                {league.championship.name} - {league.championship.season}
-                                            </CardDescription>
-                                        </CardHeader>
-                                        <CardContent>
-                                            {league.description && (
-                                                <p className="text-sm text-muted-foreground mb-4">
-                                                    {league.description}
-                                                </p>
-                                            )}
-                                            <div className="flex items-center gap-4 text-sm">
-                                                <div className="flex items-center gap-1">
-                                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                                    <span>{league.teams_count || 0}/{league.max_members} Members</span>
-                                                </div>
-                                                {league.mode === 'budget' && (
-                                                    <div>
-                                                        <span className="font-medium">Budget:</span> ${(league.budget / 1000000).toFixed(0)}M
-                                                    </div>
+                                <Card key={league.id} className="hover:shadow-md transition-shadow">
+                                    <CardHeader>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <CardTitle className="flex items-center gap-2">
+                                                    {league.name}
+                                                </CardTitle>
+                                                {league.description && (
+                                                    <CardDescription className="mt-1">
+                                                        {league.description}
+                                                    </CardDescription>
                                                 )}
-                                                <div>
-                                                    <span className="font-medium">Team Size:</span> {league.team_size}
-                                                </div>
                                             </div>
-                                            <div className="mt-3 text-sm text-muted-foreground">
-                                                Owner: {league.owner.name}
+                                            <div className="flex gap-1">
+                                                {league.is_private && (
+                                                    <Badge variant="secondary">Private</Badge>
+                                                )}
+                                                <Badge variant="outline" className="text-xs">
+                                                    {league.mode === 'budget' ? 'Budget' : 'Draft'}
+                                                </Badge>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                </Link>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Users className="h-4 w-4" />
+                                                {league.teams_count || 0}/{league.max_members} members
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {league.championship.name}
+                                            </div>
+                                        </div>
+                                        <Link href={`/fantasy/leagues/${league.id}`}>
+                                            <Button variant="outline" size="sm" className="w-full">
+                                                View League
+                                            </Button>
+                                        </Link>
+                                    </CardContent>
+                                </Card>
                             ))}
                         </div>
                     )}

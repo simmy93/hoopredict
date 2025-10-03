@@ -19,6 +19,7 @@ class FantasyTeam extends Model
         'budget_spent',
         'budget_remaining',
         'total_points',
+        'draft_order',
     ];
 
     protected function casts(): array
@@ -42,6 +43,11 @@ class FantasyTeam extends Model
     public function fantasyTeamPlayers(): HasMany
     {
         return $this->hasMany(FantasyTeamPlayer::class);
+    }
+
+    public function draftPicks(): HasMany
+    {
+        return $this->hasMany(DraftPick::class);
     }
 
     public function players(): BelongsToMany
@@ -122,6 +128,23 @@ class FantasyTeam extends Model
         $this->update([
             'budget_spent' => $this->budget_spent - $player->price,
             'budget_remaining' => $this->budget_remaining + $player->price,
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Draft a player (for draft mode)
+     */
+    public function draftPlayer(Player $player): bool
+    {
+        if ($this->isFull()) {
+            return false;
+        }
+
+        $this->players()->attach($player->id, [
+            'purchase_price' => 0,
+            'acquired_at' => now(),
         ]);
 
         return true;

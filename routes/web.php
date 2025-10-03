@@ -9,6 +9,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
 use App\Http\Controllers\FantasyTeamController;
@@ -84,6 +85,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/leagues/{league}/players', [FantasyPlayerController::class, 'index'])->name('players.index');
         Route::post('/leagues/{league}/players/{player}/buy', [FantasyPlayerController::class, 'buy'])->name('players.buy');
         Route::delete('/leagues/{league}/players/{player}/sell', [FantasyPlayerController::class, 'sell'])->name('players.sell');
+
+        // Draft
+        Route::get('/leagues/{league}/draft', [DraftController::class, 'show'])->name('draft.show');
+        Route::post('/leagues/{league}/draft/start', [DraftController::class, 'start'])->name('draft.start');
+        Route::post('/leagues/{league}/draft/pick', [DraftController::class, 'pick'])->name('draft.pick');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

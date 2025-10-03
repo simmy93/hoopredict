@@ -1,10 +1,10 @@
 import React, { useState } from 'react'
-import { Head, Link, router } from '@inertiajs/react'
+import { Head, Link, router, useForm } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Users, ShoppingCart, Share2, Copy, Check } from 'lucide-react'
+import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 interface User {
@@ -49,6 +49,7 @@ interface FantasyLeague {
     owner: User
     championship: Championship
     teams: FantasyTeam[]
+    draft_status?: 'pending' | 'in_progress' | 'completed'
 }
 
 interface Props {
@@ -60,11 +61,18 @@ interface Props {
 
 export default function Show({ league, userTeam, leaderboard, inviteUrl }: Props) {
     const [copied, setCopied] = useState(false)
+    const { post: startDraft, processing: startingDraft } = useForm()
 
     const copyInviteUrl = () => {
         navigator.clipboard.writeText(inviteUrl)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
+    }
+
+    const handleStartDraft = () => {
+        if (confirm('Are you sure you want to start the draft? This cannot be undone.')) {
+            startDraft(`/fantasy/leagues/${league.id}/draft/start`)
+        }
     }
 
     return (
@@ -122,6 +130,40 @@ export default function Show({ league, userTeam, leaderboard, inviteUrl }: Props
                                     <span className="font-medium">{league.team_size} players</span>
                                 </div>
                             </div>
+
+                            {/* Draft Controls */}
+                            {league.mode === 'draft' && (
+                                <div className="mt-6">
+                                    {league.draft_status === 'pending' && league.owner_id === userTeam?.user.id && (
+                                        <Button onClick={handleStartDraft} disabled={startingDraft} className="w-full">
+                                            <Play className="h-4 w-4 mr-2" />
+                                            {startingDraft ? 'Starting Draft...' : 'Start Draft'}
+                                        </Button>
+                                    )}
+                                    {league.draft_status === 'pending' && league.owner_id !== userTeam?.user.id && (
+                                        <div className="text-center py-4 bg-muted rounded-md">
+                                            <p className="text-sm text-muted-foreground">
+                                                Waiting for league owner to start the draft...
+                                            </p>
+                                        </div>
+                                    )}
+                                    {league.draft_status === 'in_progress' && (
+                                        <Link href={`/fantasy/leagues/${league.id}/draft`}>
+                                            <Button className="w-full">
+                                                <Eye className="h-4 w-4 mr-2" />
+                                                Join Draft Room
+                                            </Button>
+                                        </Link>
+                                    )}
+                                    {league.draft_status === 'completed' && (
+                                        <div className="text-center py-4 bg-green-50 rounded-md">
+                                            <p className="text-sm text-green-700 font-medium">
+                                                Draft Completed
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Invite URL */}
                             <div className="mt-6 flex gap-2">

@@ -24,6 +24,10 @@ class FantasyLeague extends Model
         'is_private',
         'max_members',
         'draft_date',
+        'draft_status',
+        'current_pick',
+        'pick_started_at',
+        'pick_time_limit',
     ];
 
     protected function casts(): array
@@ -33,6 +37,7 @@ class FantasyLeague extends Model
             'is_active' => 'boolean',
             'is_private' => 'boolean',
             'draft_date' => 'datetime',
+            'pick_started_at' => 'datetime',
         ];
     }
 
@@ -51,6 +56,11 @@ class FantasyLeague extends Model
         return $this->hasMany(FantasyTeam::class);
     }
 
+    public function draftPicks(): HasMany
+    {
+        return $this->hasMany(DraftPick::class);
+    }
+
     public function isFull(): bool
     {
         return $this->teams()->count() >= $this->max_members;
@@ -63,6 +73,63 @@ class FantasyLeague extends Model
 
     public function getInviteUrl(): string
     {
-        return url("/fantasy-leagues/join/{$this->invite_code}");
+        return url("/fantasy/leagues/join/{$this->invite_code}");
+    }
+
+    public function generateDraftOrder(): void
+    {
+        $teams = $this->teams()->get()->shuffle();
+
+        foreach ($teams as $index => $team) {
+            $team->update(['draft_order' => $index + 1]);
+        }
+
+        $this->update([
+            'draft_status' => 'in_progress',
+            'current_pick' => 1,
+            'pick_started_at' => now(),
+        ]);
+    }
+
+    public function getCurrentDraftTeam(): ?FantasyTeam
+    {
+        if ($this->draft_status !== 'in_progress') {
+            return null;
+        }
+
+        $totalTeams = $this->teams()->count();
+        $currentRound = (int)ceil($this->current_pick / $totalTeams);
+
+        // Snake draft: even rounds go in reverse
+        if ($currentRound % 2 === 0) {
+            $positionInRound = $totalTeams - (($this->current_pick - 1) % $totalTeams);
+        } else {
+            $positionInRound = (($this->current_pick - 1) % $totalTeams) + 1;
+        }
+
+        return $this->teams()->where('draft_order', $positionInRound)->first();
+    }
+
+    public function isDraftComplete(): bool
+    {
+        $totalPicks = $this->teams()->count() * $this->team_size;
+        return $this->current_pick > $totalPicks;
+    }
+
+    public function getTimeRemaining(): ?int
+    {
+        if (!$this->pick_started_at || $this->draft_status !== 'in_progress') {
+            return null;
+        }
+
+        $elapsed = now()->diffInSeconds($this->pick_started_at);
+        $remaining = $this->pick_time_limit - $elapsed;
+
+        return max(0, $remaining);
+    }
+
+    public function isPickExpired(): bool
+    {
+        return $this->getTimeRemaining() === 0;
     }
 }
