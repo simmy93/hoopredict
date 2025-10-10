@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, Search, ArrowLeft, DollarSign, Users } from 'lucide-react'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ShoppingCart, Search, ArrowLeft, DollarSign, Users, Loader2 } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 interface User {
@@ -75,6 +76,10 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
     const [position, setPosition] = useState(String(filters?.position || 'all'))
     const [sortBy, setSortBy] = useState(String(filters?.sort || 'price'))
     const [direction, setDirection] = useState(String(filters?.direction || 'desc'))
+    const [buyingPlayerId, setBuyingPlayerId] = useState<number | null>(null)
+    const [sellingPlayerId, setSellingPlayerId] = useState<number | null>(null)
+    const [confirmSellDialogOpen, setConfirmSellDialogOpen] = useState(false)
+    const [playerToSell, setPlayerToSell] = useState<Player | null>(null)
 
     const updateFilters = (newFilters: any) => {
         if (!league?.id) return
@@ -103,15 +108,28 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
 
     const buyPlayer = (playerId: number) => {
         if (!league?.id) return
+        setBuyingPlayerId(playerId)
         router.post(`/fantasy/leagues/${league.id}/players/${playerId}/buy`, {}, {
             preserveScroll: true,
+            onFinish: () => setBuyingPlayerId(null),
         })
     }
 
-    const sellPlayer = (playerId: number) => {
-        if (!league?.id) return
-        router.delete(`/fantasy/leagues/${league.id}/players/${playerId}/sell`, {
+    const handleSellClick = (player: Player) => {
+        setPlayerToSell(player)
+        setConfirmSellDialogOpen(true)
+    }
+
+    const confirmSell = () => {
+        if (!league?.id || !playerToSell) return
+        setSellingPlayerId(playerToSell.id)
+        setConfirmSellDialogOpen(false)
+        router.delete(`/fantasy/leagues/${league.id}/players/${playerToSell.id}/sell`, {
             preserveScroll: true,
+            onFinish: () => {
+                setSellingPlayerId(null)
+                setPlayerToSell(null)
+            },
         })
     }
 
@@ -204,10 +222,20 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                         <Button
                                                             variant="destructive"
                                                             size="sm"
-                                                            onClick={() => sellPlayer(player.id)}
+                                                            onClick={() => handleSellClick(player)}
+                                                            disabled={sellingPlayerId === player.id}
                                                         >
-                                                            <DollarSign className="h-3 w-3 mr-1" />
-                                                            Sell
+                                                            {sellingPlayerId === player.id ? (
+                                                                <>
+                                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                                    Selling...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <DollarSign className="h-3 w-3 mr-1" />
+                                                                    Sell
+                                                                </>
+                                                            )}
                                                         </Button>
                                                     )}
                                                 </div>
@@ -332,23 +360,42 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                     <Button
                                                         variant="destructive"
                                                         className="w-full"
-                                                        onClick={() => sellPlayer(player.id)}
+                                                        onClick={() => handleSellClick(player)}
+                                                        disabled={sellingPlayerId === player.id}
                                                     >
-                                                        <DollarSign className="h-4 w-4 mr-2" />
-                                                        Sell Player
+                                                        {sellingPlayerId === player.id ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                Selling...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <DollarSign className="h-4 w-4 mr-2" />
+                                                                Sell Player
+                                                            </>
+                                                        )}
                                                     </Button>
                                                 ) : (
                                                     <Button
                                                         className="w-full"
                                                         onClick={() => buyPlayer(player.id)}
-                                                        disabled={!affordable || teamFull}
+                                                        disabled={!affordable || teamFull || buyingPlayerId === player.id}
                                                     >
-                                                        <ShoppingCart className="h-4 w-4 mr-2" />
-                                                        {teamFull
-                                                            ? 'Team Full'
-                                                            : !affordable
-                                                            ? 'Cannot Afford'
-                                                            : 'Buy Player'}
+                                                        {buyingPlayerId === player.id ? (
+                                                            <>
+                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                Buying...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                                                {teamFull
+                                                                    ? 'Team Full'
+                                                                    : !affordable
+                                                                    ? 'Cannot Afford'
+                                                                    : 'Buy Player'}
+                                                            </>
+                                                        )}
                                                     </Button>
                                                 )}
                                             </>
@@ -380,6 +427,62 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     )}
                 </div>
             </div>
+
+            {/* Sell Confirmation Dialog */}
+            <Dialog open={confirmSellDialogOpen} onOpenChange={setConfirmSellDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm Sell Player</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to sell this player? You will receive the current market value.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {playerToSell && (
+                        <div className="py-4">
+                            <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                                {playerToSell.photo_url ? (
+                                    <img
+                                        src={playerToSell.photo_url}
+                                        alt={playerToSell.name}
+                                        className="w-16 h-16 rounded-full object-cover object-top"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center text-2xl font-bold">
+                                        {playerToSell.name.charAt(0)}
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <div className="font-bold text-lg">{playerToSell.name}</div>
+                                    <div className="text-sm text-muted-foreground">{playerToSell.team.name}</div>
+                                    <div className="flex gap-2 mt-1">
+                                        <Badge variant="secondary" className="text-xs">{playerToSell.position}</Badge>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm text-muted-foreground">Sell for</div>
+                                    <div className="text-2xl font-bold text-green-600">
+                                        ${(playerToSell.price / 1000000).toFixed(1)}M
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setConfirmSellDialogOpen(false)
+                                setPlayerToSell(null)
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={confirmSell}>
+                            Confirm Sell
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AuthenticatedLayout>
     )
 }

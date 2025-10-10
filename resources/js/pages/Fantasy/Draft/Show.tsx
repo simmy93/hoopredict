@@ -94,8 +94,50 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
     const [currentPick, setCurrentPick] = useState(league?.current_pick || 0)
     const [isConnected, setIsConnected] = useState(false)
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
 
     console.log('Draft Show props:', { league, userTeam, teams, draftPicks, availablePlayers, currentTeam, isMyTurn, endTime: initialEndTime, serverTime: initialServerTime })
+
+    // Request notification permission on mount
+    useEffect(() => {
+        if ('Notification' in window) {
+            setNotificationPermission(Notification.permission)
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    setNotificationPermission(permission)
+                })
+            }
+        }
+    }, [])
+
+    // Play sound and show notification when it's user's turn
+    useEffect(() => {
+        if (isMyTurn && Notification.permission === 'granted') {
+            // Show browser notification
+            const notification = new Notification("It's Your Turn to Draft! 🏀", {
+                body: `Pick #${currentPick} in ${league?.name}. Make your selection now!`,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: 'draft-turn',
+                requireInteraction: true,
+            })
+
+            // Play a sound (you can add an audio file)
+            try {
+                const audio = new Audio('/sounds/notification.mp3')
+                audio.play().catch(() => {
+                    // Ignore if sound fails to play
+                })
+            } catch (e) {
+                // Ignore if audio not available
+            }
+
+            notification.onclick = () => {
+                window.focus()
+                notification.close()
+            }
+        }
+    }, [isMyTurn, currentPick])
 
     // Initialize timer on mount (like countdown example)
     useEffect(() => {
@@ -294,10 +336,16 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                                         Round {currentRound} of {totalRounds} • Pick #{currentPick}
                                     </CardDescription>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                     <Badge variant={isConnected ? "default" : "destructive"}>
                                         {isConnected ? '🟢 Live' : '🔴 Connecting...'}
                                     </Badge>
+                                    {notificationPermission === 'granted' && (
+                                        <Badge variant="outline">🔔 Notifications On</Badge>
+                                    )}
+                                    {notificationPermission === 'denied' && (
+                                        <Badge variant="destructive">🔕 Notifications Blocked</Badge>
+                                    )}
                                 </div>
                             </div>
                         </CardHeader>
@@ -367,14 +415,15 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                         </CardContent>
                     </Card>
 
-                    {/* Draft Board - Horizontal */}
+                    {/* Draft Board - Responsive */}
                     <Card className="mb-6">
                         <CardHeader>
                             <CardTitle>Draft Board</CardTitle>
                             <CardDescription>All picks in order</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex gap-3 overflow-x-auto pb-2">
+                            {/* Desktop: Horizontal scroll */}
+                            <div className="hidden md:flex gap-3 overflow-x-auto pb-2">
                                 {(draftPicks || []).map((pick) => (
                                     <div key={pick.id} className="flex-shrink-0 w-32 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                                         <div className="text-center">
@@ -400,6 +449,36 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                                 ))}
                                 {(draftPicks || []).length === 0 && (
                                     <p className="text-sm text-muted-foreground py-8 px-4">No picks yet</p>
+                                )}
+                            </div>
+
+                            {/* Mobile: Vertical list showing recent picks */}
+                            <div className="md:hidden space-y-2 max-h-96 overflow-y-auto">
+                                {(draftPicks || []).slice().reverse().slice(0, 10).map((pick) => (
+                                    <div key={pick.id} className="flex items-center gap-3 p-3 border rounded-lg">
+                                        {pick.player.photo_url ? (
+                                            <img
+                                                src={pick.player.photo_url}
+                                                alt={pick.player.name}
+                                                className="w-12 h-12 rounded-full object-cover object-top"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                                                <User className="h-6 w-6 text-muted-foreground" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="text-xs">#{pick.pick_number}</Badge>
+                                                <span className="font-medium text-sm truncate">{pick.player.name}</span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground truncate">{pick.team.team_name}</div>
+                                        </div>
+                                        <Badge variant="secondary" className="text-xs">{pick.player.position}</Badge>
+                                    </div>
+                                ))}
+                                {(draftPicks || []).length === 0 && (
+                                    <p className="text-sm text-muted-foreground py-8 text-center">No picks yet</p>
                                 )}
                             </div>
                         </CardContent>
