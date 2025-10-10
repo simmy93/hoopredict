@@ -122,14 +122,18 @@ class FantasyLeague extends Model
             return null;
         }
 
-        $elapsed = now()->diffInSeconds($this->pick_started_at);
-        $remaining = $this->pick_time_limit - $elapsed;
+        // Use millisecond-based calculation to avoid timezone issues
+        $pickStartedAtMs = $this->pick_started_at->valueOf();
+        $nowMs = now()->valueOf();
+        $elapsedSeconds = ($nowMs - $pickStartedAtMs) / 1000;
+        $remaining = $this->pick_time_limit - $elapsedSeconds;
 
-        return max(0, $remaining);
+        return max(0, (int) $remaining);
     }
 
     public function isPickExpired(): bool
     {
-        return $this->getTimeRemaining() === 0;
+        $remaining = $this->getTimeRemaining();
+        return $remaining !== null && $remaining <= 0;
     }
 }

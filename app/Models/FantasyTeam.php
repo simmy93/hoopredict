@@ -97,21 +97,36 @@ class FantasyTeam extends Model
      */
     public function buyPlayer(Player $player): bool
     {
-        if (!$this->canAffordPlayer($player) || $this->isFull()) {
-            return false;
-        }
+        return \DB::transaction(function () use ($player) {
+            // Lock the team row to prevent concurrent budget changes
+            $team = self::where('id', $this->id)
+                ->lockForUpdate()
+                ->first();
 
-        $this->players()->attach($player->id, [
-            'purchase_price' => $player->price,
-            'acquired_at' => now(),
-        ]);
+            if (!$team->canAffordPlayer($player) || $team->isFull()) {
+                return false;
+            }
 
-        $this->update([
-            'budget_spent' => $this->budget_spent + $player->price,
-            'budget_remaining' => $this->budget_remaining - $player->price,
-        ]);
+            // Check if player is already on team
+            if ($team->players()->where('player_id', $player->id)->exists()) {
+                return false;
+            }
 
-        return true;
+            $team->players()->attach($player->id, [
+                'purchase_price' => $player->price,
+                'acquired_at' => now(),
+            ]);
+
+            $team->update([
+                'budget_spent' => $team->budget_spent + $player->price,
+                'budget_remaining' => $team->budget_remaining - $player->price,
+            ]);
+
+            // Update the current instance
+            $this->refresh();
+
+            return true;
+        });
     }
 
     /**
@@ -119,18 +134,28 @@ class FantasyTeam extends Model
      */
     public function sellPlayer(Player $player): bool
     {
-        if (!$this->players()->where('player_id', $player->id)->exists()) {
-            return false;
-        }
+        return \DB::transaction(function () use ($player) {
+            // Lock the team row to prevent concurrent budget changes
+            $team = self::where('id', $this->id)
+                ->lockForUpdate()
+                ->first();
 
-        $this->players()->detach($player->id);
+            if (!$team->players()->where('player_id', $player->id)->exists()) {
+                return false;
+            }
 
-        $this->update([
-            'budget_spent' => $this->budget_spent - $player->price,
-            'budget_remaining' => $this->budget_remaining + $player->price,
-        ]);
+            $team->players()->detach($player->id);
 
-        return true;
+            $team->update([
+                'budget_spent' => $team->budget_spent - $player->price,
+                'budget_remaining' => $team->budget_remaining + $player->price,
+            ]);
+
+            // Update the current instance
+            $this->refresh();
+
+            return true;
+        });
     }
 
     /**

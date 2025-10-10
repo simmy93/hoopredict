@@ -1,26 +1,33 @@
 <?php
 
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\LeagueController as AdminLeagueController;
-use App\Http\Controllers\Admin\LeagueMemberController as AdminLeagueMemberController;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\DashboardController;
+use Inertia\Inertia;
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DraftController;
+use App\Http\Controllers\LeagueController;
+use App\Http\Controllers\CountdownController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\PredictionController;
+use App\Http\Controllers\FantasyTeamController;
 use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
-use App\Http\Controllers\FantasyTeamController;
-use App\Http\Controllers\LeagueController;
-use App\Http\Controllers\PredictionController;
-use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\LeagueController as AdminLeagueController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LeagueMemberController as AdminLeagueMemberController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
+
+Route::get('/countdown-test', function () {
+    return Inertia::render('CountdownTest');
+})->name('countdown.test');
+
+Route::post('/countdown/start', [CountdownController::class, 'start'])->name('countdown.start');
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
@@ -90,6 +97,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/leagues/{league}/draft', [DraftController::class, 'show'])->name('draft.show');
         Route::post('/leagues/{league}/draft/start', [DraftController::class, 'start'])->name('draft.start');
         Route::post('/leagues/{league}/draft/pick', [DraftController::class, 'pick'])->name('draft.pick');
+        Route::get('/leagues/{league}/draft/status', [DraftController::class, 'status'])->name('draft.status');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

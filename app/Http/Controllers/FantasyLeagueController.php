@@ -11,6 +11,20 @@ use Inertia\Inertia;
 
 class FantasyLeagueController extends Controller
 {
+    /**
+     * Generate a secure invite code
+     * 8 alphanumeric characters = 62^8 = 218 trillion combinations
+     */
+    private function generateSecureInviteCode(): string
+    {
+        do {
+            // Use alphanumeric (A-Z, 0-9) for better security
+            $code = strtoupper(substr(str_replace(['/', '+', '='], '', base64_encode(random_bytes(6))), 0, 8));
+        } while (FantasyLeague::where('invite_code', $code)->exists());
+
+        return $code;
+    }
+
     public function index()
     {
         $userLeagues = auth()->user()
@@ -57,7 +71,7 @@ class FantasyLeagueController extends Controller
             'mode' => $request->mode,
             'budget' => $request->budget,
             'team_size' => $request->team_size,
-            'invite_code' => Str::upper(Str::random(6)),
+            'invite_code' => $this->generateSecureInviteCode(),
             'is_private' => $request->boolean('is_private', false),
             'max_members' => $request->max_members,
             'draft_date' => $request->draft_date,
@@ -86,7 +100,7 @@ class FantasyLeagueController extends Controller
             'teams.players'
         ]);
 
-        $userTeam = $league->teams()->where('user_id', auth()->id())->first();
+        $userTeam = $league->teams()->with('user')->where('user_id', auth()->id())->first();
 
         // Get leaderboard
         $leaderboard = $league->teams()
@@ -105,7 +119,7 @@ class FantasyLeagueController extends Controller
     public function join(Request $request)
     {
         $request->validate([
-            'invite_code' => 'required|string|size:6'
+            'invite_code' => 'required|string|min:6|max:8'
         ]);
 
         $league = FantasyLeague::where('invite_code', strtoupper($request->invite_code))

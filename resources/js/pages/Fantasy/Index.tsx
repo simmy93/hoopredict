@@ -36,7 +36,9 @@ interface Props {
     userLeagues: FantasyLeague[]
 }
 
-export default function Index({ userLeagues }: Props) {
+export default function Index({ userLeagues = [] }: Props) {
+    // Filter out any null/undefined leagues
+    const validLeagues = userLeagues.filter(Boolean)
     const [open, setOpen] = useState(false)
     const { data, setData, post, processing, errors, reset } = useForm({
         invite_code: '',
@@ -120,7 +122,7 @@ export default function Index({ userLeagues }: Props) {
                         </div>
                     </div>
 
-                    {userLeagues.length === 0 ? (
+                    {validLeagues.length === 0 ? (
                         <Card>
                             <CardContent className="flex flex-col items-center justify-center py-12">
                                 <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
@@ -138,7 +140,7 @@ export default function Index({ userLeagues }: Props) {
                         </Card>
                     ) : (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {userLeagues.map((league) => (
+                            {validLeagues.map((league) => (
                                 <Card key={league.id} className="hover:shadow-md transition-shadow">
                                     <CardHeader>
                                         <div className="flex items-start justify-between">
@@ -168,9 +170,11 @@ export default function Index({ userLeagues }: Props) {
                                                 <Users className="h-4 w-4" />
                                                 {league.teams_count || 0}/{league.max_members} members
                                             </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {league.championship.name}
-                                            </div>
+                                            {league.championship && (
+                                                <div className="text-xs text-muted-foreground">
+                                                    {league.championship.name}
+                                                </div>
+                                            )}
                                         </div>
                                         <Link href={`/fantasy/leagues/${league.id}`}>
                                             <Button variant="outline" size="sm" className="w-full">

@@ -43,6 +43,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
 
                         <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/20 p-8">
                             {children}
+                            
                         </div>
                     </div>
                 </div>

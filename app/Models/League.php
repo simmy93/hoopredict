@@ -35,9 +35,23 @@ class League extends Model
 
         static::creating(function ($league) {
             if (!$league->invite_code) {
-                $league->invite_code = Str::upper(Str::random(6));
+                $league->invite_code = static::generateSecureInviteCode();
             }
         });
+    }
+
+    /**
+     * Generate a secure invite code
+     * 8 alphanumeric characters = 62^8 = 218 trillion combinations
+     */
+    protected static function generateSecureInviteCode(): string
+    {
+        do {
+            // Use alphanumeric (A-Z, 0-9) for better security
+            $code = strtoupper(substr(str_replace(['/', '+', '='], '', base64_encode(random_bytes(6))), 0, 8));
+        } while (static::where('invite_code', $code)->exists());
+
+        return $code;
     }
 
     public function owner(): BelongsTo

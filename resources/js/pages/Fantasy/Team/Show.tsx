@@ -200,14 +200,16 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                         <span className="text-muted-foreground">Value:</span>
                                                         <span className="font-bold ml-1">${(player.price / 1000000).toFixed(1)}M</span>
                                                     </div>
-                                                    <Button
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() => sellPlayer(player.id)}
-                                                    >
-                                                        <DollarSign className="h-3 w-3 mr-1" />
-                                                        Sell
-                                                    </Button>
+                                                    {league.mode === 'budget' && (
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="sm"
+                                                            onClick={() => sellPlayer(player.id)}
+                                                        >
+                                                            <DollarSign className="h-3 w-3 mr-1" />
+                                                            Sell
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -324,28 +326,37 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                             )}
                                         </div>
 
-                                        {owned ? (
-                                            <Button
-                                                variant="destructive"
-                                                className="w-full"
-                                                onClick={() => sellPlayer(player.id)}
-                                            >
-                                                <DollarSign className="h-4 w-4 mr-2" />
-                                                Sell Player
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                className="w-full"
-                                                onClick={() => buyPlayer(player.id)}
-                                                disabled={!affordable || teamFull}
-                                            >
-                                                <ShoppingCart className="h-4 w-4 mr-2" />
-                                                {teamFull
-                                                    ? 'Team Full'
-                                                    : !affordable
-                                                    ? 'Cannot Afford'
-                                                    : 'Buy Player'}
-                                            </Button>
+                                        {league.mode === 'budget' && (
+                                            <>
+                                                {owned ? (
+                                                    <Button
+                                                        variant="destructive"
+                                                        className="w-full"
+                                                        onClick={() => sellPlayer(player.id)}
+                                                    >
+                                                        <DollarSign className="h-4 w-4 mr-2" />
+                                                        Sell Player
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        className="w-full"
+                                                        onClick={() => buyPlayer(player.id)}
+                                                        disabled={!affordable || teamFull}
+                                                    >
+                                                        <ShoppingCart className="h-4 w-4 mr-2" />
+                                                        {teamFull
+                                                            ? 'Team Full'
+                                                            : !affordable
+                                                            ? 'Cannot Afford'
+                                                            : 'Buy Player'}
+                                                    </Button>
+                                                )}
+                                            </>
+                                        )}
+                                        {league.mode === 'draft' && (
+                                            <div className="text-center text-sm text-muted-foreground py-2">
+                                                Players can only be acquired through the draft
+                                            </div>
                                         )}
                                     </CardContent>
                                 </Card>

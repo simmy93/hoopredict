@@ -1,11 +1,18 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Head, Link, router, useForm } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
+
+declare global {
+    interface Window {
+        Echo: any;
+    }
+}
 
 interface User {
     id: number
@@ -59,9 +66,12 @@ interface Props {
     inviteUrl: string
 }
 
-export default function Show({ league, userTeam, leaderboard, inviteUrl }: Props) {
+export default function Show({ league: initialLeague, userTeam, leaderboard, inviteUrl }: Props) {
     const [copied, setCopied] = useState(false)
+    const [startDraftDialogOpen, setStartDraftDialogOpen] = useState(false)
     const { post: startDraft, processing: startingDraft } = useForm()
+    const [league, setLeague] = useState(initialLeague)
+    const [isConnected, setIsConnected] = useState(false)
 
     const copyInviteUrl = () => {
         navigator.clipboard.writeText(inviteUrl)
@@ -70,10 +80,62 @@ export default function Show({ league, userTeam, leaderboard, inviteUrl }: Props
     }
 
     const handleStartDraft = () => {
-        if (confirm('Are you sure you want to start the draft? This cannot be undone.')) {
-            startDraft(`/fantasy/leagues/${league.id}/draft/start`)
-        }
+        setStartDraftDialogOpen(true)
     }
+
+    const confirmStartDraft = () => {
+        startDraft(`/fantasy/leagues/${league.id}/draft/start`)
+        setStartDraftDialogOpen(false)
+    }
+
+    // Subscribe to draft channel to listen for real-time updates
+    useEffect(() => {
+        if (!league || league.mode !== 'draft') return
+
+        const checkEcho = setInterval(() => {
+            if (window.Echo) {
+                clearInterval(checkEcho)
+                setupEcho()
+            }
+        }, 100)
+
+        const setupEcho = () => {
+            console.log(`Subscribing to draft.${league.id} channel for updates...`)
+            const channel = window.Echo.channel(`draft.${league.id}`)
+
+            channel.subscribed(() => {
+                console.log('✅ Subscribed to draft channel on league page')
+                setIsConnected(true)
+            })
+
+            // Listen for draft started event
+            channel.listen('DraftStarted', (data: any) => {
+                console.log('🚀 Draft started event received on league page!', data)
+                // Update league status to reflect draft has started
+                setLeague(prev => ({
+                    ...prev,
+                    draft_status: 'in_progress'
+                }))
+            })
+
+            // Listen for draft completed event
+            channel.listen('DraftCompleted', (data: any) => {
+                console.log('🏁 Draft completed event received on league page!', data)
+                // Update league status to reflect draft is complete
+                setLeague(prev => ({
+                    ...prev,
+                    draft_status: 'completed'
+                }))
+            })
+        }
+
+        return () => {
+            clearInterval(checkEcho)
+            if (window.Echo && league) {
+                window.Echo.leave(`draft.${league.id}`)
+            }
+        }
+    }, [league?.id])
 
     return (
         <AuthenticatedLayout>
@@ -132,13 +194,24 @@ export default function Show({ league, userTeam, leaderboard, inviteUrl }: Props
                             </div>
 
                             {/* Draft Controls */}
-                            {league.mode === 'draft' && (
+                            {league.mode === 'draft' && userTeam && (
                                 <div className="mt-6">
-                                    {league.draft_status === 'pending' && league.owner_id === userTeam?.user.id && (
-                                        <Button onClick={handleStartDraft} disabled={startingDraft} className="w-full">
-                                            <Play className="h-4 w-4 mr-2" />
-                                            {startingDraft ? 'Starting Draft...' : 'Start Draft'}
-                                        </Button>
+                                    {league.draft_status === 'pending' && league.owner_id === userTeam.user.id && (
+                                        <>
+                                            <Button
+                                                onClick={handleStartDraft}
+                                                disabled={startingDraft || league.teams.length < 2}
+                                                className="w-full"
+                                            >
+                                                <Play className="h-4 w-4 mr-2" />
+                                                {startingDraft ? 'Starting Draft...' : 'Start Draft'}
+                                            </Button>
+                                            {league.teams.length < 2 && (
+                                                <p className="text-sm text-muted-foreground text-center mt-2">
+                                                    At least 2 members are required to start the draft
+                                                </p>
+                                            )}
+                                        </>
                                     )}
                                     {league.draft_status === 'pending' && league.owner_id !== userTeam?.user.id && (
                                         <div className="text-center py-4 bg-muted rounded-md">
@@ -330,6 +403,36 @@ export default function Show({ league, userTeam, leaderboard, inviteUrl }: Props
                     </div>
                 </div>
             </div>
+
+            {/* Start Draft Confirmation Dialog */}
+            <Dialog open={startDraftDialogOpen} onOpenChange={setStartDraftDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Start Draft</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to start the draft? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <p className="text-sm text-muted-foreground">
+                            Once the draft starts, all league members will be able to draft players in the assigned order.
+                            Each pick will have a time limit, and the draft cannot be paused or restarted.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setStartDraftDialogOpen(false)}
+                            disabled={startingDraft}
+                        >
+                            Cancel
+                        </Button>
+                        <Button onClick={confirmStartDraft} disabled={startingDraft}>
+                            {startingDraft ? 'Starting...' : 'Start Draft'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </AuthenticatedLayout>
     )
 }

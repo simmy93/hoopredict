@@ -15,6 +15,7 @@ class DraftPick extends Model
         'player_id',
         'pick_number',
         'round',
+        'created_at',
     ];
 
     protected function casts(): array
