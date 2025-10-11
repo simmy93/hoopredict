@@ -358,6 +358,7 @@ class EuroLeagueScrapingService
                 'scheduled_at' => $scheduledAt,
                 'status' => $status,
                 'round' => $gameData['round']['round'] ?? 1,
+                'code' => $gameData['code'] ?? null,
                 'home_score' => $homeScore,
                 'away_score' => $awayScore,
             ]

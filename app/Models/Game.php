@@ -21,6 +21,7 @@ class Game extends Model
         'away_score',
         'round',
         'external_id',
+        'code',
     ];
 
     protected $casts = [

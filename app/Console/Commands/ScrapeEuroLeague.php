@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class ScrapeEuroLeague extends Command
 {
-    protected $signature = 'scrape:euroleague {--teams : Only scrape teams} {--games : Only scrape games} {--scores : Only update scores} {--players : Only scrape players}';
+    protected $signature = 'scrape:euroleague {--teams : Only scrape teams} {--games : Only scrape games} {--scores : Only update scores} {--players : Only scrape players} {--stats : Only scrape player statistics}';
     protected $description = 'Scrape EuroLeague data including teams, games, players, and scores';
 
     private EuroLeagueScrapingService $scrapingService;
@@ -41,12 +41,16 @@ class ScrapeEuroLeague extends Command
             } elseif ($this->option('players')) {
                 $this->info('Scraping players only...');
                 $this->playerScrapingService->scrapePlayers();
+            } elseif ($this->option('stats')) {
+                $this->info('Scraping player statistics only...');
+                $this->playerScrapingService->scrapePlayerStats();
             } else {
-                $this->info('Scraping all data (teams, games, players)...');
+                $this->info('Scraping all data (teams, games, players, stats)...');
                 $this->scrapingService->scrapeTeams();
                 $this->scrapingService->scrapeGames();
                 $this->playerScrapingService->scrapePlayers();
                 $this->scrapingService->updateGameScores();
+                $this->playerScrapingService->scrapePlayerStats();
                 $this->scrapingService->cleanupOldGames();
             }
 

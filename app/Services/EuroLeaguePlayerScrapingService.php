@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Championship;
+use App\Models\Game;
 use App\Models\Player;
+use App\Models\PlayerGameStat;
 use App\Models\Team;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
@@ -204,5 +206,148 @@ class EuroLeaguePlayerScrapingService
         $color = $colors[$position] ?? '6B7280'; // Gray default
 
         return "https://ui-avatars.com/api/?name=" . urlencode($name) . "&size=200&background=" . $color . "&color=fff";
+    }
+
+    public function scrapePlayerStats(): void
+    {
+        try {
+            Log::info('Starting EuroLeague player statistics scraping');
+
+            $euroLeague = $this->getOrCreateChampionship();
+
+            // Get all finished games that need stats
+            $games = Game::where('championship_id', $euroLeague->id)
+                ->where('status', 'finished')
+                ->whereNotNull('home_score')
+                ->whereNotNull('away_score')
+                ->orderBy('date', 'desc')
+                ->get();
+
+            if ($games->isEmpty()) {
+                Log::info('No finished games found to scrape stats for');
+                return;
+            }
+
+            $totalStats = 0;
+            $gamesProcessed = 0;
+
+            foreach ($games as $game) {
+                try {
+                    Log::info("Scraping stats for game #{$game->external_id}: {$game->homeTeam->name} vs {$game->awayTeam->name}");
+
+                    $url = "https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/games/{$game->code}";
+                    $response = $this->client->get($url);
+                    $data = json_decode($response->getBody()->getContents(), true);
+
+                    if (!isset($data['data'])) {
+                        Log::warning("No game data for game #{$game->external_id}");
+                        continue;
+                    }
+
+                    $gameData = $data['data'];
+
+                    // Process both home and away teams
+                    foreach (['home', 'away'] as $side) {
+                        if (!isset($gameData[$side]['players'])) {
+                            continue;
+                        }
+
+                        foreach ($gameData[$side]['players'] as $playerData) {
+                            // Skip if player didn't play or has no stats
+                            if (!isset($playerData['code']) || !isset($playerData['stats'])) {
+                                continue;
+                            }
+
+                            // Find the player in our database
+                            $player = Player::where('external_id', $playerData['code'])->first();
+
+                            if (!$player) {
+                                Log::warning("Player not found: {$playerData['code']}");
+                                continue;
+                            }
+
+                            $stats = $playerData['stats'];
+
+                            // Parse minutes from seconds (API stores in seconds, not milliseconds)
+                            $minutesPlayed = 0;
+                            if (isset($stats['timePlayed']) && $stats['timePlayed'] > 0) {
+                                $minutesPlayed = round($stats['timePlayed'] / 60, 2); // Convert seconds to minutes
+                            }
+
+                            // Skip players who didn't play
+                            if ($minutesPlayed == 0) {
+                                continue;
+                            }
+
+                            // Create or update player game stats
+                            $playerStat = PlayerGameStat::updateOrCreate(
+                                [
+                                    'player_id' => $player->id,
+                                    'game_id' => $game->id,
+                                ],
+                                [
+                                    'minutes_played' => $minutesPlayed,
+                                    'points' => $stats['points'] ?? 0,
+                                    'rebounds' => $stats['totalRebounds'] ?? 0,
+                                    'assists' => $stats['assists'] ?? 0,
+                                    'steals' => $stats['steals'] ?? 0,
+                                    'blocks' => $stats['blocksFavour'] ?? 0,
+                                    'turnovers' => $stats['turnovers'] ?? 0,
+                                ]
+                            );
+
+                            // Calculate and save fantasy points
+                            $playerStat->updateFantasyPoints();
+
+                            $totalStats++;
+                        }
+                    }
+
+                    $gamesProcessed++;
+
+                    // Rate limiting - sleep for 100ms between games
+                    usleep(100000);
+
+                } catch (RequestException $e) {
+                    if ($e->getResponse() && $e->getResponse()->getStatusCode() === 404) {
+                        Log::warning("Boxscore not found for game #{$game->external_id}");
+                    } else {
+                        Log::error("HTTP error scraping stats for game #{$game->external_id}: " . $e->getMessage());
+                    }
+                    continue;
+                } catch (\Exception $e) {
+                    Log::error("Error scraping stats for game #{$game->external_id}: " . $e->getMessage());
+                    continue;
+                }
+            }
+
+            Log::info("Player statistics scraping completed. Processed {$gamesProcessed} games with {$totalStats} player stats.");
+
+            // Update player prices based on recent performance
+            $this->updatePlayerPrices();
+
+        } catch (\Exception $e) {
+            Log::error('Error scraping player statistics: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function updatePlayerPrices(): void
+    {
+        try {
+            Log::info('Updating player prices based on performance');
+
+            $players = Player::where('is_active', true)->get();
+            $updatedCount = 0;
+
+            foreach ($players as $player) {
+                $player->updatePriceBasedOnPerformance();
+                $updatedCount++;
+            }
+
+            Log::info("Updated prices for {$updatedCount} players");
+        } catch (\Exception $e) {
+            Log::error('Error updating player prices: ' . $e->getMessage());
+        }
     }
 }
