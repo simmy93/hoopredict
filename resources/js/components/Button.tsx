@@ -4,24 +4,24 @@ import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+    'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
     {
         variants: {
             variant: {
                 default:
-                    'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg hover:shadow-xl hover:from-primary-700 hover:to-primary-800 focus-visible:ring-primary-500',
+                    'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-[1.02]',
                 destructive:
-                    'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 focus-visible:ring-red-500',
+                    'bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-lg shadow-red-500/30 hover:shadow-xl hover:shadow-red-500/40 hover:scale-[1.02]',
                 outline:
-                    'border-2 border-gray-300 bg-white/50 text-gray-900 shadow-sm backdrop-blur-sm hover:bg-white/80 hover:shadow-md dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-100 dark:hover:bg-gray-800/80',
+                    'border-2 border-slate-300 bg-white/80 backdrop-blur-sm text-slate-900 shadow-sm hover:bg-white hover:shadow-md hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900/80 dark:text-white dark:hover:bg-slate-900 dark:hover:border-slate-600',
                 secondary:
-                    'bg-gradient-to-r from-accent-500 to-accent-600 text-white shadow-lg hover:shadow-xl hover:from-accent-600 hover:to-accent-700 focus-visible:ring-accent-500',
+                    'bg-slate-200 text-slate-900 shadow-sm hover:bg-slate-300 hover:shadow-md dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700',
                 ghost:
-                    'text-gray-700 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800/80 dark:hover:text-gray-100',
-                link: 'text-primary-600 underline-offset-4 hover:underline dark:text-primary-400',
+                    'hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white',
+                link: 'text-blue-600 underline-offset-4 hover:underline dark:text-blue-400',
             },
             size: {
-                default: 'h-11 px-6 py-2',
+                default: 'h-10 px-6 py-2',
                 sm: 'h-9 px-4 text-xs',
                 lg: 'h-12 px-8 text-base',
                 icon: 'h-10 w-10',
