@@ -20,6 +20,7 @@ class EuroLeagueScrapingService
     {
         $this->client = new Client([
             'timeout' => 30,
+            'verify' => false, // Disable SSL verification for development
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             ]
@@ -157,79 +158,6 @@ class EuroLeagueScrapingService
         }
     }
 
-    private function createSampleGames(): void
-    {
-        $euroLeague = $this->getOrCreateChampionship();
-        $teams = Team::where('championship_id', $euroLeague->id)->get();
-
-        if ($teams->count() < 2) {
-            Log::warning('Not enough teams to create games');
-            return;
-        }
-
-        $sampleGames = [
-            [
-                'home_team' => 'fcb',
-                'away_team' => 'mad',
-                'scheduled_at' => Carbon::now()->addDays(1)->setHour(20)->setMinute(30),
-                'round' => 1,
-                'status' => 'scheduled'
-            ],
-            [
-                'home_team' => 'pan',
-                'away_team' => 'oly',
-                'scheduled_at' => Carbon::now()->addDays(2)->setHour(19)->setMinute(0),
-                'round' => 1,
-                'status' => 'scheduled'
-            ],
-            [
-                'home_team' => 'fen',
-                'away_team' => 'efe',
-                'scheduled_at' => Carbon::now()->addDays(3)->setHour(18)->setMinute(0),
-                'round' => 1,
-                'status' => 'scheduled'
-            ],
-            [
-                'home_team' => 'bay',
-                'away_team' => 'alb',
-                'scheduled_at' => Carbon::now()->addDays(4)->setHour(20)->setMinute(0),
-                'round' => 1,
-                'status' => 'scheduled'
-            ],
-            [
-                'home_team' => 'czv',
-                'away_team' => 'par',
-                'scheduled_at' => Carbon::now()->subDays(1)->setHour(20)->setMinute(0),
-                'round' => 1,
-                'status' => 'finished',
-                'home_score' => 85,
-                'away_score' => 78
-            ]
-        ];
-
-        foreach ($sampleGames as $gameData) {
-            $homeTeam = $teams->where('external_id', $gameData['home_team'])->first();
-            $awayTeam = $teams->where('external_id', $gameData['away_team'])->first();
-
-            if ($homeTeam && $awayTeam) {
-                Game::updateOrCreate(
-                    [
-                        'championship_id' => $euroLeague->id,
-                        'home_team_id' => $homeTeam->id,
-                        'away_team_id' => $awayTeam->id,
-                        'scheduled_at' => $gameData['scheduled_at']
-                    ],
-                    [
-                        'status' => $gameData['status'],
-                        'round' => $gameData['round'],
-                        'home_score' => $gameData['home_score'] ?? null,
-                        'away_score' => $gameData['away_score'] ?? null,
-                        'external_id' => $gameData['home_team'] . '-' . $gameData['away_team'] . '-r' . $gameData['round']
-                    ]
-                );
-            }
-        }
-    }
 
     public function updateGameScores(): void
     {
@@ -282,17 +210,6 @@ class EuroLeagueScrapingService
             Log::error('Error cleaning up old games: ' . $e->getMessage());
             throw $e;
         }
-    }
-
-    private function extractCityFromAddress(string $address): string
-    {
-        // Simple city extraction from address
-        $parts = explode(',', $address);
-        if (count($parts) >= 2) {
-            // Usually city is before the last part (country)
-            return trim($parts[count($parts) - 2]);
-        }
-        return '';
     }
 
     private function getDefaultCityForTeam(string $teamCode): string

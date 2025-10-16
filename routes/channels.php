@@ -2,14 +2,10 @@
 
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+/* Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
-
-// Public countdown channel - no authentication required
-Broadcast::channel('countdown', function () {
-    return true;
-});
+ */
 
 // Draft channels - only league members can listen
 Broadcast::channel('draft.{leagueId}', function ($user, $leagueId) {

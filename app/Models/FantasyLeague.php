@@ -28,6 +28,10 @@ class FantasyLeague extends Model
         'current_pick',
         'pick_started_at',
         'pick_time_limit',
+        'is_paused',
+        'paused_at',
+        'paused_by_user_id',
+        'pause_time_remaining',
     ];
 
     protected function casts(): array
@@ -36,8 +40,10 @@ class FantasyLeague extends Model
             'budget' => 'decimal:2',
             'is_active' => 'boolean',
             'is_private' => 'boolean',
+            'is_paused' => 'boolean',
             'draft_date' => 'datetime',
             'pick_started_at' => 'datetime',
+            'paused_at' => 'datetime',
         ];
     }
 
@@ -59,6 +65,16 @@ class FantasyLeague extends Model
     public function draftPicks(): HasMany
     {
         return $this->hasMany(DraftPick::class);
+    }
+
+    public function draftActions(): HasMany
+    {
+        return $this->hasMany(DraftAction::class);
+    }
+
+    public function pausedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paused_by_user_id');
     }
 
     public function isFull(): bool
@@ -135,5 +151,79 @@ class FantasyLeague extends Model
     {
         $remaining = $this->getTimeRemaining();
         return $remaining !== null && $remaining <= 0;
+    }
+
+    /**
+     * Pause the draft
+     */
+    public function pauseDraft(User $user): bool
+    {
+        if ($this->draft_status !== 'in_progress' || $this->is_paused) {
+            return false;
+        }
+
+        // Calculate time remaining when paused
+        $timeRemaining = $this->getTimeRemaining();
+
+        $this->update([
+            'is_paused' => true,
+            'paused_at' => now(),
+            'paused_by_user_id' => $user->id,
+            'pause_time_remaining' => $timeRemaining,
+        ]);
+
+        // Log the pause action
+        DraftAction::log(
+            fantasyLeagueId: $this->id,
+            actionType: 'pause',
+            userId: $user->id,
+            details: ['time_remaining' => $timeRemaining]
+        );
+
+        // Broadcast pause event
+        broadcast(new \App\Events\DraftPaused($this, $user, $timeRemaining ?? 0));
+
+        return true;
+    }
+
+    /**
+     * Resume the draft
+     */
+    public function resumeDraft(User $user): bool
+    {
+        if ($this->draft_status !== 'in_progress' || !$this->is_paused) {
+            return false;
+        }
+
+        // Reset the pick started time based on remaining time
+        $newPickStartedAt = now()->subSeconds($this->pick_time_limit - ($this->pause_time_remaining ?? 0));
+
+        $this->update([
+            'is_paused' => false,
+            'paused_at' => null,
+            'paused_by_user_id' => null,
+            'pause_time_remaining' => null,
+            'pick_started_at' => $newPickStartedAt,
+        ]);
+
+        // Log the resume action
+        DraftAction::log(
+            fantasyLeagueId: $this->id,
+            actionType: 'resume',
+            userId: $user->id
+        );
+
+        // Broadcast resume event
+        broadcast(new \App\Events\DraftResumed($this, $user));
+
+        return true;
+    }
+
+    /**
+     * Check if user can pause/resume (must be league owner)
+     */
+    public function canUserPauseResume(User $user): bool
+    {
+        return $this->owner_id === $user->id;
     }
 }

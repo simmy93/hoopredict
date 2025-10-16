@@ -4,7 +4,7 @@ namespace App\Events;
 
 use App\Models\DraftPick;
 use App\Models\FantasyLeague;
-use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Queue\SerializesModels;
 
@@ -17,9 +17,9 @@ class PlayerDrafted implements ShouldBroadcastNow
         public DraftPick $pick
     ) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): PrivateChannel
     {
-        return new Channel("draft.{$this->league->id}");
+        return new PrivateChannel("draft.{$this->league->id}");
     }
 
     public function broadcastWith(): array

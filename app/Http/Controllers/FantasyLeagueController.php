@@ -93,6 +93,12 @@ class FantasyLeagueController extends Controller
 
     public function show(FantasyLeague $league)
     {
+        // Check if user is a member of the league
+        if (!$league->hasUser(auth()->user())) {
+            return redirect()->route('fantasy.leagues.index')
+                ->with('error', 'You are not a member of this league.');
+        }
+
         $league->load([
             'owner',
             'championship',

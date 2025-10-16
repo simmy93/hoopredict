@@ -100,12 +100,18 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
         }, 100)
 
         const setupEcho = () => {
-            console.log(`Subscribing to draft.${league.id} channel for updates...`)
-            const channel = window.Echo.channel(`draft.${league.id}`)
+            console.log(`Subscribing to draft.${league.id} private channel for updates...`)
+            const channel = window.Echo.private(`draft.${league.id}`)
 
             channel.subscribed(() => {
-                console.log('✅ Subscribed to draft channel on league page')
+                console.log('✅ Subscribed to draft private channel on league page')
                 setIsConnected(true)
+            })
+
+            // Handle connection errors
+            channel.error((error: any) => {
+                console.error('❌ Channel connection error:', error)
+                setIsConnected(false)
             })
 
             // Listen for draft started event

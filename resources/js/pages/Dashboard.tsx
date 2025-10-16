@@ -10,13 +10,56 @@ interface User {
     email_verified_at?: string;
 }
 
-interface DashboardProps {
-    user: User;
+interface Team {
+    id: number;
+    name: string;
+    logo_url: string;
 }
 
-export default function Dashboard({ user }: DashboardProps) {
+interface Game {
+    id: number;
+    date: string | null;
+    status: string;
+    home_score: number | null;
+    away_score: number | null;
+    home_team: Team;
+    away_team: Team;
+}
+
+interface DashboardProps {
+    user: User;
+    upcomingGames: Game[];
+}
+
+export default function Dashboard({ user, upcomingGames }: DashboardProps) {
     const handleLogout = () => {
         router.post(logout.url());
+    };
+
+    const formatGameDate = (dateString: string | null) => {
+        if (!dateString) return 'Date TBD';
+
+        // Parse as UTC and convert to local timezone
+        const date = new Date(dateString + 'Z'); // Adding 'Z' ensures it's parsed as UTC
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const isToday = date.toDateString() === today.toDateString();
+        const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+        if (isToday) {
+            return `Today, ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+        } else if (isTomorrow) {
+            return `Tomorrow, ${date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+        } else {
+            return date.toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
     };
 
     return (
@@ -162,6 +205,85 @@ export default function Dashboard({ user }: DashboardProps) {
                                 </p>
                             </div>
                         </div>
+
+                        {upcomingGames && upcomingGames.length > 0 && (
+                            <div className="mt-12">
+                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+                                    Upcoming Games
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {upcomingGames.map((game) => (
+                                        <div
+                                            key={game.id}
+                                            className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 p-6 hover:shadow-2xl transition-all duration-200"
+                                        >
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium">
+                                                {formatGameDate(game.date)}
+                                            </div>
+
+                                            {/* Home Team */}
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center space-x-3">
+                                                    {game.home_team.logo_url ? (
+                                                        <img
+                                                            src={game.home_team.logo_url}
+                                                            alt={game.home_team.name}
+                                                            className="w-10 h-10 object-contain"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                                                    )}
+                                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                                        {game.home_team.name}
+                                                    </span>
+                                                </div>
+                                                {game.status === 'finished' && game.home_score !== null && (
+                                                    <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                                        {game.home_score}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Away Team */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    {game.away_team.logo_url ? (
+                                                        <img
+                                                            src={game.away_team.logo_url}
+                                                            alt={game.away_team.name}
+                                                            className="w-10 h-10 object-contain"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                                                    )}
+                                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                                        {game.away_team.name}
+                                                    </span>
+                                                </div>
+                                                {game.status === 'finished' && game.away_score !== null && (
+                                                    <span className="text-xl font-bold text-gray-900 dark:text-white">
+                                                        {game.away_score}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Status Badge */}
+                                            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                                    game.status === 'finished'
+                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                        : game.status === 'live'
+                                                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                                                }`}>
+                                                    {game.status === 'finished' ? 'Final' : game.status === 'live' ? 'Live' : 'Scheduled'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>

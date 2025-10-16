@@ -21,6 +21,7 @@ class EuroLeaguePlayerScrapingService
     {
         $this->client = new Client([
             'timeout' => 30,
+            'verify' => false, // Disable SSL verification for development
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
             ]

@@ -27,8 +27,6 @@ Route::get('/countdown-test', function () {
     return Inertia::render('CountdownTest');
 })->name('countdown.test');
 
-Route::post('/countdown/start', [CountdownController::class, 'start'])->name('countdown.start');
-
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
@@ -97,7 +95,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/leagues/{league}/draft', [DraftController::class, 'show'])->name('draft.show');
         Route::post('/leagues/{league}/draft/start', [DraftController::class, 'start'])->name('draft.start');
         Route::post('/leagues/{league}/draft/pick', [DraftController::class, 'pick'])->name('draft.pick');
+        Route::get('/leagues/{league}/draft/available-players', [DraftController::class, 'getAvailablePlayers'])->name('draft.available-players');
         Route::get('/leagues/{league}/draft/status', [DraftController::class, 'status'])->name('draft.status');
+        Route::post('/leagues/{league}/draft/pause', [DraftController::class, 'pause'])->name('draft.pause');
+        Route::post('/leagues/{league}/draft/resume', [DraftController::class, 'resume'])->name('draft.resume');
+        Route::get('/leagues/{league}/draft/history', [DraftController::class, 'history'])->name('draft.history');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

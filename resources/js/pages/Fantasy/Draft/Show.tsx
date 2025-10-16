@@ -1,20 +1,15 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Head, Link, router } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
-
-declare global {
-    interface Window {
-        Echo: any;
-    }
-}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trophy, Clock, User, Search } from 'lucide-react'
+import { Trophy, Clock, User, Search, Pause, Play, History, Loader2 } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
+import axios from 'axios'
 
 interface User {
     id: number
@@ -55,8 +50,13 @@ interface FantasyLeague {
     team_size: number
     current_pick: number
     draft_status: 'in_progress' | 'completed'
+    pick_time_limit: number
     owner: User
     championship: Championship
+    is_paused: boolean
+    paused_at: string | null
+    paused_by: User | null
+    pause_time_remaining: number | null
 }
 
 interface DraftPick {
@@ -67,19 +67,40 @@ interface DraftPick {
     team: FantasyTeam
 }
 
+interface PaginationMeta {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+}
+
 interface Props {
     league?: FantasyLeague
     userTeam?: FantasyTeam
     teams?: FantasyTeam[]
     draftPicks?: DraftPick[]
-    availablePlayers?: Player[]
+    availablePlayersCount?: number
+    draftedPlayerIds?: number[]
     currentTeam?: FantasyTeam | null
     isMyTurn?: boolean
     endTime?: number | null
     serverTime?: number
+    canPauseResume?: boolean
 }
 
-export default function Show({ league, userTeam, teams, draftPicks: initialDraftPicks, availablePlayers: initialAvailablePlayers, currentTeam: initialCurrentTeam, isMyTurn: initialIsMyTurn, endTime: initialEndTime, serverTime: initialServerTime }: Props) {
+export default function Show({
+    league,
+    userTeam,
+    teams,
+    draftPicks: initialDraftPicks,
+    availablePlayersCount,
+    draftedPlayerIds: initialDraftedPlayerIds,
+    currentTeam: initialCurrentTeam,
+    isMyTurn: initialIsMyTurn,
+    endTime: initialEndTime,
+    serverTime: initialServerTime,
+    canPauseResume
+}: Props) {
     const [searchQuery, setSearchQuery] = useState('')
     const [positionFilter, setPositionFilter] = useState('all')
     const [draftingPlayerId, setDraftingPlayerId] = useState<number | null>(null)
@@ -88,15 +109,67 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
 
     // Live state
     const [draftPicks, setDraftPicks] = useState(initialDraftPicks || [])
-    const [availablePlayers, setAvailablePlayers] = useState(initialAvailablePlayers || [])
+    const [draftedPlayerIds, setDraftedPlayerIds] = useState<number[]>(initialDraftedPlayerIds || [])
+    const [availablePlayers, setAvailablePlayers] = useState<Player[]>([])
+    const [isLoadingPlayers, setIsLoadingPlayers] = useState(false)
+    const [playersPagination, setPlayersPagination] = useState<PaginationMeta | null>(null)
     const [currentTeam, setCurrentTeam] = useState(initialCurrentTeam)
     const [isMyTurn, setIsMyTurn] = useState(initialIsMyTurn)
     const [currentPick, setCurrentPick] = useState(league?.current_pick || 0)
     const [isConnected, setIsConnected] = useState(false)
     const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
     const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default')
+    const [isPaused, setIsPaused] = useState(league?.is_paused || false)
+    const [pausedBy, setPausedBy] = useState<User | null>(league?.paused_by || null)
+    const [isPausing, setIsPausing] = useState(false)
+    const [isResuming, setIsResuming] = useState(false)
 
-    console.log('Draft Show props:', { league, userTeam, teams, draftPicks, availablePlayers, currentTeam, isMyTurn, endTime: initialEndTime, serverTime: initialServerTime })
+    // Fetch available players from API
+    const fetchPlayers = useCallback(async (page: number = 1, search?: string, position?: string) => {
+        if (!league) return
+
+        setIsLoadingPlayers(true)
+        try {
+            const params: any = { page, per_page: 20 }
+            if (search) params.search = search
+            if (position && position !== 'all') params.position = position
+
+            const response = await axios.get(`/fantasy/leagues/${league.id}/draft/available-players`, { params })
+
+            if (page === 1) {
+                // First page - replace all players
+                setAvailablePlayers(response.data.data)
+            } else {
+                // Subsequent pages - append
+                setAvailablePlayers(prev => [...prev, ...response.data.data])
+            }
+
+            setPlayersPagination({
+                current_page: response.data.current_page,
+                last_page: response.data.last_page,
+                per_page: response.data.per_page,
+                total: response.data.total,
+            })
+        } catch (error) {
+            console.error('Failed to fetch players:', error)
+        } finally {
+            setIsLoadingPlayers(false)
+        }
+    }, [league?.id])
+
+    // Initial fetch on mount
+    useEffect(() => {
+        fetchPlayers(1)
+    }, [fetchPlayers])
+
+    // Refetch when search or filter changes
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchPlayers(1, searchQuery, positionFilter)
+        }, 300)
+
+        return () => clearTimeout(delayDebounceFn)
+    }, [searchQuery, positionFilter, fetchPlayers])
 
     // Request notification permission on mount
     useEffect(() => {
@@ -139,15 +212,21 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
         }
     }, [isMyTurn, currentPick])
 
-    // Initialize timer on mount (like countdown example)
+    // Initialize timer on mount or when draft is paused/resumed
     useEffect(() => {
+        if (!league) return
+        if (league.is_paused) {
+            setTimeRemaining(league.pause_time_remaining)
+            return
+        }
+
         if (initialEndTime && initialServerTime) {
             const clientNow = Date.now()
             const timeOffset = clientNow - initialServerTime
             const remaining = Math.max(0, Math.floor((initialEndTime - clientNow + timeOffset) / 1000))
             setTimeRemaining(remaining)
         }
-    }, [])
+    }, [league?.is_paused, league?.pause_time_remaining, initialEndTime, initialServerTime])
 
     // Subscribe to draft channel
     useEffect(() => {
@@ -161,11 +240,14 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
         }, 100)
 
         const setupEcho = () => {
-            console.log(`Subscribing to draft.${league.id} channel...`)
-            const channel = window.Echo.channel(`draft.${league.id}`)
+            console.log(`Subscribing to draft.${league.id} private channel...`)
+            console.log('Echo instance:', window.Echo)
+
+            const channel = window.Echo.private(`draft.${league.id}`)
+            console.log('Channel created:', channel)
 
             channel.subscribed(() => {
-                console.log('✅ Subscribed to draft channel')
+                console.log('✅ Subscribed to draft channel successfully')
                 setIsConnected(true)
             })
 
@@ -175,6 +257,22 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                 setIsConnected(false)
             })
 
+            // Additional error handling
+            channel.subscription.bind('pusher:subscription_error', (status: any) => {
+                console.error('❌ Subscription error:', status)
+            })
+
+            channel.subscription.bind('pusher:subscription_succeeded', () => {
+                console.log('✅ Pusher subscription succeeded')
+            })
+
+            // Debug: Log ALL events on this channel (only in development)
+            if (import.meta.env.DEV) {
+                channel.subscription.bind_global((eventName: string, data: any) => {
+                    console.log('🔊 Event received:', eventName, data)
+                })
+            }
+
             // Listen for player drafted events
             channel.listen('PlayerDrafted', (data: any) => {
                 console.log('🔔 PlayerDrafted event received:', data)
@@ -182,10 +280,9 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                 // Add new pick to the list
                 setDraftPicks(prev => [...prev, data.pick])
 
-                // Remove drafted player from available players
-                setAvailablePlayers(prev =>
-                    prev.filter(p => p.id !== data.pick.player.id)
-                )
+                // Add to drafted player IDs and remove from available players
+                setDraftedPlayerIds(prev => [...prev, data.pick.player.id])
+                setAvailablePlayers(prev => prev.filter(p => p.id !== data.pick.player.id))
 
                 // Update current pick number
                 setCurrentPick(data.current_pick)
@@ -239,6 +336,30 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                     setTimeRemaining(remaining)
                 }
             })
+
+            // Listen for draft paused event (using broadcastAs name with dot prefix for private channel)
+            channel.listen('.draft.paused', (data: any) => {
+                console.log('⏸️ Draft paused!', data)
+                setIsPaused(true)
+                setPausedBy(data.paused_by)
+                setTimeRemaining(data.time_remaining)
+            })
+
+            // Listen for draft resumed event (using broadcastAs name with dot prefix for private channel)
+            channel.listen('.draft.resumed', (data: any) => {
+                console.log('▶️ Draft resumed!', data)
+                setIsPaused(false)
+                setPausedBy(null)
+
+                // Recalculate time remaining with new pick_started_at
+                if (data.pick_started_at) {
+                    const pickStartedAt = new Date(data.pick_started_at).getTime()
+                    const endTime = pickStartedAt + ((league?.pick_time_limit || 60) * 1000)
+                    const clientNow = Date.now()
+                    const remaining = Math.max(0, Math.floor((endTime - clientNow) / 1000))
+                    setTimeRemaining(remaining)
+                }
+            })
         }
 
         return () => {
@@ -260,8 +381,13 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
         )
     }
 
-    // Client-side countdown - starts once on mount
+    // Client-side countdown - starts once on mount, pauses when draft is paused
     useEffect(() => {
+        if (isPaused) {
+            // Don't count down when paused
+            return
+        }
+
         const interval = setInterval(() => {
             setTimeRemaining(prev => {
                 if (prev === null || prev <= 0) {
@@ -272,10 +398,10 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
         }, 1000)
 
         return () => clearInterval(interval)
-    }, [])
+    }, [isPaused])
 
     const handleDraftPlayer = (player: Player) => {
-        if (!isMyTurn || !league) return
+        if (!isMyTurn || !league || isPaused) return
         setPlayerToDraft(player)
         setConfirmDialogOpen(true)
     }
@@ -300,11 +426,32 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
         })
     }
 
-    const filteredPlayers = (availablePlayers || []).filter(player => {
-        const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesPosition = positionFilter === 'all' || player.position === positionFilter
-        return matchesSearch && matchesPosition
-    })
+    const handlePause = () => {
+        if (!league) return
+        setIsPausing(true)
+
+        router.post(`/fantasy/leagues/${league.id}/draft/pause`, {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => setIsPausing(false)
+        })
+    }
+
+    const handleResume = () => {
+        if (!league) return
+        setIsResuming(true)
+
+        router.post(`/fantasy/leagues/${league.id}/draft/resume`, {}, {
+            preserveScroll: true,
+            onFinish: () => setIsResuming(false)
+        })
+    }
+
+    const handleLoadMore = () => {
+        if (playersPagination && playersPagination.current_page < playersPagination.last_page) {
+            fetchPlayers(playersPagination.current_page + 1, searchQuery, positionFilter)
+        }
+    }
 
     const positions = ['PG', 'SG', 'SF', 'PF', 'C']
     const totalTeams = teams?.length || 0
@@ -331,12 +478,22 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                                     <CardTitle className="text-2xl flex items-center gap-3">
                                         <Trophy className="h-6 w-6" />
                                         {league?.name} - Draft Room
+                                        {isPaused && (
+                                            <Badge variant="secondary" className="ml-2 bg-yellow-500 text-white">
+                                                ⏸️ PAUSED
+                                            </Badge>
+                                        )}
                                     </CardTitle>
                                     <CardDescription className="mt-2">
                                         Round {currentRound} of {totalRounds} • Pick #{currentPick}
+                                        {isPaused && pausedBy && (
+                                            <span className="ml-2 text-yellow-600">
+                                                • Paused by {pausedBy.name}
+                                            </span>
+                                        )}
                                     </CardDescription>
                                 </div>
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="flex gap-2 flex-wrap items-start">
                                     <Badge variant={isConnected ? "default" : "destructive"}>
                                         {isConnected ? '🟢 Live' : '🔴 Connecting...'}
                                     </Badge>
@@ -345,6 +502,37 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                                     )}
                                     {notificationPermission === 'denied' && (
                                         <Badge variant="destructive">🔕 Notifications Blocked</Badge>
+                                    )}
+                                    {canPauseResume && league?.draft_status === 'in_progress' && (
+                                        <div className="flex gap-1">
+                                            {!isPaused ? (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={handlePause}
+                                                    disabled={isPausing}
+                                                >
+                                                    <Pause className="h-4 w-4 mr-1" />
+                                                    {isPausing ? 'Pausing...' : 'Pause Draft'}
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    size="sm"
+                                                    variant="default"
+                                                    onClick={handleResume}
+                                                    disabled={isResuming}
+                                                >
+                                                    <Play className="h-4 w-4 mr-1" />
+                                                    {isResuming ? 'Resuming...' : 'Resume Draft'}
+                                                </Button>
+                                            )}
+                                            <Link href={`/fantasy/leagues/${league?.id}/draft/history`}>
+                                                <Button size="sm" variant="ghost">
+                                                    <History className="h-4 w-4 mr-1" />
+                                                    History
+                                                </Button>
+                                            </Link>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -489,7 +677,10 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
                         <CardHeader>
                             <CardTitle>Available Players</CardTitle>
                             <CardDescription>
-                                {isMyTurn ? 'Select a player to draft' : 'Waiting for your turn...'}
+                                {isMyTurn && !isPaused ? 'Select a player to draft' : isPaused ? 'Draft is paused' : 'Waiting for your turn...'}
+                                {availablePlayersCount !== undefined && (
+                                    <span className="ml-2">• {availablePlayersCount} available</span>
+                                )}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -521,37 +712,73 @@ export default function Show({ league, userTeam, teams, draftPicks: initialDraft
 
                             {/* Players List */}
                             <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                                {filteredPlayers.map((player) => (
-                                    <div
-                                        key={player.id}
-                                        className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                                    >
-                                        {player.photo_url ? (
-                                            <img
-                                                src={player.photo_url}
-                                                alt={player.name}
-                                                className="w-12 h-12 rounded-full object-cover object-top"
-                                            />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                                                <User className="h-6 w-6 text-muted-foreground" />
+                                {isLoadingPlayers && availablePlayers.length === 0 ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        <span className="ml-2 text-muted-foreground">Loading players...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {availablePlayers.map((player) => (
+                                            <div
+                                                key={player.id}
+                                                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                                            >
+                                                {player.photo_url ? (
+                                                    <img
+                                                        src={player.photo_url}
+                                                        alt={player.name}
+                                                        className="w-12 h-12 rounded-full object-cover object-top"
+                                                        loading="lazy"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                                                        <User className="h-6 w-6 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <div className="font-medium">{player.name}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        {player.position} • {player.team.name}
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => handleDraftPlayer(player)}
+                                                    disabled={!isMyTurn || isPaused || draftingPlayerId !== null}
+                                                >
+                                                    {draftingPlayerId === player.id ? 'Drafting...' : 'Draft'}
+                                                </Button>
+                                            </div>
+                                        ))}
+
+                                        {/* Load More Button */}
+                                        {playersPagination && playersPagination.current_page < playersPagination.last_page && (
+                                            <div className="flex justify-center py-4">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={handleLoadMore}
+                                                    disabled={isLoadingPlayers}
+                                                >
+                                                    {isLoadingPlayers ? (
+                                                        <>
+                                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            Loading...
+                                                        </>
+                                                    ) : (
+                                                        `Load More (${playersPagination.total - availablePlayers.length} remaining)`
+                                                    )}
+                                                </Button>
                                             </div>
                                         )}
-                                        <div className="flex-1">
-                                            <div className="font-medium">{player.name}</div>
-                                            <div className="text-sm text-muted-foreground">
-                                                {player.position} • {player.team.name}
-                                            </div>
-                                        </div>
-                                        <Button
-                                            size="sm"
-                                            onClick={() => handleDraftPlayer(player)}
-                                            disabled={!isMyTurn || draftingPlayerId !== null}
-                                        >
-                                            {draftingPlayerId === player.id ? 'Drafting...' : 'Draft'}
-                                        </Button>
-                                    </div>
-                                ))}
+
+                                        {availablePlayers.length === 0 && !isLoadingPlayers && (
+                                            <p className="text-sm text-muted-foreground py-8 text-center">
+                                                No players found matching your search
+                                            </p>
+                                        )}
+                                    </>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

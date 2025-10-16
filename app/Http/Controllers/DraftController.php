@@ -6,6 +6,7 @@ use App\Events\DraftCompleted;
 use App\Events\DraftStarted;
 use App\Events\PlayerDrafted;
 use App\Jobs\AutoPickJob;
+use App\Models\DraftAction;
 use App\Models\DraftPick;
 use App\Models\FantasyLeague;
 use App\Models\Player;
@@ -34,7 +35,8 @@ class DraftController extends Controller
             ->get();
 
         // Check for expired pick and auto-draft BEFORE loading other data
-        if ($league->isPickExpired()) {
+        // But only if draft is not paused
+        if (!$league->is_paused && $league->isPickExpired()) {
             $currentTeam = $league->getCurrentDraftTeam();
             if ($currentTeam) {
                 $this->performAutoPick($league, $currentTeam);
@@ -49,17 +51,15 @@ class DraftController extends Controller
             ->orderBy('pick_number')
             ->get();
 
-        // Get available players
+        // Get available players count (but don't load all players - use lazy loading instead)
         $draftedPlayerIds = $draftPicks->pluck('player_id')->toArray();
 
-        $availablePlayers = Player::with('team')
-            ->where('is_active', true)
+        $availablePlayersCount = Player::where('is_active', true)
             ->whereNotIn('id', $draftedPlayerIds)
             ->whereHas('team', function($q) use ($league) {
                 $q->where('championship_id', $league->championship_id);
             })
-            ->orderBy('price', 'desc')
-            ->get();
+            ->count();
 
         // Get current team on the clock
         $currentTeam = $league->getCurrentDraftTeam();
@@ -73,15 +73,17 @@ class DraftController extends Controller
         $serverTime = now()->valueOf();
 
         return Inertia::render('Fantasy/Draft/Show', [
-            'league' => $league->load('owner', 'championship'),
+            'league' => $league->load('owner', 'championship', 'pausedBy'),
             'userTeam' => $userTeam,
             'teams' => $teams,
             'draftPicks' => $draftPicks,
-            'availablePlayers' => $availablePlayers,
+            'availablePlayersCount' => $availablePlayersCount,
+            'draftedPlayerIds' => $draftedPlayerIds,
             'currentTeam' => $currentTeam,
             'isMyTurn' => $currentTeam && $currentTeam->id === $userTeam->id,
             'endTime' => $endTime,
             'serverTime' => $serverTime,
+            'canPauseResume' => $league->canUserPauseResume(request()->user()),
         ]);
     }
 
@@ -107,6 +109,13 @@ class DraftController extends Controller
 
         $league->generateDraftOrder();
 
+        // Log draft start
+        DraftAction::log(
+            fantasyLeagueId: $league->id,
+            actionType: 'start',
+            userId: auth()->id()
+        );
+
         // Broadcast draft started event
         broadcast(new DraftStarted($league));
 
@@ -125,6 +134,10 @@ class DraftController extends Controller
 
         if ($league->mode !== 'draft' || $league->draft_status !== 'in_progress') {
             return back()->with('error', 'Draft is not in progress');
+        }
+
+        if ($league->is_paused) {
+            return back()->with('error', 'Draft is currently paused');
         }
 
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
@@ -183,6 +196,17 @@ class DraftController extends Controller
                     'pick_started_at' => now()
                 ]);
 
+                // Log draft pick
+                DraftAction::log(
+                    fantasyLeagueId: $league->id,
+                    actionType: 'pick',
+                    fantasyTeamId: $userTeam->id,
+                    playerId: $player->id,
+                    userId: auth()->id(),
+                    pickNumber: $currentPickNumber,
+                    roundNumber: $currentRound
+                );
+
                 return $pick;
             });
 
@@ -222,6 +246,12 @@ class DraftController extends Controller
                 // Verify draft is still in progress
                 if ($league->draft_status !== 'in_progress') {
                     \Log::info("Auto-pick aborted: draft not in progress");
+                    return null;
+                }
+
+                // Verify draft is not paused
+                if ($league->is_paused) {
+                    \Log::info("Auto-pick aborted: draft is paused");
                     return null;
                 }
 
@@ -311,5 +341,149 @@ class DraftController extends Controller
             ->delay(now()->addSeconds($delayInSeconds));
 
         \Log::info("AutoPickJob dispatched successfully");
+    }
+
+    public function pause(FantasyLeague $league)
+    {
+        $user = request()->user();
+
+        if (!$league->canUserPauseResume($user)) {
+            return back()->with('error', 'Only the league owner can pause the draft');
+        }
+
+        if ($league->draft_status !== 'in_progress') {
+            return back()->with('error', 'Draft is not in progress');
+        }
+
+        if ($league->is_paused) {
+            return back()->with('error', 'Draft is already paused');
+        }
+
+        if ($league->pauseDraft($user)) {
+            return back()->with('success', 'Draft has been paused');
+        }
+
+        return back()->with('error', 'Failed to pause draft');
+    }
+
+    public function resume(FantasyLeague $league)
+    {
+        $user = request()->user();
+
+        if (!$league->canUserPauseResume($user)) {
+            return back()->with('error', 'Only the league owner can resume the draft');
+        }
+
+        if ($league->draft_status !== 'in_progress') {
+            return back()->with('error', 'Draft is not in progress');
+        }
+
+        if (!$league->is_paused) {
+            return back()->with('error', 'Draft is not paused');
+        }
+
+        if ($league->resumeDraft($user)) {
+            // Schedule auto-pick job for resumed draft
+            $this->scheduleAutoPickJob($league);
+
+            return back()->with('success', 'Draft has been resumed');
+        }
+
+        return back()->with('error', 'Failed to resume draft');
+    }
+
+    public function getAvailablePlayers(FantasyLeague $league, Request $request)
+    {
+        $request->validate([
+            'search' => 'nullable|string|max:255',
+            'position' => 'nullable|string|in:PG,SG,SF,PF,C',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:10|max:50',
+        ]);
+
+        $userTeam = $league->teams()->where('user_id', auth()->id())->first();
+
+        if (!$userTeam) {
+            return response()->json(['error' => 'You are not a member of this league'], 403);
+        }
+
+        // Get drafted player IDs
+        $draftedPlayerIds = $league->draftPicks()->pluck('player_id')->toArray();
+
+        // Build query
+        $query = Player::with('team')
+            ->where('is_active', true)
+            ->whereNotIn('id', $draftedPlayerIds)
+            ->whereHas('team', function($q) use ($league) {
+                $q->where('championship_id', $league->championship_id);
+            });
+
+        // Apply search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        // Apply position filter
+        if ($request->filled('position')) {
+            $query->where('position', $request->position);
+        }
+
+        // Order by price (best players first)
+        $query->orderBy('price', 'desc');
+
+        // Paginate
+        $perPage = $request->input('per_page', 20);
+        $players = $query->paginate($perPage);
+
+        return response()->json($players);
+    }
+
+    public function history(FantasyLeague $league)
+    {
+        $userTeam = $league->teams()->where('user_id', auth()->id())->first();
+
+        if (!$userTeam) {
+            return redirect()->route('fantasy.leagues.show', $league)
+                ->with('error', 'You are not a member of this league');
+        }
+
+        $draftActions = $league->draftActions()
+            ->with(['user', 'fantasyTeam.user', 'player'])
+            ->orderBy('action_at', 'desc')
+            ->get()
+            ->map(function ($action) {
+                return [
+                    'id' => $action->id,
+                    'action_type' => $action->action_type,
+                    'action_at' => $action->action_at->toIso8601String(),
+                    'user' => $action->user ? [
+                        'id' => $action->user->id,
+                        'name' => $action->user->name,
+                    ] : null,
+                    'team' => $action->fantasyTeam ? [
+                        'id' => $action->fantasyTeam->id,
+                        'name' => $action->fantasyTeam->name,
+                        'user' => $action->fantasyTeam->user ? [
+                            'id' => $action->fantasyTeam->user->id,
+                            'name' => $action->fantasyTeam->user->name,
+                        ] : null,
+                    ] : null,
+                    'player' => $action->player ? [
+                        'id' => $action->player->id,
+                        'name' => $action->player->name,
+                        'position' => $action->player->position,
+                    ] : null,
+                    'pick_number' => $action->pick_number,
+                    'round_number' => $action->round_number,
+                    'details' => $action->details,
+                ];
+            });
+
+        return Inertia::render('Fantasy/Draft/History', [
+            'league' => $league->load('owner', 'championship'),
+            'userTeam' => $userTeam,
+            'draftActions' => $draftActions,
+        ]);
     }
 }

@@ -58,35 +58,33 @@ class Player extends Model
     }
 
     /**
-     * Update player price based on recent performance
+     * Update player price based on fantasy points efficiency
+     *
+     * Simple formula: Average Fantasy Points × 100,000
+     *
+     * Examples:
+     * - 30 fantasy pts/game = 3,000,000 (3M)
+     * - 20 fantasy pts/game = 2,000,000 (2M)
+     * - 10 fantasy pts/game = 1,000,000 (1M)
+     * - 5 fantasy pts/game = 500,000 (500k)
      */
     public function updatePriceBasedOnPerformance(): void
     {
-        $avgPoints = $this->average_fantasy_points;
+        // Get average fantasy points from last 5 games
+        $avgFantasyPoints = $this->average_fantasy_points;
 
-        // Price adjustment logic:
-        // Excellent (30+ pts): +10%
-        // Good (20-29 pts): +5%
-        // Average (10-19 pts): no change
-        // Poor (5-9 pts): -5%
-        // Very Poor (<5 pts): -10%
-
-        $currentPrice = $this->price;
-        $newPrice = $currentPrice;
-
-        if ($avgPoints >= 30) {
-            $newPrice = $currentPrice * 1.10;
-        } elseif ($avgPoints >= 20) {
-            $newPrice = $currentPrice * 1.05;
-        } elseif ($avgPoints < 5) {
-            $newPrice = $currentPrice * 0.90;
-        } elseif ($avgPoints < 10) {
-            $newPrice = $currentPrice * 0.95;
+        // If no games played yet, keep current price
+        if ($avgFantasyPoints <= 0) {
+            return;
         }
 
-        // Ensure minimum price
-        $newPrice = max($newPrice, 100000);
+        // Straightforward: fantasy points × 100k
+        $newPrice = $avgFantasyPoints * 100000;
 
-        $this->update(['price' => $newPrice]);
+        // Set minimum and maximum bounds
+        $newPrice = max($newPrice, 100000);  // Minimum 100k (very poor performers)
+        $newPrice = min($newPrice, 10000000); // Maximum 10M (superstars)
+
+        $this->update(['price' => round($newPrice, -4)]); // Round to nearest 10k
     }
 }
