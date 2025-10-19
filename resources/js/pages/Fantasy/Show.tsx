@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye } from 'lucide-react'
+import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 declare global {
@@ -272,16 +272,22 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                         {userTeam && (
                             <Card className="lg:col-span-1">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center justify-between">
-                                        <span>My Team</span>
-                                        <Link href={`/fantasy/leagues/${league.id}/team`}>
-                                            <Button size="sm">
+                                    <CardTitle>My Team</CardTitle>
+                                    <CardDescription>{userTeam.team_name}</CardDescription>
+                                    <div className="flex gap-2 mt-3">
+                                        <Link href={`/fantasy/leagues/${league.id}/team`} className="flex-1">
+                                            <Button size="sm" variant="outline" className="w-full">
                                                 <ShoppingCart className="h-4 w-4 mr-2" />
                                                 View Team
                                             </Button>
                                         </Link>
-                                    </CardTitle>
-                                    <CardDescription>{userTeam.team_name}</CardDescription>
+                                        <Link href={`/fantasy/leagues/${league.id}/lineup`} className="flex-1">
+                                            <Button size="sm" className="w-full">
+                                                <ListOrdered className="h-4 w-4 mr-2" />
+                                                Manage Lineup
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3">

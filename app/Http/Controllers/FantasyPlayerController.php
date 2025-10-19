@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\FantasyLeague;
-use App\Models\FantasyTeam;
 use App\Models\Player;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,7 +16,7 @@ class FantasyPlayerController extends Controller
         // Get players with filters
         $query = Player::with('team')
             ->where('is_active', true)
-            ->whereHas('team', function($q) use ($league) {
+            ->whereHas('team', function ($q) use ($league) {
                 $q->where('championship_id', $league->championship_id);
             });
 
@@ -33,7 +32,7 @@ class FantasyPlayerController extends Controller
 
         // Search by name
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         // Sort
@@ -59,43 +58,31 @@ class FantasyPlayerController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->firstOrFail();
 
-        // Check if already owns this player
-        if ($userTeam->players()->where('player_id', $player->id)->exists()) {
-            return back()->withErrors(['error' => 'You already own this player.']);
-        }
+        try {
+            // Buy the player (all validation is now inside buyPlayer method)
+            if ($userTeam->buyPlayer($player)) {
+                return back()->with('success', "Successfully purchased {$player->name}!");
+            }
 
-        // Check if team is full
-        if ($userTeam->isFull()) {
-            return back()->withErrors(['error' => "Your team is full. Maximum {$league->team_size} players allowed."]);
+            return back()->with('error', 'Failed to purchase player.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        // Check if can afford
-        if (!$userTeam->canAffordPlayer($player)) {
-            return back()->withErrors(['error' => 'Insufficient budget to buy this player.']);
-        }
-
-        // Buy the player
-        if ($userTeam->buyPlayer($player)) {
-            return back()->with('success', "Successfully purchased {$player->name}!");
-        }
-
-        return back()->withErrors(['error' => 'Failed to purchase player.']);
     }
 
     public function sell(FantasyLeague $league, Player $player)
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->firstOrFail();
 
-        // Check if owns this player
-        if (!$userTeam->players()->where('player_id', $player->id)->exists()) {
-            return back()->withErrors(['error' => 'You do not own this player.']);
-        }
+        try {
+            // Sell the player (all validation is now inside sellPlayer method)
+            if ($userTeam->sellPlayer($player)) {
+                return back()->with('success', "Successfully sold {$player->name} for $".number_format($player->price, 0).'!');
+            }
 
-        // Sell the player
-        if ($userTeam->sellPlayer($player)) {
-            return back()->with('success', "Successfully sold {$player->name} for $" . number_format($player->price, 0) . "!");
+            return back()->with('error', 'Failed to sell player.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        return back()->withErrors(['error' => 'Failed to sell player.']);
     }
 }

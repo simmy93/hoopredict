@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Head, Link, router } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { ShoppingCart, Search, TrendingUp, TrendingDown, ArrowLeft, DollarSign } from 'lucide-react'
+import { ShoppingCart, Search, ArrowLeft, DollarSign } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 interface User {
@@ -103,16 +103,12 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
 
     const buyPlayer = (playerId: number) => {
         if (!league?.id) return
-        router.post(`/fantasy/leagues/${league.id}/players/${playerId}/buy`, {}, {
-            preserveScroll: true,
-        })
+        router.post(`/fantasy/leagues/${league.id}/players/${playerId}/buy`)
     }
 
     const sellPlayer = (playerId: number) => {
         if (!league?.id) return
-        router.delete(`/fantasy/leagues/${league.id}/players/${playerId}/sell`, {
-            preserveScroll: true,
-        })
+        router.delete(`/fantasy/leagues/${league.id}/players/${playerId}/sell`)
     }
 
     const isOwned = (playerId: number) => {

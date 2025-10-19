@@ -1,152 +1,170 @@
-import React, { useState } from 'react'
-import { Head, Link, router } from '@inertiajs/react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ShoppingCart, Search, ArrowLeft, DollarSign, Users, Loader2 } from 'lucide-react'
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { ArrowLeft, DollarSign, Loader2, Search, ShoppingCart, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface User {
-    id: number
-    name: string
+    id: number;
+    name: string;
 }
 
 interface Team {
-    id: number
-    name: string
-    logo_url: string | null
+    id: number;
+    name: string;
+    logo_url: string | null;
 }
 
 interface Player {
-    id: number
-    name: string
-    position: string
-    jersey_number: number | null
-    price: number
-    photo_url: string | null
-    country: string | null
-    is_active: boolean
-    team: Team
+    id: number;
+    name: string;
+    position: string;
+    jersey_number: number | null;
+    price: number;
+    photo_url: string | null;
+    country: string | null;
+    is_active: boolean;
+    team: Team;
 }
 
 interface FantasyTeam {
-    id: number
-    team_name: string
-    budget_spent: number
-    budget_remaining: number
-    total_points: number
-    user: User
+    id: number;
+    team_name: string;
+    budget_spent: number;
+    budget_remaining: number;
+    total_points: number;
+    user: User;
 }
 
 interface FantasyLeague {
-    id: number
-    name: string
-    mode: 'budget' | 'draft'
-    budget: number
-    team_size: number
+    id: number;
+    name: string;
+    mode: 'budget' | 'draft';
+    budget: number;
+    team_size: number;
 }
 
 interface PaginatedPlayers {
-    data: Player[]
-    current_page: number
-    last_page: number
-    per_page: number
-    total: number
+    data: Player[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
 }
 
 interface Props {
-    league?: FantasyLeague
-    userTeam?: FantasyTeam
-    players?: PaginatedPlayers
-    myPlayers?: Player[]
+    league?: FantasyLeague;
+    userTeam?: FantasyTeam;
+    players?: PaginatedPlayers;
+    myPlayers?: Player[];
     filters?: {
-        position?: string
-        team_id?: number
-        search?: string
-        sort?: string
-        direction?: string
-    }
+        position?: string;
+        team_id?: number;
+        search?: string;
+        sort?: string;
+        direction?: string;
+    };
 }
 
 export default function Index({ league, userTeam, players, myPlayers = [], filters = {} }: Props) {
-    const [search, setSearch] = useState(String(filters?.search || ''))
-    const [position, setPosition] = useState(String(filters?.position || 'all'))
-    const [sortBy, setSortBy] = useState(String(filters?.sort || 'price'))
-    const [direction, setDirection] = useState(String(filters?.direction || 'desc'))
-    const [buyingPlayerId, setBuyingPlayerId] = useState<number | null>(null)
-    const [sellingPlayerId, setSellingPlayerId] = useState<number | null>(null)
-    const [confirmSellDialogOpen, setConfirmSellDialogOpen] = useState(false)
-    const [playerToSell, setPlayerToSell] = useState<Player | null>(null)
+    const [search, setSearch] = useState(String(filters?.search || ''));
+    const [position, setPosition] = useState(String(filters?.position || 'all'));
+    const [sortBy, setSortBy] = useState(String(filters?.sort || 'price'));
+    const [direction, setDirection] = useState(String(filters?.direction || 'desc'));
+    const [buyingPlayerId, setBuyingPlayerId] = useState<number | null>(null);
+    const [sellingPlayerId, setSellingPlayerId] = useState<number | null>(null);
+    const [confirmSellDialogOpen, setConfirmSellDialogOpen] = useState(false);
+    const [playerToSell, setPlayerToSell] = useState<Player | null>(null);
+
+    const { props } = usePage();
+    const flash = props.flash || {};
+
+    // Automatically scroll to top when errors appear
+    useEffect(() => {
+        if (flash.error) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [flash]);
 
     const updateFilters = (newFilters: any) => {
-        if (!league?.id) return
-        router.get(`/fantasy/leagues/${league.id}/team`, {
-            ...filters,
-            ...newFilters,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-        })
-    }
+        if (!league?.id) return;
+        router.get(
+            `/fantasy/leagues/${league.id}/team`,
+            {
+                ...filters,
+                ...newFilters,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+            },
+        );
+    };
 
     const handleSearch = () => {
-        updateFilters({ search, page: 1 })
-    }
+        updateFilters({ search, page: 1 });
+    };
 
     const handlePositionChange = (value: string) => {
-        setPosition(value)
-        updateFilters({ position: value === 'all' ? null : value, page: 1 })
-    }
+        setPosition(value);
+        updateFilters({ position: value === 'all' ? null : value, page: 1 });
+    };
 
     const handleSortChange = (value: string) => {
-        setSortBy(value)
-        updateFilters({ sort: value, page: 1 })
-    }
+        setSortBy(value);
+        updateFilters({ sort: value, page: 1 });
+    };
 
     const buyPlayer = (playerId: number) => {
-        if (!league?.id) return
-        setBuyingPlayerId(playerId)
-        router.post(`/fantasy/leagues/${league.id}/players/${playerId}/buy`, {}, {
-            preserveScroll: true,
-            onFinish: () => setBuyingPlayerId(null),
-        })
-    }
+        if (!league?.id) return;
+        setBuyingPlayerId(playerId);
+        router.post(
+            `/fantasy/leagues/${league.id}/players/${playerId}/buy`,
+            {},
+            {
+                preserveScroll: true,
+                onFinish: () => setBuyingPlayerId(null),
+            },
+        );
+    };
 
     const handleSellClick = (player: Player) => {
-        setPlayerToSell(player)
-        setConfirmSellDialogOpen(true)
-    }
+        setPlayerToSell(player);
+        setConfirmSellDialogOpen(true);
+    };
 
     const confirmSell = () => {
-        if (!league?.id || !playerToSell) return
-        setSellingPlayerId(playerToSell.id)
-        setConfirmSellDialogOpen(false)
+        if (!league?.id || !playerToSell) return;
+        setSellingPlayerId(playerToSell.id);
+        setConfirmSellDialogOpen(false);
         router.delete(`/fantasy/leagues/${league.id}/players/${playerToSell.id}/sell`, {
             preserveScroll: true,
             onFinish: () => {
-                setSellingPlayerId(null)
-                setPlayerToSell(null)
+                setSellingPlayerId(null);
+                setPlayerToSell(null);
             },
-        })
-    }
+        });
+    };
 
     const isOwned = (playerId: number) => {
-        return myPlayers?.some(p => p.id === playerId) || false
-    }
+        return myPlayers?.some((p) => p.id === playerId) || false;
+    };
 
     const canAfford = (price: number) => {
-        return userTeam?.budget_remaining ? Number(userTeam.budget_remaining) >= price : false
-    }
+        return userTeam?.budget_remaining ? Number(userTeam.budget_remaining) >= price : false;
+    };
 
     const isTeamFull = () => {
-        return league?.team_size ? (myPlayers?.length || 0) >= league.team_size : false
-    }
+        return league?.team_size ? (myPlayers?.length || 0) >= league.team_size : false;
+    };
 
     if (!league || !userTeam || !players) {
-        return <div>Loading...</div>
+        return <div>Loading...</div>;
     }
 
     return (
@@ -154,12 +172,9 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
             <Head title={`My Team - ${league.name}`} />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <div className="mb-6">
-                        <Link
-                            href={`/fantasy/leagues/${league.id}`}
-                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                        >
+                        <Link href={`/fantasy/leagues/${league.id}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                             <ArrowLeft className="h-4 w-4" />
                             Back to League
                         </Link>
@@ -167,48 +182,52 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
 
                     {/* Header */}
                     <div className="mb-6">
-                        <h1 className="text-3xl font-bold flex items-center gap-2">
+                        <h1 className="flex items-center gap-2 text-3xl font-bold">
                             <Users className="h-8 w-8" />
                             {userTeam.team_name}
                         </h1>
-                        <p className="text-muted-foreground mt-1">{league.name}</p>
+                        <p className="mt-1 text-muted-foreground">{league.name}</p>
                     </div>
 
                     {/* My Team Section */}
                     <Card className="mb-6">
                         <CardHeader>
-                            <CardTitle>My Players ({myPlayers?.length || 0}/{league.team_size})</CardTitle>
+                            <CardTitle>
+                                My Players ({myPlayers?.length || 0}/{league.team_size})
+                            </CardTitle>
                             <CardDescription>
-                                {league.mode === 'budget' && (
-                                    <>Budget: ${(Number(userTeam.budget_remaining) / 1000000).toFixed(1)}M remaining</>
-                                )}
+                                {league.mode === 'budget' && <>Budget: ${(Number(userTeam.budget_remaining) / 1000000).toFixed(1)}M remaining</>}
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             {myPlayers && myPlayers.length > 0 ? (
-                                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     {myPlayers.map((player) => (
                                         <Card key={player.id} className="border-primary">
                                             <CardContent className="pt-6">
-                                                <div className="flex items-start gap-3 mb-4">
+                                                <div className="mb-4 flex items-start gap-3">
                                                     {player.photo_url ? (
                                                         <img
                                                             src={player.photo_url}
                                                             alt={player.name}
-                                                            className="w-12 h-12 rounded-full object-cover object-top"
+                                                            className="h-12 w-12 rounded-full object-cover object-top"
                                                         />
                                                     ) : (
-                                                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-lg font-bold">
+                                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold">
                                                             {player.name.charAt(0)}
                                                         </div>
                                                     )}
                                                     <div className="flex-1">
                                                         <h4 className="font-medium">{player.name}</h4>
                                                         <p className="text-sm text-muted-foreground">{player.team.name}</p>
-                                                        <div className="flex gap-2 mt-1">
-                                                            <Badge variant="secondary" className="text-xs">{player.position}</Badge>
+                                                        <div className="mt-1 flex gap-2">
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                {player.position}
+                                                            </Badge>
                                                             {player.jersey_number && (
-                                                                <Badge variant="outline" className="text-xs">#{player.jersey_number}</Badge>
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    #{player.jersey_number}
+                                                                </Badge>
                                                             )}
                                                         </div>
                                                     </div>
@@ -216,7 +235,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                 <div className="flex items-center justify-between">
                                                     <div className="text-sm">
                                                         <span className="text-muted-foreground">Value:</span>
-                                                        <span className="font-bold ml-1">${(player.price / 1000000).toFixed(1)}M</span>
+                                                        <span className="ml-1 font-bold">${(player.price / 1000000).toFixed(1)}M</span>
                                                     </div>
                                                     {league.mode === 'budget' && (
                                                         <Button
@@ -227,12 +246,12 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                         >
                                                             {sellingPlayerId === player.id ? (
                                                                 <>
-                                                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                                                                     Selling...
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <DollarSign className="h-3 w-3 mr-1" />
+                                                                    <DollarSign className="mr-1 h-3 w-3" />
                                                                     Sell
                                                                 </>
                                                             )}
@@ -244,8 +263,8 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                                <div className="py-8 text-center text-muted-foreground">
+                                    <Users className="mx-auto mb-3 h-12 w-12 opacity-50" />
                                     <p>No players yet. Start building your team below!</p>
                                 </div>
                             )}
@@ -262,7 +281,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     <Card className="mb-6">
                         <CardContent className="pt-6">
                             <div className="flex flex-wrap gap-4">
-                                <div className="flex-1 min-w-[300px]">
+                                <div className="min-w-[300px] flex-1">
                                     <div className="flex gap-2">
                                         <div className="relative flex-1">
                                             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -305,11 +324,11 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     </Card>
 
                     {/* Players Grid */}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {players.data?.map((player) => {
-                            const owned = isOwned(player.id)
-                            const affordable = canAfford(player.price)
-                            const teamFull = isTeamFull()
+                            const owned = isOwned(player.id);
+                            const affordable = canAfford(player.price);
+                            const teamFull = isTeamFull();
 
                             return (
                                 <Card key={player.id} className={owned ? 'border-primary' : ''}>
@@ -319,10 +338,10 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                 <img
                                                     src={player.photo_url}
                                                     alt={player.name}
-                                                    className="w-16 h-16 rounded-full object-cover object-top"
+                                                    className="h-16 w-16 rounded-full object-cover object-top"
                                                 />
                                             ) : (
-                                                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
+                                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl font-bold">
                                                     {player.name.charAt(0)}
                                                 </div>
                                             )}
@@ -332,7 +351,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                     {player.team.name}
                                                     {player.jersey_number && ` #${player.jersey_number}`}
                                                 </CardDescription>
-                                                <div className="flex gap-2 mt-2">
+                                                <div className="mt-2 flex gap-2">
                                                     <Badge variant="secondary">{player.position}</Badge>
                                                     {owned && <Badge variant="default">Owned</Badge>}
                                                 </div>
@@ -340,18 +359,12 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                         </div>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="flex items-center justify-between mb-4">
+                                        <div className="mb-4 flex items-center justify-between">
                                             <div>
                                                 <div className="text-sm text-muted-foreground">Price</div>
-                                                <div className="text-2xl font-bold">
-                                                    ${(player.price / 1000000).toFixed(1)}M
-                                                </div>
+                                                <div className="text-2xl font-bold">${(player.price / 1000000).toFixed(1)}M</div>
                                             </div>
-                                            {player.country && (
-                                                <div className="text-sm text-muted-foreground">
-                                                    {player.country}
-                                                </div>
-                                            )}
+                                            {player.country && <div className="text-sm text-muted-foreground">{player.country}</div>}
                                         </div>
 
                                         {league.mode === 'budget' && (
@@ -365,12 +378,12 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                     >
                                                         {sellingPlayerId === player.id ? (
                                                             <>
-                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 Selling...
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <DollarSign className="h-4 w-4 mr-2" />
+                                                                <DollarSign className="mr-2 h-4 w-4" />
                                                                 Sell Player
                                                             </>
                                                         )}
@@ -383,17 +396,13 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                     >
                                                         {buyingPlayerId === player.id ? (
                                                             <>
-                                                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                                 Buying...
                                                             </>
                                                         ) : (
                                                             <>
-                                                                <ShoppingCart className="h-4 w-4 mr-2" />
-                                                                {teamFull
-                                                                    ? 'Team Full'
-                                                                    : !affordable
-                                                                    ? 'Cannot Afford'
-                                                                    : 'Buy Player'}
+                                                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                                                {teamFull ? 'Team Full' : !affordable ? 'Cannot Afford' : 'Buy Player'}
                                                             </>
                                                         )}
                                                     </Button>
@@ -401,13 +410,13 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                             </>
                                         )}
                                         {league.mode === 'draft' && (
-                                            <div className="text-center text-sm text-muted-foreground py-2">
+                                            <div className="py-2 text-center text-sm text-muted-foreground">
                                                 Players can only be acquired through the draft
                                             </div>
                                         )}
                                     </CardContent>
                                 </Card>
-                            )
+                            );
                         })}
                     </div>
 
@@ -433,36 +442,34 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Confirm Sell Player</DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to sell this player? You will receive the current market value.
-                        </DialogDescription>
+                        <DialogDescription>Are you sure you want to sell this player? You will receive the current market value.</DialogDescription>
                     </DialogHeader>
                     {playerToSell && (
                         <div className="py-4">
-                            <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                            <div className="flex items-center gap-3 rounded-lg bg-muted p-4">
                                 {playerToSell.photo_url ? (
                                     <img
                                         src={playerToSell.photo_url}
                                         alt={playerToSell.name}
-                                        className="w-16 h-16 rounded-full object-cover object-top"
+                                        className="h-16 w-16 rounded-full object-cover object-top"
                                     />
                                 ) : (
-                                    <div className="w-16 h-16 rounded-full bg-background flex items-center justify-center text-2xl font-bold">
+                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-background text-2xl font-bold">
                                         {playerToSell.name.charAt(0)}
                                     </div>
                                 )}
                                 <div className="flex-1">
-                                    <div className="font-bold text-lg">{playerToSell.name}</div>
+                                    <div className="text-lg font-bold">{playerToSell.name}</div>
                                     <div className="text-sm text-muted-foreground">{playerToSell.team.name}</div>
-                                    <div className="flex gap-2 mt-1">
-                                        <Badge variant="secondary" className="text-xs">{playerToSell.position}</Badge>
+                                    <div className="mt-1 flex gap-2">
+                                        <Badge variant="secondary" className="text-xs">
+                                            {playerToSell.position}
+                                        </Badge>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="text-sm text-muted-foreground">Sell for</div>
-                                    <div className="text-2xl font-bold text-green-600">
-                                        ${(playerToSell.price / 1000000).toFixed(1)}M
-                                    </div>
+                                    <div className="text-2xl font-bold text-green-600">${(playerToSell.price / 1000000).toFixed(1)}M</div>
                                 </div>
                             </div>
                         </div>
@@ -471,8 +478,8 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                         <Button
                             variant="outline"
                             onClick={() => {
-                                setConfirmSellDialogOpen(false)
-                                setPlayerToSell(null)
+                                setConfirmSellDialogOpen(false);
+                                setPlayerToSell(null);
                             }}
                         >
                             Cancel
@@ -484,5 +491,5 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                 </DialogContent>
             </Dialog>
         </AuthenticatedLayout>
-    )
+    );
 }

@@ -100,6 +100,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/leagues/{league}/draft/pause', [DraftController::class, 'pause'])->name('draft.pause');
         Route::post('/leagues/{league}/draft/resume', [DraftController::class, 'resume'])->name('draft.resume');
         Route::get('/leagues/{league}/draft/history', [DraftController::class, 'history'])->name('draft.history');
+
+        // Lineup Management
+        Route::get('/leagues/{league}/lineup', [\App\Http\Controllers\FantasyLineupController::class, 'show'])->name('lineup.show');
+        Route::post('/leagues/{league}/lineup', [\App\Http\Controllers\FantasyLineupController::class, 'update'])->name('lineup.update');
+        Route::post('/leagues/{league}/lineup/validate', [\App\Http\Controllers\FantasyLineupController::class, 'validate'])->name('lineup.validate');
+        Route::post('/leagues/{league}/lineup/auto-generate', [\App\Http\Controllers\FantasyLineupController::class, 'autoGenerate'])->name('lineup.auto-generate');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
