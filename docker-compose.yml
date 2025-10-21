@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Main Application (Nginx + PHP-FPM + Queue Workers + Reverb)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hoopredict-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+      - ./storage:/var/www/storage
+      - ./bootstrap/cache:/var/www/bootstrap/cache
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-hoopredict}
+      - DB_USERNAME=${DB_USERNAME:-hoopredict}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - QUEUE_CONNECTION=redis
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - BROADCAST_CONNECTION=reverb
+    networks:
+      - hoopredict-network
+    depends_on:
+      - db
+      - redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hoopredict.rule=Host(`hoopredict.websimas.com`)"
+      - "traefik.http.routers.hoopredict.entrypoints=websecure"
+      - "traefik.http.routers.hoopredict.tls.certresolver=letsencrypt"
+      - "traefik.http.services.hoopredict.loadbalancer.server.port=80"
+      # WebSocket routing for Reverb
+      - "traefik.http.routers.hoopredict-ws.rule=Host(`hoopredict.websimas.com`) && PathPrefix(`/app`)"
+      - "traefik.http.routers.hoopredict-ws.entrypoints=websecure"
+      - "traefik.http.routers.hoopredict-ws.tls.certresolver=letsencrypt"
+      - "traefik.http.services.hoopredict-ws.loadbalancer.server.port=8080"
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: hoopredict-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-hoopredict}
+      MYSQL_USER: ${DB_USERNAME:-hoopredict}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - hoopredict-network
+    command: --default-authentication-plugin=mysql_native_password
+
+  # Redis for Cache, Queue, and Sessions
+  redis:
+    image: redis:7-alpine
+    container_name: hoopredict-redis
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks:
+      - hoopredict-network
+    command: redis-server --appendonly yes
+
+volumes:
+  db-data:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  hoopredict-network:
+    external: true
+    name: traefik-network

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Storage;
 class EuroLeagueScrapingService
 {
     private Client $client;
+
     private ?Championship $euroLeague = null;
 
     public function __construct()
@@ -22,8 +23,8 @@ class EuroLeagueScrapingService
             'timeout' => 30,
             'verify' => false, // Disable SSL verification for development
             'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            ]
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            ],
         ]);
     }
 
@@ -36,7 +37,7 @@ class EuroLeagueScrapingService
                     'name' => 'EuroLeague',
                     'season' => '2025-26',
                     'is_active' => true,
-                    'external_id' => 'euroleague-2025'
+                    'external_id' => 'euroleague-2025',
                 ]
             );
         }
@@ -52,7 +53,7 @@ class EuroLeagueScrapingService
             $response = $this->client->get('https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/clubs');
             $teamsData = json_decode($response->getBody()->getContents(), true);
 
-            if (!isset($teamsData['data'])) {
+            if (! isset($teamsData['data'])) {
                 throw new \Exception('Invalid response structure from teams API');
             }
 
@@ -71,13 +72,13 @@ class EuroLeagueScrapingService
                 Team::updateOrCreate(
                     [
                         'championship_id' => $euroLeague->id,
-                        'external_id' => $teamData['code']
+                        'external_id' => $teamData['code'],
                     ],
                     [
                         'name' => $teamData['name'],
                         'city' => $city,
                         'country' => $teamData['country']['name'] ?? 'Unknown',
-                        'logo_url' => $logoUrl
+                        'logo_url' => $logoUrl,
                     ]
                 );
 
@@ -87,15 +88,15 @@ class EuroLeagueScrapingService
 
             Log::info('EuroLeague teams scraping completed successfully');
         } catch (RequestException $e) {
-            Log::error('HTTP error scraping EuroLeague teams: ' . $e->getMessage());
+            Log::error('HTTP error scraping EuroLeague teams: '.$e->getMessage());
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error scraping EuroLeague teams: ' . $e->getMessage());
+            Log::error('Error scraping EuroLeague teams: '.$e->getMessage());
             throw $e;
         }
     }
 
-    public function scrapeGames(): void
+    public function scrapeGames(bool $ignoreOldGames = true): void
     {
         try {
             Log::info('Starting EuroLeague games scraping from API');
@@ -116,8 +117,9 @@ class EuroLeagueScrapingService
                     $response = $this->client->get("https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/games?phaseTypeCode=RS&roundNumber={$roundNumber}");
                     $gamesData = json_decode($response->getBody()->getContents(), true);
 
-                    if (!isset($gamesData['data'])) {
+                    if (! isset($gamesData['data'])) {
                         Log::warning("No data found for round {$roundNumber}");
+
                         continue;
                     }
 
@@ -128,10 +130,14 @@ class EuroLeagueScrapingService
                         $gameDate = Carbon::parse($gameData['date']);
 
                         // Skip games older than 7 days (unless they have finished status with scores)
-                        $hasScores = isset($gameData['score']['home']) && isset($gameData['score']['away']);
-                        if ($gameDate->lessThan($cutoffDate) && !$hasScores) {
-                            $skippedCount++;
-                            continue;
+                        // Can be disabled with $ignoreOldGames = false for historical backfill
+                        if ($ignoreOldGames) {
+                            $hasScores = isset($gameData['score']['home']) && isset($gameData['score']['away']);
+                            if ($gameDate->lessThan($cutoffDate) && ! $hasScores) {
+                                $skippedCount++;
+
+                                continue;
+                            }
                         }
 
                         $this->processGameData($euroLeague, $gameData);
@@ -140,7 +146,8 @@ class EuroLeagueScrapingService
 
                     Log::info("Round {$roundNumber} completed. Games in round: {$roundGamesCount}");
                 } catch (RequestException $e) {
-                    Log::warning("Failed to fetch round {$roundNumber}: " . $e->getMessage());
+                    Log::warning("Failed to fetch round {$roundNumber}: ".$e->getMessage());
+
                     continue;
                 }
 
@@ -150,14 +157,13 @@ class EuroLeagueScrapingService
 
             Log::info("EuroLeague games scraping completed successfully. Total fetched: {$totalFetched}, Processed: {$processedCount}, Skipped (too old): {$skippedCount}");
         } catch (RequestException $e) {
-            Log::error('HTTP error scraping EuroLeague games: ' . $e->getMessage());
+            Log::error('HTTP error scraping EuroLeague games: '.$e->getMessage());
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error scraping EuroLeague games: ' . $e->getMessage());
+            Log::error('Error scraping EuroLeague games: '.$e->getMessage());
             throw $e;
         }
     }
-
 
     public function updateGameScores(): void
     {
@@ -173,13 +179,13 @@ class EuroLeagueScrapingService
             foreach ($finishedGames as $game) {
                 $game->update([
                     'home_score' => rand(70, 100),
-                    'away_score' => rand(70, 100)
+                    'away_score' => rand(70, 100),
                 ]);
             }
 
             Log::info('Game scores update completed');
         } catch (\Exception $e) {
-            Log::error('Error updating game scores: ' . $e->getMessage());
+            Log::error('Error updating game scores: '.$e->getMessage());
             throw $e;
         }
     }
@@ -207,7 +213,7 @@ class EuroLeagueScrapingService
 
             Log::info("Cleanup completed. Deleted {$deletedCount} old games.");
         } catch (\Exception $e) {
-            Log::error('Error cleaning up old games: ' . $e->getMessage());
+            Log::error('Error cleaning up old games: '.$e->getMessage());
             throw $e;
         }
     }
@@ -232,7 +238,7 @@ class EuroLeagueScrapingService
             'ZAL' => 'Kaunas',
             'BAS' => 'Vitoria-Gasteiz',
             'TEL' => 'Tel Aviv',
-            'PAR_FR' => 'Paris'
+            'PAR_FR' => 'Paris',
         ];
 
         return $defaultCities[$teamCode] ?? 'Unknown';
@@ -249,8 +255,9 @@ class EuroLeagueScrapingService
             ->where('external_id', $gameData['away']['code'])
             ->first();
 
-        if (!$homeTeam || !$awayTeam) {
+        if (! $homeTeam || ! $awayTeam) {
             Log::warning("Teams not found for game: {$gameData['home']['code']} vs {$gameData['away']['code']}");
+
             return;
         }
 
@@ -267,7 +274,7 @@ class EuroLeagueScrapingService
         Game::updateOrCreate(
             [
                 'championship_id' => $euroLeague->id,
-                'external_id' => $gameData['id']
+                'external_id' => $gameData['id'],
             ],
             [
                 'home_team_id' => $homeTeam->id,
@@ -281,7 +288,7 @@ class EuroLeagueScrapingService
             ]
         );
 
-        $scoreInfo = $homeScore !== null ? "({$homeScore}-{$awayScore})" : "(no score)";
+        $scoreInfo = $homeScore !== null ? "({$homeScore}-{$awayScore})" : '(no score)';
         Log::info("Processed game: {$homeTeam->name} vs {$awayTeam->name} on {$scheduledAt->format('Y-m-d H:i')} - Status: {$status} {$scoreInfo}");
     }
 
@@ -316,15 +323,16 @@ class EuroLeagueScrapingService
             }
 
             // Create filename
-            $filename = 'team-logos/' . strtolower($teamCode) . '.' . $extension;
+            $filename = 'team-logos/'.strtolower($teamCode).'.'.$extension;
 
             // Save to public storage
             Storage::disk('public')->put($filename, $imageContent);
 
             // Return the public URL path
-            return '/storage/' . $filename;
+            return '/storage/'.$filename;
         } catch (\Exception $e) {
-            Log::warning("Failed to download logo for team {$teamCode}: " . $e->getMessage());
+            Log::warning("Failed to download logo for team {$teamCode}: ".$e->getMessage());
+
             return null;
         }
     }

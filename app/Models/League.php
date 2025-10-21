@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-use Illuminate\Support\Str;
 
 class League extends Model
 {
@@ -34,7 +33,7 @@ class League extends Model
         parent::boot();
 
         static::creating(function ($league) {
-            if (!$league->invite_code) {
+            if (! $league->invite_code) {
                 $league->invite_code = static::generateSecureInviteCode();
             }
         });
@@ -92,6 +91,7 @@ class League extends Model
     public function getUserRole(User $user): ?string
     {
         $member = $this->members()->where('user_id', $user->id)->first();
+
         return $member?->role;
     }
 

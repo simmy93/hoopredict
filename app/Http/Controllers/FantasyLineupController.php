@@ -15,7 +15,7 @@ class FantasyLineupController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return redirect()->route('fantasy.leagues.show', $league)
                 ->with('error', 'You are not a member of this league');
         }
@@ -48,7 +48,7 @@ class FantasyLineupController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return back()->with('error', 'You are not a member of this league');
         }
 
@@ -61,7 +61,7 @@ class FantasyLineupController extends Controller
 
         // Validate all players belong to the team
         foreach ($playerIds as $playerId) {
-            if (!$userTeam->players()->where('player_id', $playerId)->exists()) {
+            if (! $userTeam->players()->where('player_id', $playerId)->exists()) {
                 return back()->with('error', 'One or more players do not belong to your team');
             }
         }
@@ -82,7 +82,7 @@ class FantasyLineupController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return response()->json(['error' => 'Not a member of this league'], 403);
         }
 
@@ -140,7 +140,7 @@ class FantasyLineupController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return back()->with('error', 'You are not a member of this league');
         }
 
@@ -148,7 +148,7 @@ class FantasyLineupController extends Controller
         $players = $userTeam->players()
             ->with('gameStats')
             ->get()
-            ->sortByDesc(function($player) {
+            ->sortByDesc(function ($player) {
                 return $player->average_fantasy_points;
             });
 
@@ -185,7 +185,7 @@ class FantasyLineupController extends Controller
         }
 
         // Add remaining 5 best players (6th man + bench)
-        $remaining = $players->reject(function($player) use ($lineup) {
+        $remaining = $players->reject(function ($player) use ($lineup) {
             return in_array($player->id, $lineup);
         })->take(5)->pluck('id')->toArray();
 

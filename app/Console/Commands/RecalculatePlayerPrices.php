@@ -38,6 +38,7 @@ class RecalculatePlayerPrices extends Command
         foreach ($players as $player) {
             $oldPrice = $player->price;
             $avgPoints = $player->average_fantasy_points;
+            $gamesUsed = $player->games_used_for_pricing;
 
             if ($avgPoints > 0) {
                 $player->updatePriceBasedOnPerformance();
@@ -46,7 +47,7 @@ class RecalculatePlayerPrices extends Command
                 $newPrice = $player->fresh()->price;
                 if ($oldPrice != $newPrice) {
                     $this->newLine();
-                    $this->line("  {$player->name}: $" . number_format($oldPrice / 1000000, 2) . "M → $" . number_format($newPrice / 1000000, 2) . "M (Avg FP: " . round($avgPoints, 1) . ")");
+                    $this->line("  {$player->name}: $".number_format($oldPrice / 1000000, 2).'M → $'.number_format($newPrice / 1000000, 2).'M (Avg FP: '.round($avgPoints, 1)." from {$gamesUsed} games)");
                 }
             } else {
                 $skippedCount++;
@@ -79,7 +80,7 @@ class RecalculatePlayerPrices extends Command
                 $index + 1,
                 $player->name,
                 $player->team->name,
-                '$' . number_format($player->price / 1000000, 2) . 'M',
+                '$'.number_format($player->price / 1000000, 2).'M',
                 round($player->average_fantasy_points, 1),
             ];
         }

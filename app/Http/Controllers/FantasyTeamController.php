@@ -20,7 +20,7 @@ class FantasyTeamController extends Controller
         $query = Player::with('team')
             ->where('is_active', true)
             ->whereNotIn('id', $myPlayerIds)
-            ->whereHas('team', function($q) use ($league) {
+            ->whereHas('team', function ($q) use ($league) {
                 $q->where('championship_id', $league->championship_id);
             });
 
@@ -36,7 +36,7 @@ class FantasyTeamController extends Controller
 
         // Search by name
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('name', 'like', '%'.$request->search.'%');
         }
 
         // Sort

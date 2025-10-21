@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import { FlashMessages } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, DollarSign, Loader2, Search, ShoppingCart, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -82,7 +83,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
     const [playerToSell, setPlayerToSell] = useState<Player | null>(null);
 
     const { props } = usePage();
-    const flash = props.flash || {};
+    const flash = (props.flash || {}) as FlashMessages;
 
     // Automatically scroll to top when errors appear
     useEffect(() => {

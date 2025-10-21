@@ -1,23 +1,24 @@
 <?php
 
-use Inertia\Inertia;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DraftController;
-use App\Http\Controllers\LeagueController;
-use App\Http\Controllers\CountdownController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\LeagueController as AdminLeagueController;
+use App\Http\Controllers\Admin\LeagueMemberController as AdminLeagueMemberController;
+use App\Http\Controllers\Admin\PlayerController as AdminPlayerController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\PredictionController;
-use App\Http\Controllers\FantasyTeamController;
+use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
-use App\Http\Controllers\Auth\NewPasswordController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Admin\LeagueController as AdminLeagueController;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
-use App\Http\Controllers\Admin\LeagueMemberController as AdminLeagueMemberController;
+use App\Http\Controllers\FantasyTeamController;
+use App\Http\Controllers\LeagueController;
+use App\Http\Controllers\PredictionController;
+use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return Inertia::render('Welcome');
@@ -57,6 +58,10 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    // Google OAuth routes
+    Route::get('auth/google', [SocialAuthController::class, 'redirectToGoogle'])->name('auth.google');
+    Route::get('auth/google/callback', [SocialAuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 });
 
 Route::middleware('auth')->group(function () {
@@ -117,4 +122,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('users', AdminUserController::class);
     Route::resource('leagues', AdminLeagueController::class);
     Route::resource('league-members', AdminLeagueMemberController::class);
+
+    // Player management
+    Route::get('players', [AdminPlayerController::class, 'index'])->name('players.index');
+    Route::patch('players/{player}/price', [AdminPlayerController::class, 'updatePrice'])->name('players.updatePrice');
+    Route::post('players/bulk-update', [AdminPlayerController::class, 'bulkUpdatePrices'])->name('players.bulkUpdate');
+    Route::post('players/reset-prices', [AdminPlayerController::class, 'resetPrices'])->name('players.resetPrices');
 });

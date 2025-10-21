@@ -73,7 +73,7 @@ class LeagueMemberController extends Controller
             return back()->withErrors(['error' => 'User is already a member of this league.']);
         }
 
-        if (!isset($validated['joined_at'])) {
+        if (! isset($validated['joined_at'])) {
             $validated['joined_at'] = now();
         }
 

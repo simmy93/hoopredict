@@ -2,14 +2,14 @@
 
 namespace App\Jobs;
 
-use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\DraftController;
 use App\Models\FantasyLeague;
 use Illuminate\Bus\Queueable;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Queue\InteractsWithQueue;
-use App\Http\Controllers\DraftController;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class AutoPickJob implements ShouldQueue
 {
@@ -26,8 +26,9 @@ class AutoPickJob implements ShouldQueue
 
         $league = FantasyLeague::find($this->leagueId);
 
-        if (!$league) {
+        if (! $league) {
             Log::warning("League not found: {$this->leagueId}");
+
             return;
         }
 
@@ -38,31 +39,36 @@ class AutoPickJob implements ShouldQueue
         // (prevents auto-picking if someone already picked manually)
         if ($league->current_pick !== $this->expectedPick) {
             Log::info("Pick number changed. Expected: {$this->expectedPick}, Current: {$league->current_pick}");
+
             return;
         }
 
         if ($league->draft_status !== 'in_progress') {
             Log::info("Draft not in progress: {$league->draft_status}");
+
             return;
         }
 
         // Check if draft is paused
         if ($league->is_paused) {
-            Log::info("Job gets this status of league is_paused: " . $league->is_paused);
-            Log::info("Draft is paused. Skipping auto-pick.");
+            Log::info('Job gets this status of league is_paused: '.$league->is_paused);
+            Log::info('Draft is paused. Skipping auto-pick.');
+
             return;
         }
 
         // Check if pick has actually expired
-        if (!$league->isPickExpired()) {
+        if (! $league->isPickExpired()) {
             Log::info("Pick not expired yet. Time remaining: {$league->getTimeRemaining()}");
+
             return;
         }
 
         $currentTeam = $league->getCurrentDraftTeam();
 
-        if (!$currentTeam) {
-            Log::warning("No current team found");
+        if (! $currentTeam) {
+            Log::warning('No current team found');
+
             return;
         }
 
@@ -71,6 +77,6 @@ class AutoPickJob implements ShouldQueue
         // Perform the auto-pick
         app(DraftController::class)->performAutoPick($league, $currentTeam);
 
-        Log::info("Auto-pick completed");
+        Log::info('Auto-pick completed');
     }
 }

@@ -45,7 +45,7 @@ class Prediction extends Model
 
     public function calculatePoints(): int
     {
-        if (!$this->game->isFinished()) {
+        if (! $this->game->isFinished()) {
             return 0;
         }
 
@@ -57,6 +57,7 @@ class Prediction extends Model
         // Exact score match
         if ($actualHome === $predictedHome && $actualAway === $predictedAway) {
             $this->scoring_method = 'exact_score';
+
             return 30;
         }
 
@@ -70,6 +71,7 @@ class Prediction extends Model
             // Winner + exact point difference
             if ($actualDifference === $predictedDifference) {
                 $this->scoring_method = 'exact_difference';
+
                 return 15;
             }
 
@@ -78,21 +80,25 @@ class Prediction extends Model
             // Winner + within 5 points
             if ($pointDifference <= 5) {
                 $this->scoring_method = 'within_5';
+
                 return 10;
             }
 
             // Winner + within 5-10 points
             if ($pointDifference <= 10) {
                 $this->scoring_method = 'within_10';
+
                 return 7;
             }
 
             // Only winner correct
             $this->scoring_method = 'winner_only';
+
             return 4;
         }
 
         $this->scoring_method = null;
+
         return 0;
     }
 

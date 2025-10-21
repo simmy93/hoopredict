@@ -23,7 +23,7 @@ class DraftController extends Controller
 
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return redirect()->route('fantasy.leagues.show', $league)
                 ->with('error', 'You are not a member of this league');
         }
@@ -36,7 +36,7 @@ class DraftController extends Controller
 
         // Check for expired pick and auto-draft BEFORE loading other data
         // But only if draft is not paused
-        if (!$league->is_paused && $league->isPickExpired()) {
+        if (! $league->is_paused && $league->isPickExpired()) {
             $currentTeam = $league->getCurrentDraftTeam();
             if ($currentTeam) {
                 $this->performAutoPick($league, $currentTeam);
@@ -56,7 +56,7 @@ class DraftController extends Controller
 
         $availablePlayersCount = Player::where('is_active', true)
             ->whereNotIn('id', $draftedPlayerIds)
-            ->whereHas('team', function($q) use ($league) {
+            ->whereHas('team', function ($q) use ($league) {
                 $q->where('championship_id', $league->championship_id);
             })
             ->count();
@@ -142,7 +142,7 @@ class DraftController extends Controller
 
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return back()->with('error', 'You are not a member of this league');
         }
 
@@ -158,7 +158,7 @@ class DraftController extends Controller
                 // Re-check current team after acquiring lock
                 $currentTeam = $league->getCurrentDraftTeam();
 
-                if (!$currentTeam || $currentTeam->id !== $userTeam->id) {
+                if (! $currentTeam || $currentTeam->id !== $userTeam->id) {
                     throw new \Exception('It is not your turn to pick');
                 }
 
@@ -175,7 +175,7 @@ class DraftController extends Controller
                 // Store current pick number before incrementing
                 $currentPickNumber = $league->current_pick;
                 $totalTeams = $league->teams()->count();
-                $currentRound = (int)ceil($currentPickNumber / $totalTeams);
+                $currentRound = (int) ceil($currentPickNumber / $totalTeams);
 
                 // Create draft pick
                 $pick = DraftPick::create([
@@ -193,7 +193,7 @@ class DraftController extends Controller
                 // Increment pick counter and reset timer
                 $league->update([
                     'current_pick' => $currentPickNumber + 1,
-                    'pick_started_at' => now()
+                    'pick_started_at' => now(),
                 ]);
 
                 // Log draft pick
@@ -220,6 +220,7 @@ class DraftController extends Controller
             if ($league->isDraftComplete()) {
                 $league->update(['draft_status' => 'completed']);
                 broadcast(new DraftCompleted($league));
+
                 return redirect()->route('fantasy.leagues.show', $league)
                     ->with('success', 'Draft completed!');
             }
@@ -229,7 +230,8 @@ class DraftController extends Controller
 
             return back()->with('success', "You drafted {$player->name}!");
         } catch (\Exception $e) {
-            \Log::error("Draft pick failed: " . $e->getMessage());
+            \Log::error('Draft pick failed: '.$e->getMessage());
+
             return back()->with('error', $e->getMessage());
         }
     }
@@ -245,13 +247,15 @@ class DraftController extends Controller
 
                 // Verify draft is still in progress
                 if ($league->draft_status !== 'in_progress') {
-                    \Log::info("Auto-pick aborted: draft not in progress");
+                    \Log::info('Auto-pick aborted: draft not in progress');
+
                     return null;
                 }
 
                 // Verify draft is not paused
                 if ($league->is_paused) {
-                    \Log::info("Auto-pick aborted: draft is paused");
+                    \Log::info('Auto-pick aborted: draft is paused');
+
                     return null;
                 }
 
@@ -260,21 +264,22 @@ class DraftController extends Controller
 
                 $player = Player::where('is_active', true)
                     ->whereNotIn('id', $draftedPlayerIds)
-                    ->whereHas('team', function($q) use ($league) {
+                    ->whereHas('team', function ($q) use ($league) {
                         $q->where('championship_id', $league->championship_id);
                     })
                     ->orderBy('price', 'desc')
                     ->first();
 
-                if (!$player) {
-                    \Log::warning("No available players for auto-pick");
+                if (! $player) {
+                    \Log::warning('No available players for auto-pick');
+
                     return null;
                 }
 
                 // Store current pick number before incrementing
                 $currentPickNumber = $league->current_pick;
                 $totalTeams = $league->teams()->count();
-                $currentRound = (int)ceil($currentPickNumber / $totalTeams);
+                $currentRound = (int) ceil($currentPickNumber / $totalTeams);
 
                 // Create draft pick
                 $pick = DraftPick::create([
@@ -292,13 +297,13 @@ class DraftController extends Controller
                 // Increment pick counter and reset timer
                 $league->update([
                     'current_pick' => $currentPickNumber + 1,
-                    'pick_started_at' => now()
+                    'pick_started_at' => now(),
                 ]);
 
                 return $pick;
             });
 
-            if (!$pick) {
+            if (! $pick) {
                 return;
             }
 
@@ -317,7 +322,7 @@ class DraftController extends Controller
                 $this->scheduleAutoPickJob($league);
             }
         } catch (\Exception $e) {
-            \Log::error("Auto-pick failed: " . $e->getMessage());
+            \Log::error('Auto-pick failed: '.$e->getMessage());
         }
     }
 
@@ -325,8 +330,9 @@ class DraftController extends Controller
     {
         \Log::info("scheduleAutoPickJob called for league {$league->id}, pick {$league->current_pick}");
 
-        if (!$league->pick_started_at || $league->draft_status !== 'in_progress') {
+        if (! $league->pick_started_at || $league->draft_status !== 'in_progress') {
             \Log::warning("Cannot schedule job. pick_started_at: {$league->pick_started_at}, status: {$league->draft_status}");
+
             return;
         }
 
@@ -340,14 +346,14 @@ class DraftController extends Controller
         AutoPickJob::dispatch($league->id, $league->current_pick)
             ->delay(now()->addSeconds($delayInSeconds));
 
-        \Log::info("AutoPickJob dispatched successfully");
+        \Log::info('AutoPickJob dispatched successfully');
     }
 
     public function pause(FantasyLeague $league)
     {
         $user = request()->user();
 
-        if (!$league->canUserPauseResume($user)) {
+        if (! $league->canUserPauseResume($user)) {
             return back()->with('error', 'Only the league owner can pause the draft');
         }
 
@@ -370,7 +376,7 @@ class DraftController extends Controller
     {
         $user = request()->user();
 
-        if (!$league->canUserPauseResume($user)) {
+        if (! $league->canUserPauseResume($user)) {
             return back()->with('error', 'Only the league owner can resume the draft');
         }
 
@@ -378,7 +384,7 @@ class DraftController extends Controller
             return back()->with('error', 'Draft is not in progress');
         }
 
-        if (!$league->is_paused) {
+        if (! $league->is_paused) {
             return back()->with('error', 'Draft is not paused');
         }
 
@@ -403,7 +409,7 @@ class DraftController extends Controller
 
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return response()->json(['error' => 'You are not a member of this league'], 403);
         }
 
@@ -414,7 +420,7 @@ class DraftController extends Controller
         $query = Player::with('team')
             ->where('is_active', true)
             ->whereNotIn('id', $draftedPlayerIds)
-            ->whereHas('team', function($q) use ($league) {
+            ->whereHas('team', function ($q) use ($league) {
                 $q->where('championship_id', $league->championship_id);
             });
 
@@ -443,7 +449,7 @@ class DraftController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
-        if (!$userTeam) {
+        if (! $userTeam) {
             return redirect()->route('fantasy.leagues.show', $league)
                 ->with('error', 'You are not a member of this league');
         }

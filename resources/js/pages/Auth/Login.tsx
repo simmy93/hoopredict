@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { home, login, register } from '@/routes';
 import password from '@/routes/password';
-import { Link, useForm } from '@inertiajs/react';
-import { CheckCircle, Lock, Mail, Zap } from 'lucide-react';
+import { Link, useForm, usePage } from '@inertiajs/react';
+import { AlertCircle, CheckCircle, Lock, Mail, Zap } from 'lucide-react';
 import { FormEventHandler } from 'react';
+import GoogleIcon from '@/components/icons/GoogleIcon';
 
 interface LoginProps {
     status?: string;
@@ -16,6 +17,9 @@ interface LoginProps {
 }
 
 export default function Login({ status, canResetPassword }: LoginProps) {
+    const { props } = usePage();
+    const flashError = (props.flash as any)?.error;
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -67,6 +71,15 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         <div className="flex items-center gap-2">
                                             <CheckCircle className="h-4 w-4" />
                                             {status}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {flashError && (
+                                    <div className="mb-4 rounded-lg bg-red-100 border border-red-200 p-4 text-sm font-medium text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="h-4 w-4" />
+                                            {flashError}
                                         </div>
                                     </div>
                                 )}
@@ -141,6 +154,28 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                         size="lg"
                                     >
                                         {processing ? 'Signing in...' : 'Sign in'}
+                                    </Button>
+
+                                    <div className="relative">
+                                        <div className="absolute inset-0 flex items-center">
+                                            <span className="w-full border-t" />
+                                        </div>
+                                        <div className="relative flex justify-center text-xs uppercase">
+                                            <span className="bg-white dark:bg-gray-800 px-2 text-muted-foreground">
+                                                Or continue with
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="w-full"
+                                        size="lg"
+                                        onClick={() => window.location.href = '/auth/google'}
+                                    >
+                                        <GoogleIcon className="mr-2 h-5 w-5" />
+                                        Sign in with Google
                                     </Button>
 
                                     <div className="text-center">

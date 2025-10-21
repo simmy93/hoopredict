@@ -62,9 +62,15 @@ class PlayerGameStat extends Model
 
         // Bonus for double-double (10+ in 2 categories)
         $doubleCategories = 0;
-        if ($this->points >= 10) $doubleCategories++;
-        if ($this->rebounds >= 10) $doubleCategories++;
-        if ($this->assists >= 10) $doubleCategories++;
+        if ($this->points >= 10) {
+            $doubleCategories++;
+        }
+        if ($this->rebounds >= 10) {
+            $doubleCategories++;
+        }
+        if ($this->assists >= 10) {
+            $doubleCategories++;
+        }
 
         if ($doubleCategories >= 2) {
             $fantasyPoints += 5; // Double-double bonus
@@ -83,7 +89,7 @@ class PlayerGameStat extends Model
     public function updateFantasyPoints(): void
     {
         $this->update([
-            'fantasy_points' => $this->calculateFantasyPoints()
+            'fantasy_points' => $this->calculateFantasyPoints(),
         ]);
     }
 }

@@ -3,18 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Game;
-use Inertia\Inertia;
-use App\Models\User;
 use App\Models\League;
-use App\Models\Prediction;
-use Illuminate\Support\Str;
 use App\Models\LeagueMember;
-use Illuminate\Http\Request;
+use App\Models\Prediction;
+use App\Models\User;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class LeagueController extends Controller
 {
     use AuthorizesRequests;
+
     public function index()
     {
         $userLeagues = auth()->user()->leagues()
@@ -24,7 +24,7 @@ class LeagueController extends Controller
             ->get();
 
         return Inertia::render('Leagues/Index', [
-            'userLeagues' => $userLeagues
+            'userLeagues' => $userLeagues,
         ]);
     }
 
@@ -39,7 +39,7 @@ class LeagueController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
             'is_private' => 'boolean',
-            'max_members' => 'integer|min:2|max:50'
+            'max_members' => 'integer|min:2|max:50',
         ]);
 
         $league = League::create([
@@ -55,7 +55,7 @@ class LeagueController extends Controller
             'league_id' => $league->id,
             'user_id' => auth()->id(),
             'role' => 'owner',
-            'joined_at' => now()
+            'joined_at' => now(),
         ]);
 
         return redirect()->route('leagues.show', $league)
@@ -69,7 +69,7 @@ class LeagueController extends Controller
         $league->load([
             'members.user',
             'owner',
-            'leaderboards.user'
+            'leaderboards.user',
         ]);
 
         $userRole = $league->getUserRole(auth()->user());
@@ -118,21 +118,21 @@ class LeagueController extends Controller
             'leaderboard' => $league->leaderboards()->with('user')->orderBy('total_points', 'desc')->get(),
             'games' => $games,
             'existingPredictions' => $existingPredictions,
-            'inviteUrl' => $league->getInviteUrl()
+            'inviteUrl' => $league->getInviteUrl(),
         ]);
     }
 
     public function join(Request $request)
     {
         $request->validate([
-            'invite_code' => 'required|string|size:6'
+            'invite_code' => 'required|string|size:6',
         ]);
 
         $league = League::where('invite_code', strtoupper($request->invite_code))
             ->where('is_active', true)
             ->first();
 
-        if (!$league) {
+        if (! $league) {
             return back()->withErrors(['invite_code' => 'Invalid invite code.']);
         }
 
@@ -148,7 +148,7 @@ class LeagueController extends Controller
             'league_id' => $league->id,
             'user_id' => auth()->id(),
             'role' => 'member',
-            'joined_at' => now()
+            'joined_at' => now(),
         ]);
 
         return redirect()->route('leagues.show', $league)
@@ -161,7 +161,7 @@ class LeagueController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$league) {
+        if (! $league) {
             return redirect()->route('leagues.index')
                 ->withErrors(['error' => 'Invalid or expired invite link.']);
         }
@@ -180,7 +180,7 @@ class LeagueController extends Controller
             'league_id' => $league->id,
             'user_id' => auth()->id(),
             'role' => 'member',
-            'joined_at' => now()
+            'joined_at' => now(),
         ]);
 
         return redirect()->route('leagues.show', $league)
@@ -218,7 +218,7 @@ class LeagueController extends Controller
         $this->authorize('view', $league);
 
         // Check if the user is a member of this league
-        if (!$league->hasUser($user)) {
+        if (! $league->hasUser($user)) {
             abort(404, 'User is not a member of this league.');
         }
 
@@ -292,8 +292,8 @@ class LeagueController extends Controller
         // Sort by points (highest first), then by prediction time for ties
         if ($gameStarted) {
             $allMembersPredictions = $allMembersPredictions->sortBy([
-                fn($a, $b) => ($b['prediction']['points_earned'] ?? 0) <=> ($a['prediction']['points_earned'] ?? 0),
-                fn($a, $b) => ($a['prediction']['predicted_at'] ?? now()) <=> ($b['prediction']['predicted_at'] ?? now())
+                fn ($a, $b) => ($b['prediction']['points_earned'] ?? 0) <=> ($a['prediction']['points_earned'] ?? 0),
+                fn ($a, $b) => ($a['prediction']['predicted_at'] ?? now()) <=> ($b['prediction']['predicted_at'] ?? now()),
             ])->values();
         } else {
             // For upcoming games, sort by join date or name
@@ -322,6 +322,6 @@ class LeagueController extends Controller
             ->where('user_id', $member->id)
             ->delete();
 
-        return back()->with('success', $member->name . ' has been removed from the league.');
+        return back()->with('success', $member->name.' has been removed from the league.');
     }
 }

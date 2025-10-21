@@ -114,7 +114,7 @@ class FantasyLeague extends Model
         }
 
         $totalTeams = $this->teams()->count();
-        $currentRound = (int)ceil($this->current_pick / $totalTeams);
+        $currentRound = (int) ceil($this->current_pick / $totalTeams);
 
         // Snake draft: even rounds go in reverse
         if ($currentRound % 2 === 0) {
@@ -129,12 +129,13 @@ class FantasyLeague extends Model
     public function isDraftComplete(): bool
     {
         $totalPicks = $this->teams()->count() * $this->team_size;
+
         return $this->current_pick > $totalPicks;
     }
 
     public function getTimeRemaining(): ?int
     {
-        if (!$this->pick_started_at || $this->draft_status !== 'in_progress') {
+        if (! $this->pick_started_at || $this->draft_status !== 'in_progress') {
             return null;
         }
 
@@ -150,6 +151,7 @@ class FantasyLeague extends Model
     public function isPickExpired(): bool
     {
         $remaining = $this->getTimeRemaining();
+
         return $remaining !== null && $remaining <= 0;
     }
 
@@ -191,7 +193,7 @@ class FantasyLeague extends Model
      */
     public function resumeDraft(User $user): bool
     {
-        if ($this->draft_status !== 'in_progress' || !$this->is_paused) {
+        if ($this->draft_status !== 'in_progress' || ! $this->is_paused) {
             return false;
         }
 

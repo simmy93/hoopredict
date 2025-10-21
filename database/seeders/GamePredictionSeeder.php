@@ -2,14 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\Game;
-use App\Models\Team;
 use App\Models\Championship;
-use App\Models\Prediction;
+use App\Models\Game;
 use App\Models\League;
-use App\Models\LeagueMember;
+use App\Models\Prediction;
+use App\Models\Team;
+use Illuminate\Database\Seeder;
 
 class GamePredictionSeeder extends Seeder
 {
@@ -21,8 +19,9 @@ class GamePredictionSeeder extends Seeder
         // Use the existing EuroLeague championship
         $championship = Championship::where('external_id', 'euroleague-2025')->first();
 
-        if (!$championship) {
+        if (! $championship) {
             echo "EuroLeague championship not found. Please run 'php artisan scrape:euroleague --teams' first.\n";
+
             return;
         }
 
@@ -34,6 +33,7 @@ class GamePredictionSeeder extends Seeder
 
         if ($games->count() === 0) {
             echo "No EuroLeague games found. Please run 'php artisan scrape:euroleague --games' first.\n";
+
             return;
         }
 
@@ -61,7 +61,7 @@ class GamePredictionSeeder extends Seeder
         foreach ($leagues as $league) {
             foreach ($league->members as $member) {
                 // Create predictions for some finished games (these will be visible)
-                $finishedGames = $games->filter(fn($g) => $g->status === 'finished');
+                $finishedGames = $games->filter(fn ($g) => $g->status === 'finished');
                 $gamesToPredict = $finishedGames->random(rand(3, min(6, $finishedGames->count())));
 
                 foreach ($gamesToPredict as $game) {
@@ -88,7 +88,7 @@ class GamePredictionSeeder extends Seeder
                 }
 
                 // Create predictions for upcoming games (these will NOT be visible to others)
-                $upcomingGames = $games->filter(fn($g) => $g->status === 'scheduled');
+                $upcomingGames = $games->filter(fn ($g) => $g->status === 'scheduled');
                 $upcomingToPredict = $upcomingGames->random(rand(1, min(3, $upcomingGames->count())));
 
                 foreach ($upcomingToPredict as $game) {
@@ -113,9 +113,9 @@ class GamePredictionSeeder extends Seeder
         }
 
         echo "Created games and predictions for testing!\n";
-        echo "Finished games: " . collect($games)->where('status', 'finished')->count() . "\n";
-        echo "Upcoming games: " . collect($games)->where('status', 'scheduled')->count() . "\n";
-        echo "Total predictions: " . Prediction::count() . "\n";
+        echo 'Finished games: '.collect($games)->where('status', 'finished')->count()."\n";
+        echo 'Upcoming games: '.collect($games)->where('status', 'scheduled')->count()."\n";
+        echo 'Total predictions: '.Prediction::count()."\n";
     }
 
     private function calculatePoints($homePred, $awayPred, $homeActual, $awayActual): int

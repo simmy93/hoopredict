@@ -45,10 +45,23 @@ php artisan make:migration migration_name
 php artisan scrape:euroleague
 
 # Scrape specific data
-php artisan scrape:euroleague --teams    # Only scrape teams
-php artisan scrape:euroleague --games    # Only scrape games/schedule
-php artisan scrape:euroleague --scores   # Only update game scores
-php artisan scrape:euroleague --players  # Only scrape players
+php artisan scrape:euroleague --teams       # Only scrape teams
+php artisan scrape:euroleague --games       # Only scrape games/schedule
+php artisan scrape:euroleague --scores      # Only update game scores
+php artisan scrape:euroleague --players     # Only scrape players
+php artisan scrape:euroleague --stats       # Only scrape player statistics
+
+# Scrape ALL historical games (ignores 7-day limit)
+php artisan scrape:euroleague --games --all-history
+
+# Process round prices (auto-detects next unprocessed round)
+php artisan rounds:process-prices
+
+# Process specific round
+php artisan rounds:process-prices --round=5
+
+# Reprocess already processed round
+php artisan rounds:process-prices --round=3 --force
 ```
 
 ### Frontend

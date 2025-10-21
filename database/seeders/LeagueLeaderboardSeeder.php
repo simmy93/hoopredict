@@ -2,12 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\League;
-use App\Models\LeagueMember;
 use App\Models\LeagueLeaderboard;
-use App\Models\User;
+use App\Models\LeagueMember;
+use Illuminate\Database\Seeder;
 
 class LeagueLeaderboardSeeder extends Seeder
 {
@@ -22,8 +20,8 @@ class LeagueLeaderboardSeeder extends Seeder
         foreach ($leagueMembers as $member) {
             // Skip if leaderboard entry already exists
             if (LeagueLeaderboard::where('league_id', $member->league_id)
-                    ->where('user_id', $member->user_id)
-                    ->exists()) {
+                ->where('user_id', $member->user_id)
+                ->exists()) {
                 continue;
             }
 

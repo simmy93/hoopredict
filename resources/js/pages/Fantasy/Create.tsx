@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import { ArrowLeft, Trophy } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
@@ -150,12 +151,14 @@ export default function Create({ championships }: Props) {
 
                                 {data.mode === 'draft' && (
                                     <div className="space-y-2">
-                                        <Label htmlFor="draft_date">Draft Date</Label>
-                                        <Input
-                                            id="draft_date"
-                                            type="datetime-local"
+                                        <Label htmlFor="draft_date">Draft Date & Time</Label>
+                                        <DateTimePicker
                                             value={data.draft_date}
-                                            onChange={(e) => setData('draft_date', e.target.value)}
+                                            onChange={(date) => {
+                                                // Convert to ISO string format for Laravel
+                                                setData('draft_date', date ? date.toISOString().slice(0, 16) : '');
+                                            }}
+                                            placeholder="Select draft date and time"
                                             className={errors.draft_date ? 'border-red-500' : ''}
                                         />
                                         {errors.draft_date && <p className="text-sm text-red-600">{errors.draft_date}</p>}

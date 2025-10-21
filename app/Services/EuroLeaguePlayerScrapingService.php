@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Storage;
 class EuroLeaguePlayerScrapingService
 {
     private Client $client;
+
     private ?Championship $euroLeague = null;
 
     public function __construct()
@@ -23,8 +24,8 @@ class EuroLeaguePlayerScrapingService
             'timeout' => 30,
             'verify' => false, // Disable SSL verification for development
             'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            ]
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            ],
         ]);
     }
 
@@ -37,7 +38,7 @@ class EuroLeaguePlayerScrapingService
                     'name' => 'EuroLeague',
                     'season' => '2025-26',
                     'is_active' => true,
-                    'external_id' => 'euroleague-2025'
+                    'external_id' => 'euroleague-2025',
                 ]
             );
         }
@@ -53,7 +54,7 @@ class EuroLeaguePlayerScrapingService
             $response = $this->client->get('https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/people');
             $playersData = json_decode($response->getBody()->getContents(), true);
 
-            if (!isset($playersData['data'])) {
+            if (! isset($playersData['data'])) {
                 throw new \Exception('Invalid response structure from players API');
             }
 
@@ -62,18 +63,18 @@ class EuroLeaguePlayerScrapingService
 
             foreach ($playersData['data'] as $playerData) {
                 // Skip if not a player (some might be coaches, etc.)
-                if (!isset($playerData['type']) || $playerData['type'] !== 'J') {
+                if (! isset($playerData['type']) || $playerData['type'] !== 'J') {
                     continue;
                 }
 
                 // Get person data
                 $person = $playerData['person'] ?? null;
-                if (!$person || !isset($person['code'])) {
+                if (! $person || ! isset($person['code'])) {
                     continue;
                 }
 
                 // Skip if no club assigned
-                if (!isset($playerData['club']['code'])) {
+                if (! isset($playerData['club']['code'])) {
                     continue;
                 }
 
@@ -82,14 +83,15 @@ class EuroLeaguePlayerScrapingService
                     ->where('external_id', $playerData['club']['code'])
                     ->first();
 
-                if (!$team) {
+                if (! $team) {
                     Log::warning("Team not found for player: {$person['name']} (Team code: {$playerData['club']['code']})");
+
                     continue;
                 }
 
                 // Download player photo if available, otherwise use placeholder
                 $photoUrl = null;
-                if (isset($playerData['images']['headshot']) && !empty($playerData['images']['headshot'])) {
+                if (isset($playerData['images']['headshot']) && ! empty($playerData['images']['headshot'])) {
                     Log::info("Attempting to download photo for {$person['name']}: {$playerData['images']['headshot']}");
                     $photoUrl = $this->downloadPlayerPhoto($playerData['images']['headshot'], $person['code']);
                     if ($photoUrl) {
@@ -98,7 +100,7 @@ class EuroLeaguePlayerScrapingService
                 }
 
                 // If download failed or no image, use placeholder
-                if (!$photoUrl) {
+                if (! $photoUrl) {
                     $position = $this->mapPositionCode($playerData['position'] ?? null);
                     $photoUrl = $this->getPlaceholderAvatar($position, $person['name']);
                 }
@@ -106,12 +108,17 @@ class EuroLeaguePlayerScrapingService
                 // Map position code to name
                 $position = $this->mapPositionCode($playerData['position'] ?? null);
 
-                // Calculate initial price based on position (simplified for now)
-                $initialPrice = $this->calculateInitialPrice($position);
+                // Check if player already exists to preserve manually set prices
+                $existingPlayer = Player::where('external_id', $person['code'])->first();
+
+                // Determine if player should be active and have a price
+                // New players without stats will be inactive and have no price until admin sets it manually
+                $isActive = $existingPlayer ? $existingPlayer->is_active : false;
+                $price = $existingPlayer ? $existingPlayer->price : null;
 
                 Player::updateOrCreate(
                     [
-                        'external_id' => $person['code']
+                        'external_id' => $person['code'],
                     ],
                     [
                         'name' => $person['name'],
@@ -120,8 +127,8 @@ class EuroLeaguePlayerScrapingService
                         'team_id' => $team->id,
                         'photo_url' => $photoUrl,
                         'country' => $person['country']['name'] ?? null,
-                        'price' => $initialPrice,
-                        'is_active' => $playerData['active'] ?? true,
+                        'price' => $price,
+                        'is_active' => $isActive,
                     ]
                 );
 
@@ -131,10 +138,10 @@ class EuroLeaguePlayerScrapingService
 
             Log::info("EuroLeague players scraping completed successfully. Processed {$processedCount} players.");
         } catch (RequestException $e) {
-            Log::error('HTTP error scraping EuroLeague players: ' . $e->getMessage());
+            Log::error('HTTP error scraping EuroLeague players: '.$e->getMessage());
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error scraping EuroLeague players: ' . $e->getMessage());
+            Log::error('Error scraping EuroLeague players: '.$e->getMessage());
             throw $e;
         }
     }
@@ -145,7 +152,7 @@ class EuroLeaguePlayerScrapingService
         // 1 = Guard
         // 2 = Forward
         // 3 = Center
-        return match($positionCode) {
+        return match ($positionCode) {
             1 => 'Guard',
             2 => 'Forward',
             3 => 'Center',
@@ -157,12 +164,23 @@ class EuroLeaguePlayerScrapingService
     {
         // Initial prices based on position
         // Guards and Centers typically more valuable
-        return match($position) {
+        return match ($position) {
             'Guard' => 5000000,   // 5M
             'Center' => 5500000,  // 5.5M
             'Forward' => 4500000, // 4.5M
             default => 3000000,   // 3M default
         };
+    }
+
+    private function activatePlayerWithStats(Player $player): void
+    {
+        // If player was inactive and has no price, set initial price and activate
+        if (! $player->is_active && $player->price === null) {
+            $player->price = $this->calculateInitialPrice($player->position);
+            $player->is_active = true;
+            $player->save();
+            Log::info("Activated player {$player->name} with initial price: ".($player->price / 1000000).'M');
+        }
     }
 
     private function downloadPlayerPhoto(string $photoUrl, string $playerCode): ?string
@@ -179,15 +197,16 @@ class EuroLeaguePlayerScrapingService
             }
 
             // Create filename
-            $filename = 'player-photos/' . strtolower($playerCode) . '.' . $extension;
+            $filename = 'player-photos/'.strtolower($playerCode).'.'.$extension;
 
             // Save to public storage
             Storage::disk('public')->put($filename, $imageContent);
 
             // Return the public URL path
-            return '/storage/' . $filename;
+            return '/storage/'.$filename;
         } catch (\Exception $e) {
-            Log::warning("Failed to download photo for player {$playerCode}: " . $e->getMessage());
+            Log::warning("Failed to download photo for player {$playerCode}: ".$e->getMessage());
+
             return null;
         }
     }
@@ -195,7 +214,7 @@ class EuroLeaguePlayerScrapingService
     private function getPlaceholderAvatar(string $position, string $playerName = ''): string
     {
         // Use player name if available, otherwise position
-        $name = !empty($playerName) ? $playerName : $position;
+        $name = ! empty($playerName) ? $playerName : $position;
 
         // Color based on position
         $colors = [
@@ -206,7 +225,7 @@ class EuroLeaguePlayerScrapingService
 
         $color = $colors[$position] ?? '6B7280'; // Gray default
 
-        return "https://ui-avatars.com/api/?name=" . urlencode($name) . "&size=200&background=" . $color . "&color=fff";
+        return 'https://ui-avatars.com/api/?name='.urlencode($name).'&size=200&background='.$color.'&color=fff';
     }
 
     public function scrapePlayerStats(): void
@@ -226,6 +245,7 @@ class EuroLeaguePlayerScrapingService
 
             if ($games->isEmpty()) {
                 Log::info('No finished games found to scrape stats for');
+
                 return;
             }
 
@@ -240,8 +260,9 @@ class EuroLeaguePlayerScrapingService
                     $response = $this->client->get($url);
                     $data = json_decode($response->getBody()->getContents(), true);
 
-                    if (!isset($data['data'])) {
+                    if (! isset($data['data'])) {
                         Log::warning("No game data for game #{$game->external_id}");
+
                         continue;
                     }
 
@@ -249,21 +270,22 @@ class EuroLeaguePlayerScrapingService
 
                     // Process both home and away teams
                     foreach (['home', 'away'] as $side) {
-                        if (!isset($gameData[$side]['players'])) {
+                        if (! isset($gameData[$side]['players'])) {
                             continue;
                         }
 
                         foreach ($gameData[$side]['players'] as $playerData) {
                             // Skip if player didn't play or has no stats
-                            if (!isset($playerData['code']) || !isset($playerData['stats'])) {
+                            if (! isset($playerData['code']) || ! isset($playerData['stats'])) {
                                 continue;
                             }
 
                             // Find the player in our database
                             $player = Player::where('external_id', $playerData['code'])->first();
 
-                            if (!$player) {
+                            if (! $player) {
                                 Log::warning("Player not found: {$playerData['code']}");
+
                                 continue;
                             }
 
@@ -300,6 +322,9 @@ class EuroLeaguePlayerScrapingService
                             // Calculate and save fantasy points
                             $playerStat->updateFantasyPoints();
 
+                            // Activate player if they now have stats
+                            $this->activatePlayerWithStats($player);
+
                             $totalStats++;
                         }
                     }
@@ -313,11 +338,13 @@ class EuroLeaguePlayerScrapingService
                     if ($e->getResponse() && $e->getResponse()->getStatusCode() === 404) {
                         Log::warning("Boxscore not found for game #{$game->external_id}");
                     } else {
-                        Log::error("HTTP error scraping stats for game #{$game->external_id}: " . $e->getMessage());
+                        Log::error("HTTP error scraping stats for game #{$game->external_id}: ".$e->getMessage());
                     }
+
                     continue;
                 } catch (\Exception $e) {
-                    Log::error("Error scraping stats for game #{$game->external_id}: " . $e->getMessage());
+                    Log::error("Error scraping stats for game #{$game->external_id}: ".$e->getMessage());
+
                     continue;
                 }
             }
@@ -328,7 +355,7 @@ class EuroLeaguePlayerScrapingService
             $this->updatePlayerPrices();
 
         } catch (\Exception $e) {
-            Log::error('Error scraping player statistics: ' . $e->getMessage());
+            Log::error('Error scraping player statistics: '.$e->getMessage());
             throw $e;
         }
     }
@@ -348,7 +375,7 @@ class EuroLeaguePlayerScrapingService
 
             Log::info("Updated prices for {$updatedCount} players");
         } catch (\Exception $e) {
-            Log::error('Error updating player prices: ' . $e->getMessage());
+            Log::error('Error updating player prices: '.$e->getMessage());
         }
     }
 }

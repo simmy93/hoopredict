@@ -12,25 +12,26 @@ Broadcast::channel('draft.{leagueId}', function ($user, $leagueId) {
     try {
         $league = \App\Models\FantasyLeague::find($leagueId);
 
-        if (!$league) {
+        if (! $league) {
             \Log::warning("Draft channel auth failed: League {$leagueId} not found", [
                 'user_id' => $user->id,
                 'league_id' => $leagueId,
             ]);
+
             return false;
         }
 
         $hasAccess = $league->hasUser($user);
 
-        if (!$hasAccess) {
-            \Log::warning("Draft channel auth denied: User not in league", [
+        if (! $hasAccess) {
+            \Log::warning('Draft channel auth denied: User not in league', [
                 'user_id' => $user->id,
                 'user_name' => $user->name,
                 'league_id' => $leagueId,
                 'league_name' => $league->name,
             ]);
         } else {
-            \Log::info("Draft channel auth success", [
+            \Log::info('Draft channel auth success', [
                 'user_id' => $user->id,
                 'league_id' => $leagueId,
             ]);
@@ -38,11 +39,12 @@ Broadcast::channel('draft.{leagueId}', function ($user, $leagueId) {
 
         return $hasAccess;
     } catch (\Exception $e) {
-        \Log::error("Draft channel auth error: " . $e->getMessage(), [
+        \Log::error('Draft channel auth error: '.$e->getMessage(), [
             'user_id' => $user->id,
             'league_id' => $leagueId,
             'exception' => $e->getTraceAsString(),
         ]);
+
         return false;
     }
 });

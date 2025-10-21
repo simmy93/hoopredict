@@ -9,12 +9,13 @@ class LeaguePolicy
 {
     public function view(User $user, League $league): bool
     {
-        return $league->hasUser($user) || !$league->is_private;
+        return $league->hasUser($user) || ! $league->is_private;
     }
 
     public function update(User $user, League $league): bool
     {
         $userRole = $league->getUserRole($user);
+
         return in_array($userRole, ['owner', 'admin']);
     }
 
@@ -31,6 +32,7 @@ class LeaguePolicy
     public function manageMembers(User $user, League $league): bool
     {
         $userRole = $league->getUserRole($user);
+
         return in_array($userRole, ['owner', 'admin']);
     }
 }

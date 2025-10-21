@@ -6,7 +6,6 @@ use App\Models\Championship;
 use App\Models\FantasyLeague;
 use App\Models\FantasyTeam;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class FantasyLeagueController extends Controller
@@ -31,12 +30,12 @@ class FantasyLeagueController extends Controller
             ->fantasyTeams()
             ->with(['fantasyLeague.owner', 'fantasyLeague.championship'])
             ->get()
-            ->map(fn($team) => $team->fantasyLeague)
+            ->map(fn ($team) => $team->fantasyLeague)
             ->unique('id')
             ->values();
 
         return Inertia::render('Fantasy/Index', [
-            'userLeagues' => $userLeagues
+            'userLeagues' => $userLeagues,
         ]);
     }
 
@@ -45,7 +44,7 @@ class FantasyLeagueController extends Controller
         $championships = Championship::where('is_active', true)->get();
 
         return Inertia::render('Fantasy/Create', [
-            'championships' => $championships
+            'championships' => $championships,
         ]);
     }
 
@@ -81,7 +80,7 @@ class FantasyLeagueController extends Controller
         FantasyTeam::create([
             'fantasy_league_id' => $league->id,
             'user_id' => auth()->id(),
-            'team_name' => auth()->user()->name . "'s Team",
+            'team_name' => auth()->user()->name."'s Team",
             'budget_spent' => 0,
             'budget_remaining' => $league->budget,
             'total_points' => 0,
@@ -94,7 +93,7 @@ class FantasyLeagueController extends Controller
     public function show(FantasyLeague $league)
     {
         // Check if user is a member of the league
-        if (!$league->hasUser(auth()->user())) {
+        if (! $league->hasUser(auth()->user())) {
             return redirect()->route('fantasy.leagues.index')
                 ->with('error', 'You are not a member of this league.');
         }
@@ -103,7 +102,7 @@ class FantasyLeagueController extends Controller
             'owner',
             'championship',
             'teams.user',
-            'teams.players'
+            'teams.players',
         ]);
 
         $userTeam = $league->teams()->with('user')->where('user_id', auth()->id())->first();
@@ -125,14 +124,14 @@ class FantasyLeagueController extends Controller
     public function join(Request $request)
     {
         $request->validate([
-            'invite_code' => 'required|string|min:6|max:8'
+            'invite_code' => 'required|string|min:6|max:8',
         ]);
 
         $league = FantasyLeague::where('invite_code', strtoupper($request->invite_code))
             ->where('is_active', true)
             ->first();
 
-        if (!$league) {
+        if (! $league) {
             return back()->withErrors(['invite_code' => 'Invalid invite code.']);
         }
 
@@ -148,7 +147,7 @@ class FantasyLeagueController extends Controller
         FantasyTeam::create([
             'fantasy_league_id' => $league->id,
             'user_id' => auth()->id(),
-            'team_name' => auth()->user()->name . "'s Team",
+            'team_name' => auth()->user()->name."'s Team",
             'budget_spent' => 0,
             'budget_remaining' => $league->budget,
             'total_points' => 0,
@@ -164,7 +163,7 @@ class FantasyLeagueController extends Controller
             ->where('is_active', true)
             ->first();
 
-        if (!$league) {
+        if (! $league) {
             return redirect()->route('fantasy.leagues.index')
                 ->withErrors(['error' => 'Invalid or expired invite link.']);
         }
@@ -183,7 +182,7 @@ class FantasyLeagueController extends Controller
         FantasyTeam::create([
             'fantasy_league_id' => $league->id,
             'user_id' => auth()->id(),
-            'team_name' => auth()->user()->name . "'s Team",
+            'team_name' => auth()->user()->name."'s Team",
             'budget_spent' => 0,
             'budget_remaining' => $league->budget,
             'total_points' => 0,

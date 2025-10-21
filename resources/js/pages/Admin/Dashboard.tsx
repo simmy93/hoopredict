@@ -7,6 +7,9 @@ interface Stats {
     total_leagues: number;
     active_leagues: number;
     total_members: number;
+    total_players: number;
+    active_players: number;
+    total_fantasy_leagues: number;
 }
 
 interface Props {
@@ -35,12 +38,12 @@ export default function Dashboard({ stats }: Props) {
                         Admin Dashboard
                     </h2>
                     <p className="text-gray-600 dark:text-gray-400">
-                        Manage users, leagues, and league members
+                        Manage users, leagues, players, and league members
                     </p>
                 </div>
 
                 {/* Statistics Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
                         <div className="flex items-center">
                             <div className="flex-shrink-0 bg-blue-500 rounded-md p-3">
@@ -97,10 +100,29 @@ export default function Dashboard({ stats }: Props) {
                             </p>
                         </div>
                     </div>
+
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0 bg-orange-500 rounded-md p-3">
+                                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <div className="ml-5">
+                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">EuroLeague Players</p>
+                                <p className="text-2xl font-semibold text-gray-900 dark:text-white">{stats.total_players}</p>
+                            </div>
+                        </div>
+                        <div className="mt-2">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {stats.active_players} active
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Management Links */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Link href="/admin/users" className="group">
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
                             <div className="flex items-center justify-between mb-4">
@@ -159,6 +181,30 @@ export default function Dashboard({ stats }: Props) {
                             <div className="flex gap-2">
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                                     CRUD Operations
+                                </span>
+                            </div>
+                        </div>
+                    </Link>
+
+                    <Link href="/admin/players" className="group">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow duration-200">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Players Management
+                                </h3>
+                                <svg className="h-6 w-6 text-gray-400 group-hover:text-orange-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
+                                Manage EuroLeague player prices, update values based on performance, and control player data.
+                            </p>
+                            <div className="flex gap-2">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                                    Price Management
+                                </span>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                                    Bulk Actions
                                 </span>
                             </div>
                         </div>

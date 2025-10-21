@@ -20,13 +20,13 @@ class PredictionController extends Controller
             'game_id' => 'required|exists:games,id',
             'league_id' => 'required|exists:leagues,id',
             'home_score_prediction' => 'required|integer|min:50|max:150',
-            'away_score_prediction' => 'required|integer|min:50|max:150'
+            'away_score_prediction' => 'required|integer|min:50|max:150',
         ]);
 
         // Check that scores are not equal (no ties allowed)
         if ($request->home_score_prediction == $request->away_score_prediction) {
             throw ValidationException::withMessages([
-                'away_score_prediction' => 'Basketball games cannot end in a tie. Scores must be different.'
+                'away_score_prediction' => 'Basketball games cannot end in a tie. Scores must be different.',
             ]);
         }
 
@@ -34,16 +34,16 @@ class PredictionController extends Controller
         $league = League::findOrFail($request->league_id);
 
         // Check if user is member of this league
-        if (!$league->hasUser(auth()->user())) {
+        if (! $league->hasUser(auth()->user())) {
             throw ValidationException::withMessages([
-                'league_id' => 'You are not a member of this league.'
+                'league_id' => 'You are not a member of this league.',
             ]);
         }
 
         // Check if game is still accepting predictions
-        if (!$game->canAcceptPredictions()) {
+        if (! $game->canAcceptPredictions()) {
             throw ValidationException::withMessages([
-                'game_id' => 'Predictions for this game are no longer accepted.'
+                'game_id' => 'Predictions for this game are no longer accepted.',
             ]);
         }
 
@@ -52,12 +52,12 @@ class PredictionController extends Controller
             [
                 'user_id' => auth()->id(),
                 'league_id' => $request->league_id,
-                'game_id' => $request->game_id
+                'game_id' => $request->game_id,
             ],
             [
                 'home_score_prediction' => $request->home_score_prediction,
                 'away_score_prediction' => $request->away_score_prediction,
-                'predicted_at' => now()
+                'predicted_at' => now(),
             ]
         );
 
@@ -68,7 +68,7 @@ class PredictionController extends Controller
     {
         $this->authorize('delete', $prediction);
 
-        if (!$prediction->canEdit()) {
+        if (! $prediction->canEdit()) {
             return back()->withErrors(['error' => 'This prediction can no longer be deleted.']);
         }
 
@@ -88,7 +88,7 @@ class PredictionController extends Controller
             ->paginate(20);
 
         return Inertia::render('Predictions/Index', [
-            'predictions' => $userPredictions
+            'predictions' => $userPredictions,
         ]);
     }
 }

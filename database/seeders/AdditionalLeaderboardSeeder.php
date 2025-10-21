@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
 use App\Models\League;
-use App\Models\LeagueMember;
 use App\Models\LeagueLeaderboard;
+use App\Models\LeagueMember;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class AdditionalLeaderboardSeeder extends Seeder
 {
