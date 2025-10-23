@@ -318,6 +318,99 @@ docker-compose exec app php artisan scrape:euroleague
 docker-compose exec app php artisan db:seed --class=AdminUserSeeder
 ```
 
+## Step 9: Laravel Scheduler Setup (IMPORTANT!)
+
+HooPredict uses Laravel's scheduler to automatically:
+- Update game scores every hour
+- Scrape player statistics
+- Calculate player prices when rounds complete
+
+**The scheduler is already configured in the Docker container**, but you need to verify it's running:
+
+### Verify Scheduler is Running
+
+```bash
+# Check if Laravel scheduler is active in supervisor
+docker-compose exec app supervisorctl status
+
+# You should see:
+# laravel-scheduler    RUNNING   pid 123, uptime 0:01:00
+```
+
+### How It Works (Docker)
+
+The Dockerfile already includes a cron setup via Supervisor. The scheduler runs every minute and executes:
+
+```bash
+* * * * * php /var/www/artisan schedule:run >> /dev/null 2>&1
+```
+
+This single cron entry handles ALL scheduled tasks. Laravel internally manages:
+- ✅ **`scrape:recent`** - Runs hourly (updates games, stats, prices)
+- ✅ All other scheduled jobs you add in the future
+
+### View Scheduled Tasks
+
+```bash
+# See what tasks are scheduled
+docker-compose exec app php artisan schedule:list
+
+# Output shows:
+# 0 * * * *  scrape:recent ........ Next Due: 1 hour from now
+```
+
+### Manual Trigger (Testing)
+
+```bash
+# Trigger the scheduler manually (for testing)
+docker-compose exec app php artisan schedule:run
+
+# Or run the smart scraper directly
+docker-compose exec app php artisan scrape:recent
+```
+
+### Monitor Scheduler Logs
+
+```bash
+# View real-time logs to see scheduler activity
+docker-compose exec app tail -f storage/logs/laravel.log | grep -i "scrape\|schedule"
+
+# You'll see entries like:
+# [2025-10-21 18:00:00] Starting smart scraping of recent rounds
+# [2025-10-21 18:00:15] Smart scraping completed
+# [2025-10-21 18:00:20] Round 6 processed successfully
+```
+
+### Troubleshooting Scheduler
+
+If tasks aren't running:
+
+```bash
+# 1. Check if supervisor is running the scheduler
+docker-compose exec app supervisorctl status laravel-scheduler
+
+# 2. Restart the scheduler
+docker-compose exec app supervisorctl restart laravel-scheduler
+
+# 3. Check for errors in logs
+docker-compose exec app tail -f storage/logs/laravel.log
+
+# 4. Manually test the workflow
+docker-compose exec app php artisan scrape:recent
+```
+
+### What Gets Automated
+
+Once the scheduler is running, the following happens **automatically every hour**:
+
+1. **Scrape recent rounds** (only 4 rounds, not all 38!)
+2. **Update game scores** from EuroLeague API
+3. **Update player statistics** for finished games
+4. **Calculate player prices** (if round is complete)
+5. **Save price history** for tracking
+
+**No manual intervention needed!** 🎉
+
 ## Maintenance Commands
 
 ### Update Application

@@ -17,6 +17,7 @@ class FantasyTeam extends Model
         'fantasy_league_id',
         'user_id',
         'team_name',
+        'lineup_type',
         'budget_spent',
         'budget_remaining',
         'total_points',

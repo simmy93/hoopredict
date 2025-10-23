@@ -402,7 +402,7 @@ class DraftController extends Controller
     {
         $request->validate([
             'search' => 'nullable|string|max:255',
-            'position' => 'nullable|string|in:PG,SG,SF,PF,C',
+            'position' => 'nullable|string|in:Guard,Forward,Center',
             'page' => 'nullable|integer|min:1',
             'per_page' => 'nullable|integer|min:10|max:50',
         ]);

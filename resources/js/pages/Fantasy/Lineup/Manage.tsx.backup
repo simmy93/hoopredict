@@ -94,7 +94,63 @@ const LINEUP_CONFIGS: Record<LineupType, LineupConfig> = {
     '2-1-2': { guards: 2, forwards: 1, centers: 2, label: '2 Guards, 1 Forward, 2 Centers' },
 }
 
-// PlayerCard component removed - not used anymore
+// PlayerCard component for displaying players in slots
+interface PlayerCardProps {
+    player: FantasyTeamPlayer
+    onDragStart: (player: FantasyTeamPlayer) => void
+    onDragEnd: () => void
+    onRemove: () => void
+    percentage: string
+    isSixthMan?: boolean
+}
+
+function PlayerCard({ player, onDragStart, onDragEnd, onRemove, percentage, isSixthMan = false }: PlayerCardProps) {
+    return (
+        <div
+            draggable
+            onDragStart={() => onDragStart(player)}
+            onDragEnd={onDragEnd}
+            className="flex flex-col items-center gap-2 cursor-move w-full"
+        >
+            {player.player.photo_url ? (
+                <img
+                    src={player.player.photo_url}
+                    alt={player.player.name}
+                    className={`w-16 h-16 rounded-full object-cover object-top border-2 ${isSixthMan ? 'border-yellow-400' : 'border-gray-200'}`}
+                />
+            ) : (
+                <div className={`w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center border-2 ${isSixthMan ? 'border-yellow-400' : 'border-gray-300'}`}>
+                    <User className="h-8 w-8 text-gray-400" />
+                </div>
+            )}
+            <div className="text-center w-full">
+                <div className="font-medium text-sm truncate">{player.player.name}</div>
+                <div className="text-xs text-muted-foreground truncate">{player.player.team.name}</div>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                    <Badge className="text-xs">
+                        {player.player.position}
+                    </Badge>
+                    {isSixthMan && (
+                        <Badge className="bg-yellow-500 text-white text-xs">
+                            6th Man
+                        </Badge>
+                    )}
+                </div>
+                <div className="text-xs font-bold text-blue-600 mt-1">
+                    {percentage} ({player.points_earned.toFixed(1)} pts)
+                </div>
+            </div>
+            <Button
+                size="sm"
+                variant="ghost"
+                onClick={onRemove}
+                className="mt-1 text-xs h-7"
+            >
+                Remove
+            </Button>
+        </div>
+    )
+}
 
 export default function ManageNew({
     league,
@@ -112,12 +168,13 @@ export default function ManageNew({
     const [validationErrors, setValidationErrors] = useState<string[]>([])
     const [isSaving, setIsSaving] = useState(false)
 
-    // No longer need total points for percentages
+    // Calculate total points for percentages
+    const totalPoints = initialTeamPlayers.reduce((sum, p) => sum + p.points_earned, 0)
 
     // Initialize lineup from database
     useEffect(() => {
         const startersFromDb = initialTeamPlayers
-            .filter(p => p.lineup_position && p.lineup_position >= 1 && p.lineup_position <= 5)
+            .filter(p => p.lineup_position && p.lineup_position <= 5)
             .sort((a, b) => (a.lineup_position || 0) - (b.lineup_position || 0))
 
         const sixthManFromDb = initialTeamPlayers
@@ -128,11 +185,8 @@ export default function ManageNew({
 
         if (startersFromDb.length > 0) {
             const newStarters: (FantasyTeamPlayer | null)[] = [null, null, null, null, null]
-            startersFromDb.forEach((player) => {
-                // Map by lineup_position: positions 1-5 map to array indices 0-4
-                if (player.lineup_position && player.lineup_position >= 1 && player.lineup_position <= 5) {
-                    newStarters[player.lineup_position - 1] = player
-                }
+            startersFromDb.forEach((player, idx) => {
+                if (idx < 5) newStarters[idx] = player
             })
             setStarters(newStarters)
         }
@@ -179,61 +233,10 @@ export default function ManageNew({
     // Handle lineup type change
     const handleLineupTypeChange = (type: string) => {
         const newType = type as LineupType
-        const oldType = lineupType
         setLineupType(newType)
-
-        // Only adjust lineup if actually changing the type (not on initial load)
-        if (oldType && oldType !== newType) {
-            const newConfig = LINEUP_CONFIGS[newType]
-            const newStarters: (FantasyTeamPlayer | null)[] = [null, null, null, null, null]
-            const playersToReturn: FantasyTeamPlayer[] = []
-
-            // Separate current starters by position
-            const currentGuards = starters.filter(p => p?.player.position === 'Guard').filter((p): p is FantasyTeamPlayer => p !== null)
-            const currentForwards = starters.filter(p => p?.player.position === 'Forward').filter((p): p is FantasyTeamPlayer => p !== null)
-            const currentCenters = starters.filter(p => p?.player.position === 'Center').filter((p): p is FantasyTeamPlayer => p !== null)
-
-            let slotIndex = 0
-
-            // Fill guards slots
-            for (let i = 0; i < newConfig.guards; i++) {
-                if (currentGuards[i]) {
-                    newStarters[slotIndex] = currentGuards[i]
-                }
-                slotIndex++
-            }
-            // Extra guards go to bench
-            for (let i = newConfig.guards; i < currentGuards.length; i++) {
-                playersToReturn.push(currentGuards[i])
-            }
-
-            // Fill forwards slots
-            for (let i = 0; i < newConfig.forwards; i++) {
-                if (currentForwards[i]) {
-                    newStarters[slotIndex] = currentForwards[i]
-                }
-                slotIndex++
-            }
-            // Extra forwards go to bench
-            for (let i = newConfig.forwards; i < currentForwards.length; i++) {
-                playersToReturn.push(currentForwards[i])
-            }
-
-            // Fill centers slots
-            for (let i = 0; i < newConfig.centers; i++) {
-                if (currentCenters[i]) {
-                    newStarters[slotIndex] = currentCenters[i]
-                }
-                slotIndex++
-            }
-            // Extra centers go to bench
-            for (let i = newConfig.centers; i < currentCenters.length; i++) {
-                playersToReturn.push(currentCenters[i])
-            }
-
-            setStarters(newStarters)
-            setBench([...bench, ...playersToReturn])
-        }
+        // Reset starters when changing lineup type
+        setStarters([null, null, null, null, null])
+        setBench(initialTeamPlayers)
     }
 
     // Drag handlers
@@ -325,6 +328,41 @@ export default function ManageNew({
         setDraggedPlayer(null)
     }
 
+    const handleRemoveFromSlot = (slotIndex: number) => {
+        const player = starters[slotIndex]
+        if (!player) return
+
+        const newStarters = [...starters]
+        newStarters[slotIndex] = null
+        setStarters(newStarters)
+
+        setBench([...bench, player])
+    }
+
+    // Get slot configuration based on lineup type - organized by position lines
+    const getSlotsByPosition = (config: LineupConfig) => {
+        const guards: number[] = []
+        const forwards: number[] = []
+        const centers: number[] = []
+
+        let slotIndex = 0
+
+        // Guards first
+        for (let i = 0; i < config.guards; i++) {
+            guards.push(slotIndex++)
+        }
+        // Then forwards
+        for (let i = 0; i < config.forwards; i++) {
+            forwards.push(slotIndex++)
+        }
+        // Then centers
+        for (let i = 0; i < config.centers; i++) {
+            centers.push(slotIndex++)
+        }
+
+        return { guards, forwards, centers }
+    }
+
     const getSlotPosition = (slotIndex: number, config: LineupConfig): 'Guard' | 'Forward' | 'Center' => {
         if (slotIndex < config.guards) return 'Guard'
         if (slotIndex < config.guards + config.forwards) return 'Forward'
@@ -334,50 +372,44 @@ export default function ManageNew({
     const getCourtPosition = (slotIndex: number, config: LineupConfig): { left: string; top: string } => {
         // Position players on the court based on their role
         // Guards at bottom, Forwards in middle, Centers at top
-        // Use full image height from 15% (top) to 85% (bottom)
 
         if (slotIndex < config.guards) {
-            // Guards - bottom of court (85% from top)
+            // Guards - bottom of court
             const guardIndex = slotIndex
-            const top = '85%'
-
-            if (config.guards === 1) {
-                return { left: '50%', top }
-            } else if (config.guards === 2) {
-                return { left: guardIndex === 0 ? '25%' : '75%', top }
-            } else { // 3 guards
-                const positions = ['16.67%', '50%', '83.33%']
-                return { left: positions[guardIndex], top }
+            if (config.guards === 1) return { left: '50%', top: '75%' }
+            if (config.guards === 2) {
+                return guardIndex === 0 ? { left: '20%', top: '75%' } : { left: '65%', top: '75%' }
             }
+            // 3 guards
+            if (guardIndex === 0) return { left: '10%', top: '75%' }
+            if (guardIndex === 1) return { left: '50%', top: '80%' }
+            return { left: '75%', top: '75%' }
         }
 
         if (slotIndex < config.guards + config.forwards) {
-            // Forwards - middle of court (50% from top)
+            // Forwards - middle of court
             const forwardIndex = slotIndex - config.guards
-            const top = '50%'
-
-            if (config.forwards === 1) {
-                return { left: '50%', top }
-            } else if (config.forwards === 2) {
-                return { left: forwardIndex === 0 ? '25%' : '75%', top }
-            } else { // 3 forwards
-                const positions = ['16.67%', '50%', '83.33%']
-                return { left: positions[forwardIndex], top }
+            if (config.forwards === 1) return { left: '50%', top: '45%' }
+            if (config.forwards === 2) {
+                return forwardIndex === 0 ? { left: '20%', top: '45%' } : { left: '65%', top: '45%' }
             }
+            // 3 forwards
+            if (forwardIndex === 0) return { left: '10%', top: '45%' }
+            if (forwardIndex === 1) return { left: '50%', top: '50%' }
+            return { left: '75%', top: '45%' }
         }
 
-        // Centers - top of court (15% from top)
+        // Centers - top of court
         const centerIndex = slotIndex - config.guards - config.forwards
-        const top = '15%'
-
-        if (config.centers === 1) {
-            return { left: '50%', top }
-        } else { // 2 centers
-            return { left: centerIndex === 0 ? '25%' : '75%', top }
-        }
+        if (config.centers === 1) return { left: '50%', top: '15%' }
+        // 2 centers
+        return centerIndex === 0 ? { left: '30%', top: '15%' } : { left: '60%', top: '15%' }
     }
 
-    // Point percentages removed - multipliers applied on backend after each round
+    const getPointPercentage = (points: number): string => {
+        if (totalPoints === 0) return '0%'
+        return ((points / totalPoints) * 100).toFixed(1) + '%'
+    }
 
     // Get position color
     const getPositionColor = (position: string) => {
@@ -509,16 +541,6 @@ export default function ManageNew({
                                     ))}
                                 </SelectContent>
                             </Select>
-
-                            {/* Point Multipliers Info */}
-                            <Alert className="mt-4">
-                                <Info className="h-4 w-4" />
-                                <AlertDescription>
-                                    <strong>Point Multipliers:</strong> Starters earn <span className="font-bold text-green-600">100%</span> of fantasy points,
-                                    Sixth Man earns <span className="font-bold text-yellow-600">75%</span>,
-                                    and Bench players earn <span className="font-bold text-blue-600">50%</span>.
-                                </AlertDescription>
-                            </Alert>
                         </CardContent>
                     </Card>
 
@@ -529,30 +551,24 @@ export default function ManageNew({
                                 {/* Basketball Court - Half-Court View */}
                                 <Card className="lg:col-span-8">
                                     <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            Step 2: Set Your Starting Five
-                                            <Badge className="bg-green-600 text-white">100%</Badge>
-                                        </CardTitle>
-                                        <CardDescription>Drag players from the sidebar to the court - Starters earn full fantasy points</CardDescription>
+                                        <CardTitle>Step 2: Set Your Starting Five</CardTitle>
+                                        <CardDescription>Drag players from the sidebar to the court</CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <div
-                                            className="relative rounded-lg overflow-hidden border-4 border-gray-800 shadow-2xl"
-                                            style={{
-                                                backgroundImage: 'url(/images/basketball-court.png)',
-                                                backgroundSize: 'contain',
-                                                backgroundRepeat: 'no-repeat',
-                                                backgroundPosition: 'center',
-                                                backgroundColor: '#1a1a2e',
-                                                paddingBottom: '75%', // 4:3 aspect ratio
-                                                position: 'relative'
-                                            }}
-                                        >
-                                            {/* Optional dark overlay for better player card visibility - adjust opacity as needed */}
-                                            <div className="absolute inset-0 bg-black/20"></div>
+                                        <div className="relative bg-gradient-to-br from-orange-900/40 via-amber-800/30 to-orange-900/40 rounded-lg p-8 border-4 border-orange-900/50 min-h-[600px]">
+                                            {/* Half-court lines */}
+                                            <div className="absolute inset-8 border-2 border-white/40 rounded-t-lg"></div>
+                                            {/* Center circle */}
+                                            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-32 h-32 border-2 border-white/40 rounded-full"></div>
+                                            {/* Three-point arc */}
+                                            <div className="absolute top-8 left-1/2 -translate-x-1/2 w-48 h-48 border-2 border-white/40 rounded-b-full border-t-0"></div>
+                                            {/* Free throw circle */}
+                                            <div className="absolute top-32 left-1/2 -translate-x-1/2 w-24 h-24 border-2 border-white/40 rounded-full"></div>
+                                            {/* Lane lines */}
+                                            <div className="absolute top-8 left-1/2 -translate-x-1/2 -ml-16 w-32 h-40 border-2 border-white/40 border-t-0"></div>
 
                                             {/* Player positions on court */}
-                                            <div className="absolute inset-0 z-10">
+                                            <div className="relative z-10 h-[550px]">
                                                 {/* Position players absolutely based on formation */}
                                                 {[0, 1, 2, 3, 4].map((slotIndex) => {
                                                     const config = LINEUP_CONFIGS[lineupType]
@@ -568,16 +584,14 @@ export default function ManageNew({
                                                             onDragOver={(e) => e.preventDefault()}
                                                             onDrop={() => handleDropOnSlot(slotIndex)}
                                                             className={`
-                                                                absolute flex flex-col items-center justify-center
-                                                                w-20 h-28 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-40
-                                                                rounded-lg sm:rounded-xl border-2 transition-all
+                                                                absolute w-32 h-40 flex flex-col items-center justify-center
+                                                                rounded-xl border-2 transition-all
                                                                 ${player ? 'bg-gradient-to-br from-gray-900 to-gray-800 border-white/60' : 'bg-black/40 border-dashed border-white/30'}
-                                                                ${draggedPlayer && draggedPlayer.player.position === slotPosition ? 'ring-2 sm:ring-4 ring-green-500/70 scale-105' : ''}
+                                                                ${draggedPlayer && draggedPlayer.player.position === slotPosition ? 'ring-4 ring-green-500/70 scale-105' : ''}
                                                             `}
                                                             style={{
                                                                 left: position.left,
                                                                 top: position.top,
-                                                                transform: 'translate(-50%, -50%)'
                                                             }}
                                                         >
                                                             {player ? (
@@ -585,10 +599,10 @@ export default function ManageNew({
                                                                     draggable
                                                                     onDragStart={() => handleDragStart(player)}
                                                                     onDragEnd={handleDragEnd}
-                                                                    className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2"
+                                                                    className="flex flex-col items-center gap-1 cursor-move w-full p-2"
                                                                 >
                                                                     {/* Position badge at top */}
-                                                                    <div className={`absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold`}>
+                                                                    <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-2 py-0.5 rounded text-xs font-bold`}>
                                                                         {player.player.position}
                                                                     </div>
 
@@ -596,25 +610,28 @@ export default function ManageNew({
                                                                         <img
                                                                             src={player.player.photo_url}
                                                                             alt={player.player.name}
-                                                                            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full object-cover object-top border-2 border-white/80"
+                                                                            className="w-14 h-14 rounded-full object-cover object-top border-2 border-white/80"
                                                                         />
                                                                     ) : (
-                                                                        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-white/80">
-                                                                            <User className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-300" />
+                                                                        <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-white/80">
+                                                                            <User className="h-7 w-7 text-gray-300" />
                                                                         </div>
                                                                     )}
                                                                     <div className="text-center w-full">
-                                                                        <div className="font-bold text-white text-[10px] sm:text-xs truncate">{player.player.name}</div>
-                                                                        <div className="text-[8px] sm:text-[10px] text-gray-300 truncate hidden sm:block">{player.player.team.name}</div>
-                                                                        <div className="text-[10px] sm:text-xs font-bold text-blue-400 mt-1">
+                                                                        <div className="font-bold text-white text-xs truncate">{player.player.name}</div>
+                                                                        <div className="text-[10px] text-gray-300 truncate">{player.player.team.name}</div>
+                                                                        <div className="text-xs font-bold text-blue-400 mt-0.5">
+                                                                            {getPointPercentage(player.points_earned)}
+                                                                        </div>
+                                                                        <div className="text-[10px] text-gray-400">
                                                                             {player.points_earned.toFixed(1)} pts
                                                                         </div>
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div className="text-center text-white/50 text-[10px] sm:text-xs p-1 sm:p-2">
-                                                                    <Users className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 opacity-50" />
-                                                                    <span className="font-medium text-[9px] sm:text-xs">{slotPosition}</span>
+                                                                <div className="text-center text-white/50 text-xs p-2">
+                                                                    <Users className="h-8 w-8 mx-auto mb-1 opacity-50" />
+                                                                    <span className="font-medium">{slotPosition}</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -625,6 +642,150 @@ export default function ManageNew({
                                     </CardContent>
                                 </Card>
 
+                                {/* Remove old Guards/Forwards/Centers sections below */}
+                                {false && LINEUP_CONFIGS[lineupType].guards > 0 && (
+                                                    <div className="relative">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <div className="bg-blue-500 text-white px-3 py-1 rounded-md font-bold text-sm">
+                                                                GUARDS
+                                                            </div>
+                                                            <div className="flex-1 h-0.5 bg-blue-300/50"></div>
+                                                        </div>
+                                                        <div className="flex justify-center">
+                                                            <div className="grid grid-cols-3 gap-4 max-w-3xl">
+                                                                {getSlotsByPosition(LINEUP_CONFIGS[lineupType]).guards.map((slotIndex) => {
+                                                                    const player = starters[slotIndex]
+                                                                    return (
+                                                                        <div
+                                                                            key={slotIndex}
+                                                                            onDragOver={(e) => e.preventDefault()}
+                                                                            onDrop={() => handleDropOnSlot(slotIndex)}
+                                                                            className={`
+                                                                                relative flex flex-col items-center p-4 rounded-lg border-2 border-dashed
+                                                                                min-h-[180px] transition-all
+                                                                                ${player ? 'bg-white border-green-500' : 'bg-white/50 border-blue-300'}
+                                                                                ${draggedPlayer && draggedPlayer.player.position === 'Guard' ? 'ring-4 ring-green-500/50' : ''}
+                                                                            `}
+                                                                        >
+                                                                            {player ? (
+                                                                                <PlayerCard
+                                                                                    player={player}
+                                                                                    onDragStart={handleDragStart}
+                                                                                    onDragEnd={handleDragEnd}
+                                                                                    onRemove={() => handleRemoveFromSlot(slotIndex)}
+                                                                                    percentage={getPointPercentage(player.points_earned)}
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="text-center text-muted-foreground text-sm h-full flex flex-col items-center justify-center">
+                                                                                    <Users className="h-8 w-8 mb-2 opacity-50" />
+                                                                                    <span>Drag Guard here</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Forwards Line */}
+                                                {LINEUP_CONFIGS[lineupType].forwards > 0 && (
+                                                    <div className="relative">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <div className="bg-amber-500 text-white px-3 py-1 rounded-md font-bold text-sm">
+                                                                FORWARDS
+                                                            </div>
+                                                            <div className="flex-1 h-0.5 bg-amber-300/50"></div>
+                                                        </div>
+                                                        <div className="flex justify-center">
+                                                            <div className="grid grid-cols-3 gap-4 max-w-3xl">
+                                                                {getSlotsByPosition(LINEUP_CONFIGS[lineupType]).forwards.map((slotIndex) => {
+                                                                    const player = starters[slotIndex]
+                                                                    return (
+                                                                        <div
+                                                                            key={slotIndex}
+                                                                            onDragOver={(e) => e.preventDefault()}
+                                                                            onDrop={() => handleDropOnSlot(slotIndex)}
+                                                                            className={`
+                                                                                relative flex flex-col items-center p-4 rounded-lg border-2 border-dashed
+                                                                                min-h-[180px] transition-all
+                                                                                ${player ? 'bg-white border-green-500' : 'bg-white/50 border-amber-300'}
+                                                                                ${draggedPlayer && draggedPlayer.player.position === 'Forward' ? 'ring-4 ring-green-500/50' : ''}
+                                                                            `}
+                                                                        >
+                                                                            {player ? (
+                                                                                <PlayerCard
+                                                                                    player={player}
+                                                                                    onDragStart={handleDragStart}
+                                                                                    onDragEnd={handleDragEnd}
+                                                                                    onRemove={() => handleRemoveFromSlot(slotIndex)}
+                                                                                    percentage={getPointPercentage(player.points_earned)}
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="text-center text-muted-foreground text-sm h-full flex flex-col items-center justify-center">
+                                                                                    <Users className="h-8 w-8 mb-2 opacity-50" />
+                                                                                    <span>Drag Forward here</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Centers Line */}
+                                                {LINEUP_CONFIGS[lineupType].centers > 0 && (
+                                                    <div className="relative">
+                                                        <div className="flex items-center gap-2 mb-3">
+                                                            <div className="bg-red-500 text-white px-3 py-1 rounded-md font-bold text-sm">
+                                                                CENTERS
+                                                            </div>
+                                                            <div className="flex-1 h-0.5 bg-red-300/50"></div>
+                                                        </div>
+                                                        <div className="flex justify-center">
+                                                            <div className="grid grid-cols-3 gap-4 max-w-3xl">
+                                                                {getSlotsByPosition(LINEUP_CONFIGS[lineupType]).centers.map((slotIndex) => {
+                                                                    const player = starters[slotIndex]
+                                                                    return (
+                                                                        <div
+                                                                            key={slotIndex}
+                                                                            onDragOver={(e) => e.preventDefault()}
+                                                                            onDrop={() => handleDropOnSlot(slotIndex)}
+                                                                            className={`
+                                                                                relative flex flex-col items-center p-4 rounded-lg border-2 border-dashed
+                                                                                min-h-[180px] transition-all
+                                                                                ${player ? 'bg-white border-green-500' : 'bg-white/50 border-red-300'}
+                                                                                ${draggedPlayer && draggedPlayer.player.position === 'Center' ? 'ring-4 ring-green-500/50' : ''}
+                                                                            `}
+                                                                        >
+                                                                            {player ? (
+                                                                                <PlayerCard
+                                                                                    player={player}
+                                                                                    onDragStart={handleDragStart}
+                                                                                    onDragEnd={handleDragEnd}
+                                                                                    onRemove={() => handleRemoveFromSlot(slotIndex)}
+                                                                                    percentage={getPointPercentage(player.points_earned)}
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="text-center text-muted-foreground text-sm h-full flex flex-col items-center justify-center">
+                                                                                    <Users className="h-8 w-8 mb-2 opacity-50" />
+                                                                                    <span>Drag Center here</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
                                 {/* Sidebar: Sixth Man + Available Players */}
                                 <div className="lg:col-span-4 space-y-6">
@@ -634,9 +795,8 @@ export default function ManageNew({
                                             <CardTitle className="text-lg flex items-center gap-2">
                                                 <Sparkles className="h-5 w-5 text-yellow-500" />
                                                 Sixth Man
-                                                <Badge className="bg-yellow-600 text-white">75%</Badge>
                                             </CardTitle>
-                                            <CardDescription>Key substitute - earns 75% of fantasy points</CardDescription>
+                                            <CardDescription>Key substitute player</CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <div
@@ -650,46 +810,17 @@ export default function ManageNew({
                                                 `}
                                             >
                                                 {sixthMan ? (
-                                                    <div
-                                                        draggable
-                                                        onDragStart={() => handleDragStart(sixthMan)}
+                                                    <PlayerCard
+                                                        player={sixthMan}
+                                                        onDragStart={handleDragStart}
                                                         onDragEnd={handleDragEnd}
-                                                        className="flex flex-col items-center gap-2 cursor-move w-full p-2"
-                                                    >
-                                                        {sixthMan.player.photo_url ? (
-                                                            <img
-                                                                src={sixthMan.player.photo_url}
-                                                                alt={sixthMan.player.name}
-                                                                className="w-16 h-16 rounded-full object-cover object-top border-2 border-yellow-400"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center border-2 border-yellow-400">
-                                                                <User className="h-8 w-8 text-gray-400" />
-                                                            </div>
-                                                        )}
-                                                        <div className="text-center w-full">
-                                                            <div className="font-medium text-sm truncate">{sixthMan.player.name}</div>
-                                                            <div className="text-xs text-muted-foreground truncate">{sixthMan.player.team.name}</div>
-                                                            <div className="flex items-center justify-center gap-2 mt-1">
-                                                                <Badge className="text-xs">{sixthMan.player.position}</Badge>
-                                                                <Badge className="bg-yellow-500 text-white text-xs">6th Man</Badge>
-                                                            </div>
-                                                            <div className="text-xs font-bold text-blue-600 mt-1">
-                                                                {sixthMan.points_earned.toFixed(1)} pts
-                                                            </div>
-                                                        </div>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => {
-                                                                setBench([...bench, sixthMan])
-                                                                setSixthMan(null)
-                                                            }}
-                                                            className="mt-1 text-xs h-7"
-                                                        >
-                                                            Remove
-                                                        </Button>
-                                                    </div>
+                                                        onRemove={() => {
+                                                            setBench([...bench, sixthMan])
+                                                            setSixthMan(null)
+                                                        }}
+                                                        percentage={getPointPercentage(sixthMan.points_earned)}
+                                                        isSixthMan={true}
+                                                    />
                                                 ) : (
                                                     <div className="text-center text-muted-foreground text-sm h-full flex flex-col items-center justify-center">
                                                         <Sparkles className="h-8 w-8 mb-2 opacity-50" />
@@ -703,11 +834,8 @@ export default function ManageNew({
                                     {/* Available Players */}
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle className="text-lg flex items-center gap-2">
-                                                Available Players
-                                                <Badge className="bg-blue-600 text-white">50%</Badge>
-                                            </CardTitle>
-                                            <CardDescription>Bench players earn 50% of fantasy points</CardDescription>
+                                            <CardTitle className="text-lg">Available Players</CardTitle>
+                                            <CardDescription>Drag to lineup or sixth man</CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             <div
@@ -748,6 +876,9 @@ export default function ManageNew({
                                                             </div>
                                                             <div className="text-right flex-shrink-0">
                                                                 <div className="text-xs font-bold text-muted-foreground">
+                                                                    {getPointPercentage(teamPlayer.points_earned)}
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground">
                                                                     {teamPlayer.points_earned.toFixed(1)} pts
                                                                 </div>
                                                             </div>

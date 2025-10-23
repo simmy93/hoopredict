@@ -26,9 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {
-        // Process round prices automatically every hour
-        // Command checks if all games in next round are finished before processing
-        $schedule->command('rounds:process-prices')
+        // Smart scraper: Updates games → stats → prices (all in one workflow)
+        // Runs every hour and only scrapes recent rounds (current + next 2)
+        // This ensures scores are updated before stats, and stats before prices
+        $schedule->command('scrape:recent')
             ->hourly()
             ->withoutOverlapping()
             ->runInBackground();

@@ -41,27 +41,27 @@ php artisan migrate
 # Create new migration
 php artisan make:migration migration_name
 
-# Scrape EuroLeague data (all: teams, games, players, scores)
-php artisan scrape:euroleague
+# SMART SCRAPER (Recommended for production - runs automatically hourly)
+# Updates recent rounds → player stats → processes prices → calculates team points (all in one)
+php artisan scrape:recent
 
-# Scrape specific data
+# Manual scraping (for initial setup or debugging)
 php artisan scrape:euroleague --teams       # Only scrape teams
 php artisan scrape:euroleague --games       # Only scrape games/schedule
-php artisan scrape:euroleague --scores      # Only update game scores
 php artisan scrape:euroleague --players     # Only scrape players
 php artisan scrape:euroleague --stats       # Only scrape player statistics
 
-# Scrape ALL historical games (ignores 7-day limit)
+# Scrape ALL historical games (ignores 7-day limit - for backfill)
 php artisan scrape:euroleague --games --all-history
 
-# Process round prices (auto-detects next unprocessed round)
-php artisan rounds:process-prices
+# Process round prices manually
+php artisan rounds:process-prices           # Auto-detects next unprocessed round
+php artisan rounds:process-prices --round=5 # Process specific round
+php artisan rounds:process-prices --round=3 --force # Reprocess already processed round
 
-# Process specific round
-php artisan rounds:process-prices --round=5
-
-# Reprocess already processed round
-php artisan rounds:process-prices --round=3 --force
+# Calculate fantasy team points manually
+php artisan fantasy:calculate-team-points   # Auto-detects latest finished round
+php artisan fantasy:calculate-team-points --round=5 # Calculate for specific round
 ```
 
 ### Frontend
@@ -170,11 +170,47 @@ npm run format:check
 ### Invite Codes
 Both `League` and `FantasyLeague` auto-generate secure 8-character invite codes on creation. Users can join via `/leagues/join/{inviteCode}` or `/fantasy/leagues/join/{inviteCode}`.
 
-### Player Pricing
-Players have dynamic pricing in `Player` model:
-- Base price stored in database
-- `updatePriceBasedOnPerformance()` adjusts based on recent game stats (30+ pts = +10%, <5 pts = -10%)
-- Average fantasy points calculated from last 5 games via `getAverageFantasyPointsAttribute`
+### Player Pricing (Weighted Average System)
+Players have a sophisticated dynamic pricing system that prevents wild price swings:
+
+**Formula**: `New Price = (70% × Avg of last 4 price history) + (30% × Current round FP × €100k)`
+
+**How it works**:
+- **Round 1**: Price = Fantasy Points × €100,000 (no history yet)
+- **Rounds 2-5**: Uses weighted average of up to 4 previous round prices (70%) + current round performance (30%)
+- **No play**: If player doesn't play a round, price marked as null (not included in future calculations)
+- **Boundaries**: Minimum €100k, Maximum €10M
+- **Stability**: Average price change between rounds ~24%, much smoother than direct FP calculation
+
+**Example** (Shengelia):
+- R1: €1.69M (16.9 FP) - First game
+- R2: €1.87M (+10.7%) - 70% of €1.69M + 30% of new FP
+- R3: €1.83M (-2.1%) - 70% of avg(€1.69M, €1.87M) + 30% of new FP
+- R5: €2.13M (+0.9%) - Very stable transition
+
+**Processing**: Automated via `php artisan rounds:process-prices` (runs hourly via scheduler)
+
+### Fantasy Team Points (Position Multipliers)
+Team points are calculated after each round based on player performance with position-based multipliers:
+
+**Multipliers**:
+- **Starters** (positions 1-5): 100% of fantasy points
+- **Sixth Man** (position 6): 75% of fantasy points
+- **Bench** (positions 7-10 or null): 50% of fantasy points
+
+**How it works**:
+- After each round, player fantasy points are calculated from game statistics
+- Each player's points are multiplied by their lineup position multiplier
+- Team's `total_points` is the sum of all adjusted player points
+- Teams compete in fantasy leagues based on total_points
+
+**Example**:
+- Starter with 20 FP: 20 × 1.0 = 20 points
+- Sixth man with 15 FP: 15 × 0.75 = 11.25 points
+- Bench player with 10 FP: 10 × 0.5 = 5 points
+- **Team Total**: 36.25 points
+
+**Processing**: Automated via `php artisan fantasy:calculate-team-points` (runs after price processing in smart scraper)
 
 ### Draft Pick Time Handling
 The draft system uses millisecond timestamps (`valueOf()`) to avoid timezone issues:

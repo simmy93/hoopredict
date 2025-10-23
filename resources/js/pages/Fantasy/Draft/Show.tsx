@@ -453,7 +453,7 @@ export default function Show({
         }
     }
 
-    const positions = ['PG', 'SG', 'SF', 'PF', 'C']
+    const positions = ['Guard', 'Forward', 'Center']
     const totalTeams = teams?.length || 0
     const currentRound = Math.ceil((league?.current_pick || 0) / totalTeams)
     const totalRounds = league?.team_size || 0

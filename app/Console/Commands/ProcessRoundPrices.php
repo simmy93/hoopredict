@@ -159,47 +159,25 @@ class ProcessRoundPrices extends Command
         DB::beginTransaction();
         try {
             foreach ($players as $player) {
-                // Get all game stats up to and including this round
-                $statsUpToRound = $player->gameStats()
+                // Get game stats for THIS round only
+                $statsThisRound = $player->gameStats()
                     ->whereHas('game', function ($query) use ($roundNumber, $championship) {
                         $query->where('championship_id', $championship->id)
-                            ->where('round', '<=', $roundNumber)
+                            ->where('round', $roundNumber)
                             ->where('status', 'finished');
                     })
-                    ->orderBy('created_at', 'desc')
                     ->get();
 
-                $totalGamesPlayed = $statsUpToRound->count();
-                $gamesInThisRound = $statsUpToRound->filter(function ($stat) use ($roundNumber) {
-                    return $stat->game->round == $roundNumber;
-                })->count();
+                $gamesPlayedInRound = $statsThisRound->count();
+                $fantasyPointsThisRound = $statsThisRound->sum('fantasy_points');
 
-                // Determine how many games to use for pricing (5, 3, 1, or 0)
-                $gamesUsed = match (true) {
-                    $totalGamesPlayed >= 5 => 5,
-                    $totalGamesPlayed >= 3 => 3,
-                    $totalGamesPlayed >= 1 => 1,
-                    default => 0
-                };
+                // Calculate price using weighted average (70% history + 30% current round)
+                $price = $player->calculateWeightedPrice($fantasyPointsThisRound, $roundNumber);
 
-                $price = null;
-                $avgFantasyPoints = null;
-
-                if ($gamesUsed > 0) {
-                    // Calculate average from the appropriate number of recent games
-                    $recentStats = $statsUpToRound->take($gamesUsed);
-                    $avgFantasyPoints = $recentStats->avg('fantasy_points');
-
-                    // Calculate price using the same formula as the model
-                    $price = $avgFantasyPoints * 100000;
-                    $price = max($price, 100000);  // Minimum 100k
-                    $price = min($price, 10000000); // Maximum 10M
-                    $price = round($price, -4); // Round to nearest 10k
-
-                    // Update player's current price
+                // If player played this round and got a price, update and activate
+                if ($price !== null) {
                     $player->update(['price' => $price]);
 
-                    // Activate player if they have stats
                     if (! $player->is_active) {
                         $player->update(['is_active' => true]);
                     }
@@ -207,7 +185,14 @@ class ProcessRoundPrices extends Command
                     $updatedCount++;
                 }
 
-                // Save to price history
+                // Calculate how many historical prices were used (for tracking)
+                $historicalPricesCount = $player->priceHistories()
+                    ->where('round_number', '<', $roundNumber)
+                    ->whereNotNull('price')
+                    ->count();
+                $gamesUsedForCalculation = min($historicalPricesCount, 4); // Max 4 historical rounds
+
+                // Save to price history (even if null - player didn't play)
                 PlayerPriceHistory::updateOrCreate(
                     [
                         'player_id' => $player->id,
@@ -215,9 +200,9 @@ class ProcessRoundPrices extends Command
                     ],
                     [
                         'price' => $price,
-                        'average_fantasy_points' => $avgFantasyPoints,
-                        'games_used' => $gamesUsed,
-                        'games_played_in_round' => $gamesInThisRound,
+                        'average_fantasy_points' => $gamesPlayedInRound > 0 ? $fantasyPointsThisRound / $gamesPlayedInRound : null,
+                        'games_used' => $gamesUsedForCalculation,
+                        'games_played_in_round' => $gamesPlayedInRound,
                     ]
                 );
 

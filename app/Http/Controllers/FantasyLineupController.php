@@ -53,11 +53,20 @@ class FantasyLineupController extends Controller
         }
 
         $request->validate([
-            'lineup' => 'required|array',
+            'lineup' => 'required|array|min:5|max:6',
             'lineup.*' => 'required|integer|exists:players,id',
+            'lineup_type' => 'required|string|in:2-2-1,3-1-1,1-3-1,1-2-2,2-1-2',
+            'sixth_man' => 'nullable|integer|exists:players,id',
         ]);
 
         $playerIds = $request->input('lineup');
+        $sixthManId = $request->input('sixth_man');
+        $lineupType = $request->input('lineup_type');
+
+        // If sixth man is provided separately, add it to the lineup array
+        if ($sixthManId && !in_array($sixthManId, $playerIds)) {
+            $playerIds[] = $sixthManId;
+        }
 
         // Validate all players belong to the team
         foreach ($playerIds as $playerId) {
@@ -67,7 +76,18 @@ class FantasyLineupController extends Controller
         }
 
         try {
-            $userTeam->setLineup($playerIds);
+            // Save lineup type
+            $userTeam->update(['lineup_type' => $lineupType]);
+
+            // Reset all lineup positions first
+            $userTeam->fantasyTeamPlayers()->update(['lineup_position' => null]);
+
+            // Assign new positions (1-5 for starters, 6 for sixth man)
+            foreach ($playerIds as $index => $playerId) {
+                $userTeam->fantasyTeamPlayers()
+                    ->where('player_id', $playerId)
+                    ->update(['lineup_position' => $index + 1]);
+            }
 
             return back()->with('success', 'Lineup updated successfully!');
         } catch (\Exception $e) {

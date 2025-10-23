@@ -165,23 +165,72 @@ class EuroLeagueScrapingService
         }
     }
 
+    /**
+     * Smart scraper: Only updates recent/active rounds to avoid re-scraping all 38 rounds
+     * Scrapes current round and next 2 rounds for upcoming games
+     */
+    public function scrapeRecentRounds(): void
+    {
+        try {
+            Log::info('Starting smart scraping of recent rounds');
+
+            $euroLeague = $this->getOrCreateChampionship();
+
+            // Find the highest round number with games
+            $latestRound = Game::where('championship_id', $euroLeague->id)
+                ->max('round') ?? 0;
+
+            // Scrape current round and next 2 rounds
+            $startRound = max(1, $latestRound - 1); // Include previous round in case of late updates
+            $endRound = min(38, $latestRound + 2); // Include next 2 upcoming rounds
+
+            Log::info("Smart scraping rounds {$startRound} to {$endRound}");
+
+            $processedCount = 0;
+            for ($roundNumber = $startRound; $roundNumber <= $endRound; $roundNumber++) {
+                try {
+                    $response = $this->client->get("https://feeds.incrowdsports.com/provider/euroleague-feeds/v2/competitions/E/seasons/E2025/games?phaseTypeCode=RS&roundNumber={$roundNumber}");
+                    $gamesData = json_decode($response->getBody()->getContents(), true);
+
+                    if (! isset($gamesData['data'])) {
+                        continue;
+                    }
+
+                    foreach ($gamesData['data'] as $gameData) {
+                        $this->processGameData($euroLeague, $gameData);
+                        $processedCount++;
+                    }
+
+                    Log::info("Updated round {$roundNumber}");
+                    usleep(100000); // 100ms delay
+                } catch (RequestException $e) {
+                    Log::warning("Failed to fetch round {$roundNumber}: ".$e->getMessage());
+
+                    continue;
+                }
+            }
+
+            Log::info("Smart scraping completed. Updated {$processedCount} games from rounds {$startRound}-{$endRound}");
+        } catch (\Exception $e) {
+            Log::error('Error in smart scraping: '.$e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Legacy method - kept for backwards compatibility
+     * Updates scores for games that are marked as finished but missing scores
+     *
+     * @deprecated Use scrapeRecentRounds() instead - it updates scores in real-time
+     */
     public function updateGameScores(): void
     {
         try {
-            Log::info('Starting game scores update');
+            Log::info('Starting game scores update (legacy method)');
+            Log::warning('This method is deprecated. Use scrapeRecentRounds() for real-time score updates.');
 
-            $euroLeague = $this->getOrCreateChampionship();
-            $finishedGames = Game::where('championship_id', $euroLeague->id)
-                ->where('status', 'finished')
-                ->whereNull('home_score')
-                ->get();
-
-            foreach ($finishedGames as $game) {
-                $game->update([
-                    'home_score' => rand(70, 100),
-                    'away_score' => rand(70, 100),
-                ]);
-            }
+            // For now, just call scrapeRecentRounds() which does the real scraping
+            $this->scrapeRecentRounds();
 
             Log::info('Game scores update completed');
         } catch (\Exception $e) {
