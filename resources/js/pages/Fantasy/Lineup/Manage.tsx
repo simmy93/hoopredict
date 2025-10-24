@@ -35,6 +35,9 @@ interface FantasyTeamPlayer {
     purchase_price: number
     points_earned: number
     player: Player
+    round_fantasy_points?: number
+    round_team_points?: number | null
+    multiplier?: number
 }
 
 interface Championship {
@@ -75,6 +78,12 @@ interface Props {
     startingLineupCounts: PositionCounts
     hasValidTeamComposition: boolean
     hasValidStartingLineup: boolean
+    selectedRound: number
+    availableRounds: number[]
+    isRoundFinished: boolean
+    roundTotalPoints: number | null
+    isRoundLocked: boolean
+    currentActiveRound: number | null
 }
 
 type LineupType = '2-2-1' | '3-1-1' | '1-3-1' | '1-2-2' | '2-1-2'
@@ -101,6 +110,12 @@ export default function ManageNew({
     userTeam,
     teamPlayers: initialTeamPlayers,
     hasValidTeamComposition,
+    selectedRound,
+    availableRounds,
+    isRoundFinished,
+    roundTotalPoints,
+    isRoundLocked,
+    currentActiveRound,
 }: Props) {
     const [lineupType, setLineupType] = useState<LineupType | null>(
         (userTeam.lineup_type as LineupType) || null
@@ -238,6 +253,7 @@ export default function ManageNew({
 
     // Drag handlers
     const handleDragStart = (player: FantasyTeamPlayer) => {
+        if (isRoundLocked || isRoundFinished) return
         setDraggedPlayer(player)
     }
 
@@ -246,7 +262,7 @@ export default function ManageNew({
     }
 
     const handleDropOnSlot = (slotIndex: number) => {
-        if (!draggedPlayer || !lineupType) return
+        if (!draggedPlayer || !lineupType || isRoundLocked || isRoundFinished) return
 
         const config = LINEUP_CONFIGS[lineupType]
         const slotPosition = getSlotPosition(slotIndex, config)
@@ -279,7 +295,7 @@ export default function ManageNew({
     }
 
     const handleDropOnBench = () => {
-        if (!draggedPlayer) return
+        if (!draggedPlayer || isRoundLocked || isRoundFinished) return
 
         // Remove from starters
         const newStarters = [...starters]
@@ -303,7 +319,7 @@ export default function ManageNew({
     }
 
     const handleDropOnSixthMan = () => {
-        if (!draggedPlayer) return
+        if (!draggedPlayer || isRoundLocked || isRoundFinished) return
 
         // Remove from old position
         const newStarters = [...starters]
@@ -431,26 +447,81 @@ export default function ManageNew({
                     {/* Header */}
                     <Card>
                         <CardHeader>
-                            <div className="flex justify-between items-start">
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                 <div>
                                     <CardTitle className="text-2xl flex items-center gap-3">
                                         <Trophy className="h-6 w-6" />
-                                        Manage Lineup
+                                        {isRoundFinished ? `Round ${selectedRound} Performance` : 'Manage Lineup'}
                                     </CardTitle>
                                     <CardDescription className="mt-2">
                                         {userTeam.team_name} - {league.name}
                                     </CardDescription>
                                 </div>
-                                <Button
-                                    onClick={handleSave}
-                                    disabled={!isValidLineup || isSaving}
-                                >
-                                    {isSaving ? 'Saving...' : 'Save Lineup'}
-                                </Button>
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    {/* Round Selector */}
+                                    <Select
+                                        value={selectedRound.toString()}
+                                        onValueChange={(value) => {
+                                            router.get(`/fantasy/leagues/${league.id}/lineup`, { round: value }, { preserveState: true })
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-full sm:w-40">
+                                            <SelectValue placeholder="Select Round" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {availableRounds.map((round) => (
+                                                <SelectItem key={round} value={round.toString()}>
+                                                    Round {round}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {!isRoundFinished && !isRoundLocked && (
+                                        <Button
+                                            onClick={handleSave}
+                                            disabled={!isValidLineup || isSaving}
+                                        >
+                                            {isSaving ? 'Saving...' : 'Save Lineup'}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
-                            {!hasValidTeamComposition && (
+                            {/* Round Performance Summary (for finished rounds) */}
+                            {isRoundFinished && roundTotalPoints !== null && (
+                                <Alert className="mb-4 border-green-500 bg-green-50">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                    <AlertDescription className="text-green-800">
+                                        <strong>Round {selectedRound} Total:</strong> {roundTotalPoints.toFixed(2)} points
+                                        {' '}(after position multipliers)
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {/* Status Message for Finished Rounds */}
+                            {isRoundFinished && (
+                                <Alert className="mb-4">
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription>
+                                        <strong>Viewing Mode:</strong> This round is finished. Lineup is locked and points have been calculated.
+                                        Select a future round to edit your lineup.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {/* Round Locked Alert (active round in progress) */}
+                            {isRoundLocked && currentActiveRound && (
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                        <strong>Round {currentActiveRound} in Progress!</strong> All lineup changes and player transactions are locked until the round finishes.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {!hasValidTeamComposition && !isRoundFinished && !isRoundLocked && (
                                 <Alert variant="destructive" className="mb-4">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>
@@ -459,7 +530,7 @@ export default function ManageNew({
                                 </Alert>
                             )}
 
-                            {validationErrors.length > 0 && (
+                            {validationErrors.length > 0 && !isRoundFinished && (
                                 <Alert variant="destructive" className="mb-4">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>
@@ -472,7 +543,7 @@ export default function ManageNew({
                                 </Alert>
                             )}
 
-                            {isValidLineup && (
+                            {isValidLineup && !isRoundFinished && !isRoundLocked && (
                                 <Alert className="mb-4 border-green-500 text-green-700">
                                     <CheckCircle2 className="h-4 w-4" />
                                     <AlertDescription>
@@ -481,22 +552,25 @@ export default function ManageNew({
                                 </Alert>
                             )}
 
-                            <Alert>
-                                <Info className="h-4 w-4" />
-                                <AlertDescription>
-                                    <strong>Step 1:</strong> Select your starting five formation below. <strong>Step 2:</strong> Drag players from the bench to the court positions.
-                                </AlertDescription>
-                            </Alert>
+                            {!isRoundFinished && !isRoundLocked && (
+                                <Alert>
+                                    <Info className="h-4 w-4" />
+                                    <AlertDescription>
+                                        <strong>Step 1:</strong> Select your starting five formation below. <strong>Step 2:</strong> Drag players from the bench to the court positions.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                         </CardContent>
                     </Card>
 
-                    {/* Lineup Type Selector */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Step 1: Select Formation</CardTitle>
-                            <CardDescription>Choose your starting five combination (Guards-Forwards-Centers)</CardDescription>
-                        </CardHeader>
-                        <CardContent>
+                    {/* Lineup Type Selector - only show for editable rounds */}
+                    {!isRoundFinished && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Step 1: Select Formation</CardTitle>
+                                <CardDescription>Choose your starting five combination (Guards-Forwards-Centers)</CardDescription>
+                            </CardHeader>
+                            <CardContent>
                             <Select value={lineupType || ''} onValueChange={handleLineupTypeChange}>
                                 <SelectTrigger className="w-full max-w-md">
                                     <SelectValue placeholder="Select a formation..." />
@@ -520,9 +594,10 @@ export default function ManageNew({
                                 </AlertDescription>
                             </Alert>
                         </CardContent>
-                    </Card>
+                        </Card>
+                    )}
 
-                    {lineupType && (
+                    {(lineupType || isRoundFinished) && (
                         <>
                             {/* Main Layout: Court + Sidebar */}
                             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -537,25 +612,33 @@ export default function ManageNew({
                                     </CardHeader>
                                     <CardContent>
                                         <div
-                                            className="relative rounded-lg overflow-hidden border-4 border-gray-800 shadow-2xl"
+                                            className="relative rounded-lg overflow-hidden border-4 shadow-2xl dark:border-gray-800 border-gray-300"
                                             style={{
-                                                backgroundImage: 'url(/images/basketball-court.png)',
+                                                backgroundImage: 'url(/images/basketball-court-light.png)',
                                                 backgroundSize: 'contain',
                                                 backgroundRepeat: 'no-repeat',
                                                 backgroundPosition: 'center',
-                                                backgroundColor: '#1a1a2e',
+                                                backgroundColor: '#f8f9fa',
                                                 paddingBottom: '75%', // 4:3 aspect ratio
                                                 position: 'relative'
                                             }}
                                         >
-                                            {/* Optional dark overlay for better player card visibility - adjust opacity as needed */}
-                                            <div className="absolute inset-0 bg-black/20"></div>
+                                            {/* Court background with dark mode support */}
+                                            <div className="absolute inset-0 dark:bg-[url('/images/basketball-court.png')] bg-[url('/images/basketball-court-light.png')]"
+                                                style={{
+                                                    backgroundSize: 'contain',
+                                                    backgroundRepeat: 'no-repeat',
+                                                    backgroundPosition: 'center'
+                                                }}
+                                            ></div>
+                                            {/* Optional overlay for better player card visibility */}
+                                            <div className="absolute inset-0 dark:bg-black/20 bg-white/10"></div>
 
                                             {/* Player positions on court */}
                                             <div className="absolute inset-0 z-10">
                                                 {/* Position players absolutely based on formation */}
                                                 {[0, 1, 2, 3, 4].map((slotIndex) => {
-                                                    const config = LINEUP_CONFIGS[lineupType]
+                                                    const config = lineupType ? LINEUP_CONFIGS[lineupType] : LINEUP_CONFIGS['2-2-1']
                                                     const slotPosition = getSlotPosition(slotIndex, config)
                                                     const player = starters[slotIndex]
 
@@ -571,7 +654,7 @@ export default function ManageNew({
                                                                 absolute flex flex-col items-center justify-center
                                                                 w-20 h-28 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-40
                                                                 rounded-lg sm:rounded-xl border-2 transition-all
-                                                                ${player ? 'bg-gradient-to-br from-gray-900 to-gray-800 border-white/60' : 'bg-black/40 border-dashed border-white/30'}
+                                                                ${player ? 'bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 from-white to-gray-50 dark:border-white/60 border-gray-400' : 'dark:bg-black/40 bg-white/50 border-dashed dark:border-white/30 border-gray-400/50'}
                                                                 ${draggedPlayer && draggedPlayer.player.position === slotPosition ? 'ring-2 sm:ring-4 ring-green-500/70 scale-105' : ''}
                                                             `}
                                                             style={{
@@ -604,15 +687,26 @@ export default function ManageNew({
                                                                         </div>
                                                                     )}
                                                                     <div className="text-center w-full">
-                                                                        <div className="font-bold text-white text-[10px] sm:text-xs truncate">{player.player.name}</div>
-                                                                        <div className="text-[8px] sm:text-[10px] text-gray-300 truncate hidden sm:block">{player.player.team.name}</div>
-                                                                        <div className="text-[10px] sm:text-xs font-bold text-blue-400 mt-1">
-                                                                            {player.points_earned.toFixed(1)} pts
-                                                                        </div>
+                                                                        <div className="font-bold dark:text-white text-gray-900 text-[10px] sm:text-xs truncate">{player.player.name}</div>
+                                                                        <div className="text-[8px] sm:text-[10px] dark:text-gray-300 text-gray-600 truncate hidden sm:block">{player.player.team.name}</div>
+                                                                        {isRoundFinished ? (
+                                                                            <div className="text-[10px] sm:text-xs mt-1">
+                                                                                <div className="font-bold text-green-400">
+                                                                                    {player.round_team_points?.toFixed(2)} pts
+                                                                                </div>
+                                                                                <div className="text-[8px] text-gray-400">
+                                                                                    {player.round_fantasy_points?.toFixed(1)} FP × {((player.multiplier || 0.5) * 100).toFixed(0)}%
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="text-[10px] sm:text-xs font-bold text-blue-400 mt-1">
+                                                                                {player.points_earned.toFixed(1)} pts
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             ) : (
-                                                                <div className="text-center text-white/50 text-[10px] sm:text-xs p-1 sm:p-2">
+                                                                <div className="text-center dark:text-white/50 text-gray-500 text-[10px] sm:text-xs p-1 sm:p-2">
                                                                     <Users className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 opacity-50" />
                                                                     <span className="font-medium text-[9px] sm:text-xs">{slotPosition}</span>
                                                                 </div>
@@ -645,7 +739,7 @@ export default function ManageNew({
                                                 className={`
                                                     relative flex flex-col items-center p-4 rounded-lg border-2 border-dashed
                                                     min-h-[140px] transition-all
-                                                    ${sixthMan ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-400' : 'bg-white/50 border-gray-300'}
+                                                    ${sixthMan ? 'bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400' : 'dark:bg-gray-800/50 bg-white/50 dark:border-gray-600 border-gray-300'}
                                                     ${draggedPlayer ? 'ring-4 ring-yellow-500/30' : ''}
                                                 `}
                                             >
@@ -674,9 +768,20 @@ export default function ManageNew({
                                                                 <Badge className="text-xs">{sixthMan.player.position}</Badge>
                                                                 <Badge className="bg-yellow-500 text-white text-xs">6th Man</Badge>
                                                             </div>
-                                                            <div className="text-xs font-bold text-blue-600 mt-1">
-                                                                {sixthMan.points_earned.toFixed(1)} pts
-                                                            </div>
+                                                            {isRoundFinished ? (
+                                                                <div className="text-xs mt-1">
+                                                                    <div className="font-bold text-green-600">
+                                                                        {sixthMan.round_team_points?.toFixed(2)} pts
+                                                                    </div>
+                                                                    <div className="text-[10px] text-gray-600">
+                                                                        {sixthMan.round_fantasy_points?.toFixed(1)} FP × {((sixthMan.multiplier || 0.75) * 100).toFixed(0)}%
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-xs font-bold text-blue-600 mt-1">
+                                                                    {sixthMan.points_earned.toFixed(1)} pts
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <Button
                                                             size="sm"
@@ -726,7 +831,7 @@ export default function ManageNew({
                                                             draggable
                                                             onDragStart={() => handleDragStart(teamPlayer)}
                                                             onDragEnd={handleDragEnd}
-                                                            className="flex items-center gap-3 p-3 border rounded-lg cursor-move hover:bg-muted/50 transition-all bg-white"
+                                                            className="flex items-center gap-3 p-3 border rounded-lg cursor-move hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700"
                                                         >
                                                             {teamPlayer.player.photo_url ? (
                                                                 <img
@@ -747,9 +852,20 @@ export default function ManageNew({
                                                                 </Badge>
                                                             </div>
                                                             <div className="text-right flex-shrink-0">
-                                                                <div className="text-xs font-bold text-muted-foreground">
-                                                                    {teamPlayer.points_earned.toFixed(1)} pts
-                                                                </div>
+                                                                {isRoundFinished ? (
+                                                                    <>
+                                                                        <div className="text-xs font-bold text-green-600">
+                                                                            {teamPlayer.round_team_points?.toFixed(2)} pts
+                                                                        </div>
+                                                                        <div className="text-[10px] text-gray-500">
+                                                                            {teamPlayer.round_fantasy_points?.toFixed(1)} FP × {((teamPlayer.multiplier || 0.5) * 100).toFixed(0)}%
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="text-xs font-bold text-muted-foreground">
+                                                                        {teamPlayer.points_earned.toFixed(1)} pts
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     ))

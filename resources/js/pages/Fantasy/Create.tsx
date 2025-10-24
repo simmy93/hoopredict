@@ -27,7 +27,7 @@ export default function Create({ championships }: Props) {
         description: '',
         championship_id: championships[0]?.id || '',
         mode: 'budget',
-        budget: 100000000,
+        budget: 17500000, // Default to Balanced Baller
         team_size: 12,
         is_private: false,
         max_members: 10,
@@ -127,24 +127,75 @@ export default function Create({ championships }: Props) {
                                 </div>
 
                                 {data.mode === 'budget' && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="budget">Team Budget *</Label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                                            <Input
-                                                id="budget"
-                                                type="number"
-                                                min="1000000"
-                                                max="500000000"
-                                                step="1000000"
-                                                value={data.budget}
-                                                onChange={(e) => setData('budget', parseInt(e.target.value))}
-                                                className={`pl-7 ${errors.budget ? 'border-red-500' : ''}`}
-                                            />
+                                    <div className="space-y-3">
+                                        <Label>Budget Difficulty *</Label>
+                                        <div className="grid gap-3">
+                                            {/* Budget Genius */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('budget', 10000000)}
+                                                className={`text-left p-4 rounded-lg border-2 transition-all ${
+                                                    data.budget === 10000000
+                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">🧠</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-semibold text-lg">Budget Genius</div>
+                                                        <div className="text-sm text-muted-foreground">€10M - Big brain, small wallet</div>
+                                                    </div>
+                                                    {data.budget === 10000000 && (
+                                                        <div className="text-blue-500">✓</div>
+                                                    )}
+                                                </div>
+                                            </button>
+
+                                            {/* Balanced Baller */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('budget', 17500000)}
+                                                className={`text-left p-4 rounded-lg border-2 transition-all ${
+                                                    data.budget === 17500000
+                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">⚖️</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-semibold text-lg">Balanced Baller</div>
+                                                        <div className="text-sm text-muted-foreground">€17.5M - Working hard, playing smart</div>
+                                                    </div>
+                                                    {data.budget === 17500000 && (
+                                                        <div className="text-blue-500">✓</div>
+                                                    )}
+                                                </div>
+                                            </button>
+
+                                            {/* Rich Dad Mode */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setData('budget', 25000000)}
+                                                className={`text-left p-4 rounded-lg border-2 transition-all ${
+                                                    data.budget === 25000000
+                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-2xl">💎</span>
+                                                    <div className="flex-1">
+                                                        <div className="font-semibold text-lg">Rich Dad Mode</div>
+                                                        <div className="text-sm text-muted-foreground">€25M - Buy everyone, ask questions later</div>
+                                                    </div>
+                                                    {data.budget === 25000000 && (
+                                                        <div className="text-blue-500">✓</div>
+                                                    )}
+                                                </div>
+                                            </button>
                                         </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            Current: ${(data.budget / 1000000).toFixed(0)}M (Range: $1M - $500M)
-                                        </p>
                                         {errors.budget && <p className="text-sm text-red-600">{errors.budget}</p>}
                                     </div>
                                 )}

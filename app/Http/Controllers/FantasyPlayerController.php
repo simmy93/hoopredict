@@ -45,18 +45,30 @@ class FantasyPlayerController extends Controller
         // Get user's current players
         $myPlayers = $userTeam->players()->with('team')->get();
 
+        // Check if round is locked
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        $isRoundLocked = $currentActiveRound !== null;
+
         return Inertia::render('Fantasy/Players/Index', [
             'league' => $league,
             'userTeam' => $userTeam,
             'players' => $players,
             'myPlayers' => $myPlayers,
             'filters' => $request->only(['position', 'team_id', 'search', 'sort', 'direction']),
+            'isRoundLocked' => $isRoundLocked,
+            'currentActiveRound' => $currentActiveRound,
         ]);
     }
 
     public function buy(FantasyLeague $league, Player $player)
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->firstOrFail();
+
+        // Check if round is locked (active round in progress)
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        if ($currentActiveRound !== null) {
+            return back()->with('error', "Cannot buy players while Round {$currentActiveRound} is in progress. Please wait until the round finishes.");
+        }
 
         try {
             // Buy the player (all validation is now inside buyPlayer method)
@@ -73,6 +85,12 @@ class FantasyPlayerController extends Controller
     public function sell(FantasyLeague $league, Player $player)
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->firstOrFail();
+
+        // Check if round is locked (active round in progress)
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        if ($currentActiveRound !== null) {
+            return back()->with('error', "Cannot sell players while Round {$currentActiveRound} is in progress. Please wait until the round finishes.");
+        }
 
         try {
             // Sell the player (all validation is now inside sellPlayer method)

@@ -104,6 +104,10 @@ npm run format:check
 **Models & Relationships**:
 - `League` (Prediction leagues) - has many `LeagueMembers`, `Predictions`, `LeagueLeaderboards`
 - `FantasyLeague` - has many `FantasyTeams`, `DraftPicks`; belongs to `Championship`
+  - **Budget Modes**: Three preset difficulty levels
+    - 🧠 **Budget Genius** (€10M) - "Big brain, small wallet"
+    - ⚖️ **Balanced Baller** (€17.5M) - "Working hard, playing smart" (Default)
+    - 💎 **Rich Dad Mode** (€25M) - "Buy everyone, ask questions later"
 - `FantasyTeam` - belongs to `User` and `FantasyLeague`; has many `FantasyTeamPlayers` through `Player`
 - `Player` - belongs to `Team`; has many `PlayerGameStat`, `FantasyTeamPlayers`, `DraftPicks`
 - `Championship` - has many `Teams`, `Games`, `FantasyLeagues`
@@ -211,6 +215,30 @@ Team points are calculated after each round based on player performance with pos
 - **Team Total**: 36.25 points
 
 **Processing**: Automated via `php artisan fantasy:calculate-team-points` (runs after price processing in smart scraper)
+
+**Lineup Management & Round Performance**:
+- Users manage lineups at `/fantasy/leagues/{id}/lineup`
+- Round selector dropdown shows only **past and current rounds** (excludes future rounds)
+- **View mode** (finished rounds): Display-only, shows points breakdown (FP × multiplier = team points)
+- **Edit mode** (future/current rounds): Allows lineup and formation changes
+- Multiplier badges shown throughout UI: Green 100%, Yellow 75%, Blue 50%
+
+**Round Locking System** (CRITICAL):
+- **Active rounds are LOCKED**: Rounds lock at the earliest game's scheduled time, ALL changes are blocked
+- **Locking triggers** (whichever comes first):
+  1. **Scheduled time reached**: Locks when earliest game's `scheduled_at` time arrives (prevents pre-game cheating)
+  2. **Game actually starts**: Locks when scraper detects game has started (backup)
+- **Blocked actions during active rounds**:
+  - Lineup changes (drag/drop disabled, save button hidden)
+  - Formation changes
+  - Player buying/selling in marketplace
+- **UI indicators**: Red alert banner shows "Round X in Progress!" message
+- **Backend validation**: Server-side checks prevent changes even if frontend bypassed
+- **Lock release**: Automatically unlocks when all games in the round finish
+- **No cheating window**: Users cannot make changes after scheduled game time, regardless of scraper frequency
+- **Helper methods**:
+  - `Game::isRoundActive($championshipId, $round)` - Check if specific round is active (time-based + status-based)
+  - `Game::getCurrentActiveRound($championshipId)` - Get current active round number (null if none)
 
 ### Draft Pick Time Handling
 The draft system uses millisecond timestamps (`valueOf()`) to avoid timezone issues:

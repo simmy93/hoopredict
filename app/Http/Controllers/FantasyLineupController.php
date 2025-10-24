@@ -11,7 +11,7 @@ class FantasyLineupController extends Controller
     /**
      * Show the lineup management page
      */
-    public function show(FantasyLeague $league)
+    public function show(Request $request, FantasyLeague $league)
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->first();
 
@@ -20,11 +20,78 @@ class FantasyLineupController extends Controller
                 ->with('error', 'You are not a member of this league');
         }
 
-        // Get team players with lineup positions
-        $teamPlayers = $userTeam->fantasyTeamPlayers()
-            ->with('player.team')
-            ->orderBy('lineup_position')
+        // Get selected round (default to current/next round)
+        $selectedRound = $request->input('round');
+
+        // Get the latest finished round to determine current round
+        $latestFinishedRound = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('status', 'finished')
+            ->max('round');
+
+        // Get only past and current rounds (exclude future rounds)
+        // Include: finished rounds + current round (latest finished + 1)
+        $allRounds = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('round', '<=', ($latestFinishedRound + 1))
+            ->select('round')
+            ->distinct()
+            ->orderBy('round')
+            ->pluck('round');
+
+        // If no round selected, default to the current round (latest finished + 1)
+        if (!$selectedRound) {
+            $selectedRound = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
+
+            // Make sure the round exists
+            if (!$allRounds->contains($selectedRound) && $allRounds->isNotEmpty()) {
+                $selectedRound = $latestFinishedRound ?: $allRounds->first();
+            }
+        }
+
+        // Check if selected round is finished
+        $roundGames = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('round', $selectedRound)
             ->get();
+
+        $isRoundFinished = $roundGames->isNotEmpty() &&
+            $roundGames->every(fn($game) => $game->status === 'finished');
+
+        // Check if current round is active (started but not finished) - blocks changes
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        $isRoundLocked = $currentActiveRound !== null;
+
+        // Get team players with their stats for the selected round
+        $teamPlayers = $userTeam->fantasyTeamPlayers()
+            ->with(['player.team', 'player.gameStats' => function ($query) use ($league, $selectedRound) {
+                $query->whereHas('game', function ($q) use ($league, $selectedRound) {
+                    $q->where('championship_id', $league->championship_id)
+                      ->where('round', $selectedRound);
+                });
+            }])
+            ->orderBy('lineup_position')
+            ->get()
+            ->map(function ($teamPlayer) use ($isRoundFinished) {
+                // Calculate round points for this player
+                $roundFantasyPoints = $teamPlayer->player->gameStats->sum('fantasy_points');
+
+                // Apply multiplier if round is finished
+                $multiplier = 0.5; // Bench default
+                if ($teamPlayer->lineup_position) {
+                    if ($teamPlayer->lineup_position >= 1 && $teamPlayer->lineup_position <= 5) {
+                        $multiplier = 1.0; // Starter
+                    } elseif ($teamPlayer->lineup_position === 6) {
+                        $multiplier = 0.75; // Sixth man
+                    }
+                }
+
+                $teamPlayer->round_fantasy_points = $roundFantasyPoints;
+                $teamPlayer->round_team_points = $isRoundFinished ? round($roundFantasyPoints * $multiplier, 2) : null;
+                $teamPlayer->multiplier = $multiplier;
+
+                return $teamPlayer;
+            });
+
+        // Calculate total team points for the round
+        $roundTotalPoints = $isRoundFinished ? $teamPlayers->sum('round_team_points') : null;
 
         // Get position counts for validation feedback
         $positionCounts = $userTeam->getPositionCounts();
@@ -38,6 +105,12 @@ class FantasyLineupController extends Controller
             'startingLineupCounts' => $startingLineupCounts,
             'hasValidTeamComposition' => $userTeam->hasValidTeamComposition(),
             'hasValidStartingLineup' => $userTeam->hasValidStartingLineup(),
+            'selectedRound' => (int) $selectedRound,
+            'availableRounds' => $allRounds->toArray(),
+            'isRoundFinished' => $isRoundFinished,
+            'roundTotalPoints' => $roundTotalPoints,
+            'isRoundLocked' => $isRoundLocked,
+            'currentActiveRound' => $currentActiveRound,
         ]);
     }
 
@@ -50,6 +123,12 @@ class FantasyLineupController extends Controller
 
         if (! $userTeam) {
             return back()->with('error', 'You are not a member of this league');
+        }
+
+        // Check if round is locked (active round in progress)
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        if ($currentActiveRound !== null) {
+            return back()->with('error', "Cannot change lineup while Round {$currentActiveRound} is in progress. Please wait until the round finishes.");
         }
 
         $request->validate([
