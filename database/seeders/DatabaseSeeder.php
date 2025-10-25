@@ -2,9 +2,19 @@
 
 namespace Database\Seeders;
 
+use App\Models\Championship;
+use App\Models\DraftPick;
+use App\Models\FantasyLeague;
+use App\Models\FantasyTeam;
+use App\Models\FantasyTeamPlayer;
+use App\Models\Game;
+use App\Models\League;
+use App\Models\LeagueMember;
+use App\Models\Player;
+use App\Models\Prediction;
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,11 +23,500 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $this->command->info('🌱 Starting comprehensive database seeding...');
 
-        User::factory()->create([
+        // Create admin and test users
+        $this->command->info('👥 Creating users...');
+        $admin = User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@hoopredict.com',
+            'password' => Hash::make('password'),
+            'is_admin' => true,
+        ]);
+
+        $testUser = User::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
+            'password' => Hash::make('password'),
         ]);
+
+        // Create 28 additional random users (total 30)
+        $users = User::factory(28)->create();
+        $allUsers = collect([$admin, $testUser])->merge($users);
+        $this->command->info("✅ Created {$allUsers->count()} users");
+
+        // Get championship and verify scraped data exists
+        $championship = Championship::first();
+        if (!$championship) {
+            $this->command->error('❌ No championship found! Run scrapers first.');
+            return;
+        }
+
+        $players = Player::all();
+        if ($players->isEmpty()) {
+            $this->command->error('❌ No players found! Run scrapers first.');
+            return;
+        }
+
+        $games = Game::where('championship_id', $championship->id)
+            ->where('status', 'finished')
+            ->get();
+
+        $this->command->info("📊 Found {$players->count()} players and {$games->count()} finished games");
+
+        // Create Prediction Leagues
+        $this->command->info('🏆 Creating prediction leagues...');
+
+        // Public leagues
+        $publicLeague1 = League::create([
+            'name' => 'EuroLeague Predictions 2024-25',
+            'description' => 'The main public prediction league for all fans',
+            'is_private' => false,
+            'owner_id' => $admin->id,
+            'max_members' => 100,
+            'is_active' => true,
+        ]);
+
+        $publicLeague2 = League::create([
+            'name' => 'Casual Predictors',
+            'description' => 'Just for fun predictions, no pressure!',
+            'is_private' => false,
+            'owner_id' => $users->random()->id,
+            'max_members' => 50,
+            'is_active' => true,
+        ]);
+
+        // Private leagues
+        $privateLeague1 = League::create([
+            'name' => 'Office League',
+            'description' => 'Company predictions league',
+            'is_private' => true,
+            'owner_id' => $testUser->id,
+            'max_members' => 20,
+            'is_active' => true,
+        ]);
+
+        $privateLeague2 = League::create([
+            'name' => 'Friends & Family',
+            'description' => 'Close friends predictions',
+            'is_private' => true,
+            'owner_id' => $users->random()->id,
+            'max_members' => 15,
+            'is_active' => true,
+        ]);
+
+        $leagues = collect([$publicLeague1, $publicLeague2, $privateLeague1, $privateLeague2]);
+        $this->command->info("✅ Created {$leagues->count()} prediction leagues");
+
+        // Add members to leagues
+        $this->command->info('👥 Adding members to prediction leagues...');
+        $totalMembers = 0;
+
+        foreach ($leagues as $league) {
+            // Add owner as member
+            LeagueMember::create([
+                'league_id' => $league->id,
+                'user_id' => $league->owner_id,
+                'role' => 'owner',
+                'joined_at' => now()->subDays(rand(30, 60)),
+            ]);
+            $totalMembers++;
+
+            // Add random members
+            $memberCount = $league->is_private ? rand(5, 12) : rand(15, 30);
+            $randomUsers = $allUsers->where('id', '!=', $league->owner_id)->random(min($memberCount, $allUsers->count() - 1));
+
+            foreach ($randomUsers as $user) {
+                LeagueMember::create([
+                    'league_id' => $league->id,
+                    'user_id' => $user->id,
+                    'role' => 'member',
+                    'joined_at' => now()->subDays(rand(1, 30)),
+                ]);
+                $totalMembers++;
+            }
+        }
+
+        $this->command->info("✅ Added {$totalMembers} league members");
+
+        // Create predictions for finished games
+        $this->command->info('🎯 Creating predictions...');
+        $totalPredictions = 0;
+
+        foreach ($leagues as $league) {
+            $members = $league->members;
+
+            foreach ($games->random(min(20, $games->count())) as $game) {
+                foreach ($members->random(min($members->count(), rand(5, 15))) as $member) {
+                    // Generate realistic predictions around actual scores
+                    $homeVariance = rand(-15, 15);
+                    $awayVariance = rand(-15, 15);
+
+                    $prediction = Prediction::create([
+                        'user_id' => $member->user_id,
+                        'league_id' => $league->id,
+                        'game_id' => $game->id,
+                        'home_score_prediction' => max(50, $game->home_score + $homeVariance),
+                        'away_score_prediction' => max(50, $game->away_score + $awayVariance),
+                        'predicted_at' => $game->scheduled_at->subHours(rand(1, 48)),
+                    ]);
+
+                    // Calculate points
+                    $points = $prediction->calculatePoints();
+                    $prediction->update(['points_earned' => $points]);
+                    $totalPredictions++;
+                }
+            }
+        }
+
+        $this->command->info("✅ Created {$totalPredictions} predictions");
+
+        // Create Fantasy Leagues - Budget Mode (Marketplace)
+        $this->command->info('💰 Creating budget fantasy leagues...');
+
+        $budgetLeague1 = FantasyLeague::create([
+            'name' => 'Budget Genius Challenge',
+            'description' => 'Test your skills with limited budget',
+            'owner_id' => $admin->id,
+            'championship_id' => $championship->id,
+            'mode' => 'budget',
+            'budget' => 10000000, // €10M
+            'team_size' => 10,
+            'invite_code' => $this->generateInviteCode(),
+            'is_private' => false,
+            'max_members' => 20,
+            'is_active' => true,
+        ]);
+
+        $budgetLeague2 = FantasyLeague::create([
+            'name' => 'Balanced Ballers League',
+            'description' => 'Default budget, maximum fun',
+            'owner_id' => $users->random()->id,
+            'championship_id' => $championship->id,
+            'mode' => 'budget',
+            'budget' => 17500000, // €17.5M
+            'team_size' => 10,
+            'invite_code' => $this->generateInviteCode(),
+            'is_private' => false,
+            'max_members' => 25,
+            'is_active' => true,
+        ]);
+
+        $budgetLeague3 = FantasyLeague::create([
+            'name' => 'Rich Dad Fantasy',
+            'description' => 'Big budget, big dreams',
+            'owner_id' => $testUser->id,
+            'championship_id' => $championship->id,
+            'mode' => 'budget',
+            'budget' => 25000000, // €25M
+            'team_size' => 10,
+            'invite_code' => $this->generateInviteCode(),
+            'is_private' => true,
+            'max_members' => 15,
+            'is_active' => true,
+        ]);
+
+        $budgetLeagues = collect([$budgetLeague1, $budgetLeague2, $budgetLeague3]);
+        $this->command->info("✅ Created {$budgetLeagues->count()} budget fantasy leagues");
+
+        // Create Fantasy Leagues - Draft Mode
+        $this->command->info('🎲 Creating draft fantasy leagues...');
+
+        $draftLeague1 = FantasyLeague::create([
+            'name' => 'Elite Draft League',
+            'description' => 'Snake draft competition for the best managers',
+            'owner_id' => $admin->id,
+            'championship_id' => $championship->id,
+            'mode' => 'draft',
+            'team_size' => 10,
+            'invite_code' => $this->generateInviteCode(),
+            'is_private' => false,
+            'max_members' => 12,
+            'draft_status' => 'not_started',
+            'draft_date' => now()->addDays(7),
+            'pick_time_limit' => 60,
+            'is_active' => true,
+        ]);
+
+        $draftLeague2 = FantasyLeague::create([
+            'name' => 'Quick Draft Express',
+            'description' => 'Fast-paced 30-second pick draft',
+            'owner_id' => $users->random()->id,
+            'championship_id' => $championship->id,
+            'mode' => 'draft',
+            'team_size' => 10,
+            'invite_code' => $this->generateInviteCode(),
+            'is_private' => false,
+            'max_members' => 8,
+            'draft_status' => 'not_started',
+            'draft_date' => now()->addDays(3),
+            'pick_time_limit' => 30,
+            'is_active' => true,
+        ]);
+
+        // Completed draft league
+        $draftLeague3 = FantasyLeague::create([
+            'name' => 'Season Starter Draft',
+            'description' => 'Draft completed, season in progress',
+            'owner_id' => $testUser->id,
+            'championship_id' => $championship->id,
+            'mode' => 'draft',
+            'team_size' => 10,
+            'invite_code' => $this->generateInviteCode(),
+            'is_private' => true,
+            'max_members' => 10,
+            'draft_status' => 'completed',
+            'draft_date' => now()->subDays(10),
+            'pick_time_limit' => 45,
+            'is_active' => true,
+        ]);
+
+        $draftLeagues = collect([$draftLeague1, $draftLeague2, $draftLeague3]);
+        $this->command->info("✅ Created {$draftLeagues->count()} draft fantasy leagues");
+
+        // Create fantasy teams for budget leagues
+        $this->command->info('👕 Creating fantasy teams for budget leagues...');
+        $totalBudgetTeams = 0;
+
+        foreach ($budgetLeagues as $league) {
+            // Owner team
+            $ownerTeam = FantasyTeam::create([
+                'fantasy_league_id' => $league->id,
+                'user_id' => $league->owner_id,
+                'team_name' => $league->owner->name . "'s Squad",
+                'lineup_type' => '2-2-1',
+                'budget_spent' => 0,
+                'budget_remaining' => $league->budget,
+                'total_points' => 0,
+            ]);
+            $totalBudgetTeams++;
+
+            // Random teams
+            $teamCount = rand(8, $league->max_members - 1);
+            $randomUsers = $allUsers->where('id', '!=', $league->owner_id)->random(min($teamCount, $allUsers->count() - 1));
+
+            foreach ($randomUsers as $user) {
+                $team = FantasyTeam::create([
+                    'fantasy_league_id' => $league->id,
+                    'user_id' => $user->id,
+                    'team_name' => $this->generateTeamName(),
+                    'lineup_type' => collect(['2-2-1', '2-1-2', '3-1-1'])->random(),
+                    'budget_spent' => 0,
+                    'budget_remaining' => $league->budget,
+                    'total_points' => 0,
+                ]);
+                $totalBudgetTeams++;
+
+                // Add players to team
+                $this->addPlayersToTeam($team, $players, $league->budget);
+            }
+
+            // Add players to owner team too
+            $this->addPlayersToTeam($ownerTeam, $players, $league->budget);
+        }
+
+        $this->command->info("✅ Created {$totalBudgetTeams} budget fantasy teams");
+
+        // Create fantasy teams for draft leagues
+        $this->command->info('🎲 Creating fantasy teams for draft leagues...');
+        $totalDraftTeams = 0;
+
+        foreach ($draftLeagues as $league) {
+            // Owner team
+            $ownerTeam = FantasyTeam::create([
+                'fantasy_league_id' => $league->id,
+                'user_id' => $league->owner_id,
+                'team_name' => $league->owner->name . "'s Draft Picks",
+                'lineup_type' => '2-2-1',
+                'draft_order' => 1,
+                'budget_spent' => 0,
+                'budget_remaining' => 0,
+                'total_points' => 0,
+            ]);
+            $totalDraftTeams++;
+
+            // Random teams
+            $teamCount = rand(6, $league->max_members - 1);
+            $randomUsers = $allUsers->where('id', '!=', $league->owner_id)->random(min($teamCount, $allUsers->count() - 1));
+
+            $order = 2;
+            foreach ($randomUsers as $user) {
+                $team = FantasyTeam::create([
+                    'fantasy_league_id' => $league->id,
+                    'user_id' => $user->id,
+                    'team_name' => $this->generateTeamName(),
+                    'lineup_type' => collect(['2-2-1', '2-1-2', '3-1-1'])->random(),
+                    'draft_order' => $order++,
+                    'budget_spent' => 0,
+                    'budget_remaining' => 0,
+                    'total_points' => 0,
+                ]);
+                $totalDraftTeams++;
+            }
+
+            // If draft is completed, simulate the draft
+            if ($league->draft_status === 'completed') {
+                $this->simulateDraft($league, $players);
+            }
+        }
+
+        $this->command->info("✅ Created {$totalDraftTeams} draft fantasy teams");
+
+        $this->command->info('');
+        $this->command->info('🎉 Seeding completed successfully!');
+        $this->command->info('');
+        $this->command->info('📊 Summary:');
+        $this->command->info("   Users: {$allUsers->count()}");
+        $this->command->info("   Prediction Leagues: {$leagues->count()}");
+        $this->command->info("   League Members: {$totalMembers}");
+        $this->command->info("   Predictions: {$totalPredictions}");
+        $this->command->info("   Budget Fantasy Leagues: {$budgetLeagues->count()}");
+        $this->command->info("   Draft Fantasy Leagues: {$draftLeagues->count()}");
+        $this->command->info("   Budget Teams: {$totalBudgetTeams}");
+        $this->command->info("   Draft Teams: {$totalDraftTeams}");
+        $this->command->info('');
+        $this->command->info('🔐 Login credentials:');
+        $this->command->info('   Admin: admin@hoopredict.com / password');
+        $this->command->info('   Test User: test@example.com / password');
+    }
+
+    /**
+     * Generate secure invite code (6 characters for fantasy leagues)
+     */
+    private function generateInviteCode(): string
+    {
+        return strtoupper(substr(str_replace(['/', '+', '='], '', base64_encode(random_bytes(6))), 0, 6));
+    }
+
+    /**
+     * Generate random team name
+     */
+    private function generateTeamName(): string
+    {
+        $adjectives = [
+            'Thunder', 'Lightning', 'Storm', 'Blaze', 'Phoenix', 'Dragons',
+            'Wolves', 'Hawks', 'Eagles', 'Lions', 'Tigers', 'Panthers',
+            'Knights', 'Warriors', 'Champions', 'Legends', 'Dynasty', 'Empire'
+        ];
+
+        $nouns = [
+            'Ballers', 'Dunkers', 'Shooters', 'Slammers', 'Dribblers',
+            'Squad', 'Crew', 'Team', 'Force', 'United', 'Athletic',
+            'Hoops', 'Court', 'Buckets', 'Rim', 'Net'
+        ];
+
+        return $adjectives[array_rand($adjectives)] . ' ' . $nouns[array_rand($nouns)];
+    }
+
+    /**
+     * Add players to a budget team
+     */
+    private function addPlayersToTeam(FantasyTeam $team, $allPlayers, $budget): void
+    {
+        $positions = ['Guard' => 3, 'Forward' => 3, 'Center' => 2]; // Minimum requirements
+        $selectedPlayers = collect();
+        $totalSpent = 0;
+
+        // Filter players with valid prices
+        $availablePlayers = $allPlayers->filter(fn($p) => $p->price !== null && $p->price > 0);
+
+        // First, ensure minimum position requirements
+        foreach ($positions as $position => $minCount) {
+            $positionPlayers = $availablePlayers
+                ->where('position', $position)
+                ->sortBy('price')
+                ->take($minCount * 3); // Get some options
+
+            $selected = $positionPlayers->random(min($minCount, $positionPlayers->count()));
+
+            foreach ($selected as $player) {
+                if ($totalSpent + $player->price <= $budget * 0.9) { // Keep 10% buffer
+                    $selectedPlayers->push($player);
+                    $totalSpent += $player->price;
+                }
+            }
+        }
+
+        // Fill remaining slots with random players
+        $remaining = 10 - $selectedPlayers->count();
+        if ($remaining > 0) {
+            $remainingBudget = $budget - $totalSpent;
+            $avgPrice = $remainingBudget / $remaining;
+
+            $otherPlayers = $availablePlayers
+                ->whereNotIn('id', $selectedPlayers->pluck('id'))
+                ->filter(fn($p) => $p->price <= $avgPrice * 1.5)
+                ->shuffle()
+                ->take($remaining);
+
+            foreach ($otherPlayers as $player) {
+                if ($totalSpent + $player->price <= $budget) {
+                    $selectedPlayers->push($player);
+                    $totalSpent += $player->price;
+                }
+            }
+        }
+
+        // Attach players to team
+        $lineupPosition = 1;
+        foreach ($selectedPlayers as $player) {
+            FantasyTeamPlayer::create([
+                'fantasy_team_id' => $team->id,
+                'player_id' => $player->id,
+                'purchase_price' => $player->price,
+                'acquired_at' => now()->subDays(rand(1, 15)),
+                'lineup_position' => $lineupPosition++,
+            ]);
+        }
+
+        // Update team budget
+        $team->update([
+            'budget_spent' => $totalSpent,
+            'budget_remaining' => $budget - $totalSpent,
+        ]);
+    }
+
+    /**
+     * Simulate a completed draft
+     */
+    private function simulateDraft(FantasyLeague $league, $allPlayers): void
+    {
+        $teams = $league->teams()->orderBy('draft_order')->get();
+        $availablePlayers = $allPlayers->shuffle();
+        $pickNumber = 1;
+        $totalTeams = $teams->count();
+
+        for ($round = 1; $round <= $league->team_size; $round++) {
+            $teamsInOrder = $round % 2 === 0 ? $teams->reverse() : $teams; // Snake draft
+
+            foreach ($teamsInOrder as $team) {
+                if ($availablePlayers->isEmpty()) {
+                    break;
+                }
+
+                $player = $availablePlayers->shift();
+
+                // Create draft pick
+                DraftPick::create([
+                    'fantasy_league_id' => $league->id,
+                    'fantasy_team_id' => $team->id,
+                    'player_id' => $player->id,
+                    'pick_number' => $pickNumber,
+                    'round' => $round,
+                    'created_at' => now()->subDays(10)->addMinutes($pickNumber),
+                ]);
+
+                // Add player to team
+                FantasyTeamPlayer::create([
+                    'fantasy_team_id' => $team->id,
+                    'player_id' => $player->id,
+                    'purchase_price' => 0,
+                    'acquired_at' => now()->subDays(10)->addMinutes($pickNumber),
+                    'lineup_position' => ($pickNumber - 1) % $league->team_size + 1,
+                ]);
+
+                $pickNumber++;
+            }
+        }
     }
 }

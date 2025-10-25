@@ -8,9 +8,9 @@ use Illuminate\Console\Command;
 
 class ScrapeEuroLeague extends Command
 {
-    protected $signature = 'scrape:euroleague {--teams : Only scrape teams} {--games : Only scrape games} {--scores : Only update scores} {--players : Only scrape players} {--stats : Only scrape player statistics} {--all-history : Include all historical games regardless of date}';
+    protected $signature = 'scrape:euroleague {--teams : Only scrape teams} {--games : Only scrape games} {--scores : Only update scores} {--players : Only scrape players} {--stats : Only scrape player statistics} {--recent-games : Only scrape games from the last 7 days (default: scrape all history)}';
 
-    protected $description = 'Scrape EuroLeague data including teams, games, players, and scores';
+    protected $description = 'Scrape EuroLeague data including teams, games, players, and scores (scrapes all history by default)';
 
     private EuroLeagueScrapingService $scrapingService;
 
@@ -29,11 +29,14 @@ class ScrapeEuroLeague extends Command
     {
         $this->info('Starting EuroLeague scraping...');
 
-        // Determine if we should ignore old games (default: true, unless --all-history is set)
-        $ignoreOldGames = ! $this->option('all-history');
+        // Determine if we should ignore old games (default: false = scrape all history)
+        // Only limit to recent games if --recent-games flag is set
+        $ignoreOldGames = $this->option('recent-games');
 
-        if ($this->option('all-history')) {
-            $this->warn('⚠️  --all-history flag enabled: Scraping ALL historical games regardless of date');
+        if ($this->option('recent-games')) {
+            $this->warn('⚠️  --recent-games flag enabled: Only scraping games from the last 7 days');
+        } else {
+            $this->info('ℹ️  Scraping all historical games (use --recent-games to limit to last 7 days)');
         }
 
         try {

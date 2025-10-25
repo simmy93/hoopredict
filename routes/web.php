@@ -68,6 +68,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
 
+    Route::get('/how-it-works', function () {
+        return Inertia::render('HowItWorks');
+    })->name('how-it-works');
+
     Route::resource('leagues', LeagueController::class)->except(['edit', 'update']);
     Route::post('/leagues/join', [LeagueController::class, 'join'])->name('leagues.join');
     Route::get('/leagues/join/{inviteCode}', [LeagueController::class, 'joinByUrl'])->name('leagues.join.url');

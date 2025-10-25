@@ -18,14 +18,14 @@ class ProcessRoundPrices extends Command
      *
      * @var string
      */
-    protected $signature = 'rounds:process-prices {--round= : Specific round to process} {--force : Force reprocess already processed round}';
+    protected $signature = 'rounds:process-prices {--round= : Specific round to process} {--force : Force reprocess already processed round} {--all : Process all unprocessed rounds}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Process player prices for completed rounds and save to history';
+    protected $description = 'Process player prices for completed rounds and save to history (use --all for bulk processing)';
 
     /**
      * Execute the console command.
@@ -44,6 +44,11 @@ class ProcessRoundPrices extends Command
             return Command::FAILURE;
         }
 
+        // Process all rounds if --all flag is set
+        if ($this->option('all')) {
+            return $this->processAllRounds($championship);
+        }
+
         // Determine which round to process
         $roundToProcess = $this->option('round')
             ? (int) $this->option('round')
@@ -55,8 +60,59 @@ class ProcessRoundPrices extends Command
             return Command::SUCCESS;
         }
 
-        $this->info("Processing Round {$roundToProcess}...");
+        return $this->processSingleRound($championship, $roundToProcess);
+    }
+
+    /**
+     * Process all unprocessed rounds
+     */
+    private function processAllRounds(Championship $championship): int
+    {
+        $processedCount = 0;
+
+        while (true) {
+            $nextRound = $this->getNextRoundToProcess($championship);
+
+            if (! $nextRound) {
+                break; // No more rounds to process
+            }
+
+            $this->info("Processing Round {$nextRound}...");
+            $this->newLine();
+
+            $result = $this->processSingleRound($championship, $nextRound, false);
+
+            if ($result === Command::SUCCESS) {
+                $processedCount++;
+            } elseif ($result === Command::INVALID) {
+                // Round not finished yet, stop processing
+                $this->warn("Stopped at Round {$nextRound} - games not finished yet.");
+                break;
+            } else {
+                // Error occurred, stop processing
+                break;
+            }
+        }
+
         $this->newLine();
+        if ($processedCount > 0) {
+            $this->info("✅ Processed {$processedCount} round(s) successfully!");
+        } else {
+            $this->warn('No rounds available to process.');
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * Process a single round
+     */
+    private function processSingleRound(Championship $championship, int $roundToProcess, bool $showHeader = true): int
+    {
+        if ($showHeader) {
+            $this->info("Processing Round {$roundToProcess}...");
+            $this->newLine();
+        }
 
         // Check if round already processed
         $existingStatus = RoundProcessingStatus::where('championship_id', $championship->id)
@@ -91,7 +147,7 @@ class ProcessRoundPrices extends Command
             $this->warn("Not all games in round {$roundToProcess} are finished yet.");
             $this->info("Finished: {$finishedGames}/{$totalGames}");
 
-            return Command::SUCCESS;
+            return Command::INVALID; // Return special code to signal "incomplete round"
         }
 
         // Process player prices for this round

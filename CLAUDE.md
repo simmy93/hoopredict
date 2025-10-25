@@ -13,6 +13,29 @@ HooPredict is a Laravel 12 + React (Inertia.js) application for basketball predi
 
 ## Common Commands
 
+### Initial Setup (Complete Database with Test Data)
+```bash
+# Complete fresh setup with scraped data and seeded test data
+php artisan migrate:fresh && \
+php artisan scrape:euroleague --teams && \
+php artisan scrape:euroleague --players && \
+php artisan scrape:euroleague --games && \
+php artisan scrape:euroleague --stats && \
+php artisan rounds:process-prices --all && \
+php artisan fantasy:calculate-team-points --round=1 && \
+php artisan db:seed
+
+# This gives you:
+# - 18 EuroLeague teams with logos
+# - ~330 active players with current prices
+# - All historical games (typically 60+ finished games from recent rounds)
+# - Player price histories for all processed rounds
+# - 30 test users (1 admin, 1 test user, 28 random)
+# - 4 prediction leagues with realistic predictions
+# - 6 fantasy leagues (3 budget mode, 3 draft mode)
+# - 1 completed draft league with simulated snake draft
+```
+
 ### Development
 ```bash
 # Start full dev environment (server, queue, logs, vite)
@@ -42,26 +65,32 @@ php artisan migrate
 php artisan make:migration migration_name
 
 # SMART SCRAPER (Recommended for production - runs automatically hourly)
-# Updates recent rounds → player stats → processes prices → calculates team points (all in one)
+# Updates recent rounds → player stats → processes prices → calculates team points → calculates prediction scores (all in one)
 php artisan scrape:recent
 
 # Manual scraping (for initial setup or debugging)
 php artisan scrape:euroleague --teams       # Only scrape teams
-php artisan scrape:euroleague --games       # Only scrape games/schedule
+php artisan scrape:euroleague --games       # Scrape all games (ALL HISTORY by default)
 php artisan scrape:euroleague --players     # Only scrape players
 php artisan scrape:euroleague --stats       # Only scrape player statistics
 
-# Scrape ALL historical games (ignores 7-day limit - for backfill)
-php artisan scrape:euroleague --games --all-history
+# Limit to recent games only (last 7 days) - useful for quick updates
+php artisan scrape:euroleague --games --recent-games
 
 # Process round prices manually
 php artisan rounds:process-prices           # Auto-detects next unprocessed round
+php artisan rounds:process-prices --all     # Process all unprocessed rounds (for initial setup)
 php artisan rounds:process-prices --round=5 # Process specific round
 php artisan rounds:process-prices --round=3 --force # Reprocess already processed round
 
 # Calculate fantasy team points manually
 php artisan fantasy:calculate-team-points   # Auto-detects latest finished round
 php artisan fantasy:calculate-team-points --round=5 # Calculate for specific round
+
+# Calculate prediction league scores manually
+php artisan predictions:calculate-scores    # Calculate for all leagues
+php artisan predictions:calculate-scores --league=1 # Calculate for specific league only
+php artisan predictions:calculate-scores --force # Recalculate all (default: only unscored)
 ```
 
 ### Frontend
@@ -255,7 +284,7 @@ Admin middleware checks `is_admin` boolean on User model. Admin routes prefixed 
 EuroLeague data is scraped from official feeds API. The scraper:
 - Downloads team logos to `storage/app/public/team-logos/`
 - Processes games from all 38 regular season rounds
-- Skips games older than 7 days (unless finished with scores)
+- **Default: Scrapes ALL historical games** (use `--recent-games` to limit to last 7 days)
 - Cleans up games older than 14 days
 - Uses rate limiting (100ms delay between rounds)
 
