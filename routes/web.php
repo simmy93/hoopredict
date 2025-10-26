@@ -15,6 +15,7 @@ use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
 use App\Http\Controllers\FantasyTeamController;
+use App\Http\Controllers\GamesController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\PredictionController;
 use Illuminate\Support\Facades\Route;
@@ -71,6 +72,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/how-it-works', function () {
         return Inertia::render('HowItWorks');
     })->name('how-it-works');
+
+    Route::get('/games', [GamesController::class, 'index'])->name('games.index');
 
     Route::resource('leagues', LeagueController::class)->except(['edit', 'update']);
     Route::post('/leagues/join', [LeagueController::class, 'join'])->name('leagues.join');
