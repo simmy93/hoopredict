@@ -1,25 +1,7 @@
-# Multi-stage build for optimized production image
-FROM node:20-alpine AS node-builder
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install dependencies
-RUN npm ci
-
-# Copy source files
-COPY . .
-
-# Build assets
-RUN npm run build
-
-
-# PHP Production Image
+# PHP Production Image with Node.js
 FROM php:8.3-fpm-alpine
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apk add --no-cache \
     git \
     curl \
@@ -37,7 +19,9 @@ RUN apk add --no-cache \
     mysql-client \
     postgresql-dev \
     sqlite-dev \
-    redis
+    redis \
+    nodejs \
+    npm
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -71,11 +55,14 @@ WORKDIR /var/www
 # Copy application files
 COPY . .
 
-# Copy built assets from node-builder
-COPY --from=node-builder /app/public/build ./public/build
-
-# Install PHP dependencies
+# Install PHP dependencies first (needed for artisan commands during build)
 RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+
+# Install Node dependencies and build assets (wayfinder needs PHP available)
+RUN npm ci && npm run build
+
+# Clean up node_modules to reduce image size
+RUN rm -rf node_modules
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www \
