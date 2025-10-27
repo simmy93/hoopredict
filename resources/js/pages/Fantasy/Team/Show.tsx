@@ -74,9 +74,8 @@ interface Props {
 
 export default function Index({ league, userTeam, players, myPlayers = [], filters = {} }: Props) {
     const [search, setSearch] = useState(String(filters?.search || ''));
-    const [position, setPosition] = useState(String(filters?.position || 'all'));
+    const [position, setPosition] = useState(filters?.position ? String(filters.position) : 'all');
     const [sortBy, setSortBy] = useState(String(filters?.sort || 'price'));
-    const [direction, setDirection] = useState(String(filters?.direction || 'desc'));
     const [buyingPlayerId, setBuyingPlayerId] = useState<number | null>(null);
     const [sellingPlayerId, setSellingPlayerId] = useState<number | null>(null);
     const [confirmSellDialogOpen, setConfirmSellDialogOpen] = useState(false);
@@ -300,10 +299,10 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                 <div className="flex flex-col gap-2 sm:flex-row">
                                     <Select value={position} onValueChange={handlePositionChange}>
                                         <SelectTrigger className="w-full sm:w-[180px]">
-                                            <SelectValue />
+                                            <SelectValue placeholder="All Positions" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">All</SelectItem>
+                                            <SelectItem value="all">All Positions</SelectItem>
                                             <SelectItem value="Guard">Guards</SelectItem>
                                             <SelectItem value="Forward">Forwards</SelectItem>
                                             <SelectItem value="Center">Centers</SelectItem>
@@ -311,7 +310,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                     </Select>
                                     <Select value={sortBy} onValueChange={handleSortChange}>
                                         <SelectTrigger className="w-full sm:w-[180px]">
-                                            <SelectValue />
+                                            <SelectValue placeholder="Sort by" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="price">Price</SelectItem>
@@ -423,16 +422,73 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
 
                     {/* Pagination */}
                     {players.last_page > 1 && (
-                        <div className="mt-6 flex justify-center gap-2">
-                            {Array.from({ length: players.last_page }, (_, i) => i + 1).map((page) => (
-                                <Button
-                                    key={page}
-                                    variant={page === players.current_page ? 'default' : 'outline'}
-                                    onClick={() => updateFilters({ page })}
-                                >
-                                    {page}
-                                </Button>
-                            ))}
+                        <div className="mt-6 flex flex-wrap justify-center gap-2">
+                            {/* Previous Button */}
+                            <Button
+                                variant="outline"
+                                onClick={() => updateFilters({ page: players.current_page - 1 })}
+                                disabled={players.current_page === 1}
+                            >
+                                Previous
+                            </Button>
+
+                            {/* First Page */}
+                            {players.current_page > 3 && (
+                                <>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => updateFilters({ page: 1 })}
+                                    >
+                                        1
+                                    </Button>
+                                    {players.current_page > 4 && (
+                                        <span className="flex items-center px-2">...</span>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Page Numbers Around Current */}
+                            {Array.from({ length: players.last_page }, (_, i) => i + 1)
+                                .filter(page => {
+                                    return page === players.current_page ||
+                                           page === players.current_page - 1 ||
+                                           page === players.current_page - 2 ||
+                                           page === players.current_page + 1 ||
+                                           page === players.current_page + 2;
+                                })
+                                .map((page) => (
+                                    <Button
+                                        key={page}
+                                        variant={page === players.current_page ? 'default' : 'outline'}
+                                        onClick={() => updateFilters({ page })}
+                                    >
+                                        {page}
+                                    </Button>
+                                ))}
+
+                            {/* Last Page */}
+                            {players.current_page < players.last_page - 2 && (
+                                <>
+                                    {players.current_page < players.last_page - 3 && (
+                                        <span className="flex items-center px-2">...</span>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => updateFilters({ page: players.last_page })}
+                                    >
+                                        {players.last_page}
+                                    </Button>
+                                </>
+                            )}
+
+                            {/* Next Button */}
+                            <Button
+                                variant="outline"
+                                onClick={() => updateFilters({ page: players.current_page + 1 })}
+                                disabled={players.current_page === players.last_page}
+                            >
+                                Next
+                            </Button>
                         </div>
                     )}
                 </div>

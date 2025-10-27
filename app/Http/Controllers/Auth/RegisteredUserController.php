@@ -38,6 +38,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('statistics.index', absolute: false));
+        return redirect(route('how-it-works', absolute: false));
     }
 }
