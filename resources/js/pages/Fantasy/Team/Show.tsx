@@ -173,7 +173,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
             <Head title={`My Team - ${league.name}`} />
 
             <div className="py-12">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-6">
                         <Link href={`/fantasy/leagues/${league.id}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                             <ArrowLeft className="h-4 w-4" />
@@ -183,8 +183,8 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
 
                     {/* Header */}
                     <div className="mb-6">
-                        <h1 className="flex items-center gap-2 text-3xl font-bold">
-                            <Users className="h-8 w-8" />
+                        <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
+                            <Users className="h-7 w-7 sm:h-8 sm:w-8" />
                             {userTeam.team_name}
                         </h1>
                         <p className="mt-1 text-muted-foreground">{league.name}</p>
@@ -281,45 +281,45 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     {/* Filters */}
                     <Card className="mb-6">
                         <CardContent className="pt-6">
-                            <div className="flex flex-wrap gap-4">
-                                <div className="min-w-[300px] flex-1">
-                                    <div className="flex gap-2">
-                                        <div className="relative flex-1">
-                                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                placeholder="Search players..."
-                                                value={search}
-                                                onChange={(e) => setSearch(e.target.value)}
-                                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                                className="pl-10"
-                                            />
-                                        </div>
-                                        <Button onClick={handleSearch}>Search</Button>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Search players..."
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                            className="pl-10"
+                                        />
                                     </div>
+                                    <Button onClick={handleSearch} className="whitespace-nowrap">
+                                        Search
+                                    </Button>
                                 </div>
-
-                                <Select value={position} onValueChange={handlePositionChange}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Positions</SelectItem>
-                                        <SelectItem value="Guard">Guards</SelectItem>
-                                        <SelectItem value="Forward">Forwards</SelectItem>
-                                        <SelectItem value="Center">Centers</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={sortBy} onValueChange={handleSortChange}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="price">Price</SelectItem>
-                                        <SelectItem value="name">Name</SelectItem>
-                                        <SelectItem value="position">Position</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex flex-col gap-2 sm:flex-row">
+                                    <Select value={position} onValueChange={handlePositionChange}>
+                                        <SelectTrigger className="w-full sm:w-[180px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">All</SelectItem>
+                                            <SelectItem value="Guard">Guards</SelectItem>
+                                            <SelectItem value="Forward">Forwards</SelectItem>
+                                            <SelectItem value="Center">Centers</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Select value={sortBy} onValueChange={handleSortChange}>
+                                        <SelectTrigger className="w-full sm:w-[180px]">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="price">Price</SelectItem>
+                                            <SelectItem value="name">Name</SelectItem>
+                                            <SelectItem value="position">Position</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                         </CardContent>
                     </Card>

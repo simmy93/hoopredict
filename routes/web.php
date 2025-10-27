@@ -10,7 +10,6 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DraftController;
 use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
@@ -18,6 +17,7 @@ use App\Http\Controllers\FantasyTeamController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\PredictionController;
+use App\Http\Controllers\StatisticsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -66,8 +66,8 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+    Route::get('/statistics', [StatisticsController::class, 'index'])
+        ->name('statistics.index');
 
     Route::get('/how-it-works', function () {
         return Inertia::render('HowItWorks');

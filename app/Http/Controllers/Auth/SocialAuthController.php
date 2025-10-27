@@ -55,7 +55,7 @@ class SocialAuthController extends Controller
             // Log the user in
             Auth::login($user);
 
-            return redirect()->intended('/dashboard');
+            return redirect()->intended('/statistics');
         } catch (\Exception $e) {
             Log::error('Google OAuth error: '.$e->getMessage());
             Log::error($e->getTraceAsString());

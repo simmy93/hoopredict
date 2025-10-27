@@ -148,7 +148,7 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
             <Head title={league.name} />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="mb-6">
                         <Link href="/fantasy/leagues" className="text-muted-foreground hover:text-foreground">
                             ← Back to Fantasy Leagues
@@ -158,17 +158,17 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                     {/* League Header */}
                     <Card className="mb-6">
                         <CardHeader>
-                            <div className="flex justify-between items-start">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
                                 <div>
-                                    <CardTitle className="text-3xl flex items-center gap-3">
-                                        <Trophy className="h-8 w-8" />
+                                    <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2 sm:gap-3">
+                                        <Trophy className="h-6 w-6 sm:h-8 sm:w-8" />
                                         {league.name}
                                     </CardTitle>
                                     <CardDescription className="mt-2">
                                         {league.championship.name} - {league.championship.season}
                                     </CardDescription>
                                 </div>
-                                <Badge variant={league.mode === 'budget' ? 'default' : 'secondary'}>
+                                <Badge variant={league.mode === 'budget' ? 'default' : 'secondary'} className="w-fit">
                                     {league.mode === 'budget' ? 'Budget Mode' : 'Draft Mode'}
                                 </Badge>
                             </div>
@@ -245,12 +245,12 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                             )}
 
                             {/* Invite URL */}
-                            <div className="mt-6 flex gap-2">
-                                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
-                                    <Share2 className="h-4 w-4 text-muted-foreground" />
-                                    <code className="flex-1 text-sm">{inviteUrl}</code>
+                            <div className="mt-6 flex flex-col sm:flex-row gap-2">
+                                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted rounded-md overflow-hidden">
+                                    <Share2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                    <code className="flex-1 text-xs sm:text-sm truncate">{inviteUrl}</code>
                                 </div>
-                                <Button variant="outline" onClick={copyInviteUrl}>
+                                <Button variant="outline" onClick={copyInviteUrl} className="w-full sm:w-auto">
                                     {copied ? (
                                         <>
                                             <Check className="h-4 w-4 mr-2" />
@@ -267,23 +267,23 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                         </CardContent>
                     </Card>
 
-                    <div className="grid lg:grid-cols-3 gap-6">
+                    <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
                         {/* My Team */}
                         {userTeam && (
-                            <Card className="lg:col-span-1">
+                            <Card className="lg:col-span-1 w-full">
                                 <CardHeader>
                                     <CardTitle>My Team</CardTitle>
                                     <CardDescription>{userTeam.team_name}</CardDescription>
-                                    <div className="flex gap-2 mt-3">
+                                    <div className="flex flex-col gap-2 mt-3 sm:flex-row">
                                         <Link href={`/fantasy/leagues/${league.id}/team`} className="flex-1">
-                                            <Button size="sm" variant="outline" className="w-full">
-                                                <ShoppingCart className="h-4 w-4 mr-2" />
+                                            <Button size="sm" variant="outline" className="w-full text-xs sm:text-sm">
+                                                <ShoppingCart className="h-4 w-4 mr-1 sm:mr-2" />
                                                 View Team
                                             </Button>
                                         </Link>
                                         <Link href={`/fantasy/leagues/${league.id}/lineup`} className="flex-1">
-                                            <Button size="sm" className="w-full">
-                                                <ListOrdered className="h-4 w-4 mr-2" />
+                                            <Button size="sm" className="w-full text-xs sm:text-sm">
+                                                <ListOrdered className="h-4 w-4 mr-1 sm:mr-2" />
                                                 Manage Lineup
                                             </Button>
                                         </Link>
@@ -291,33 +291,33 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Total Points</span>
-                                            <span className="text-2xl font-bold text-primary">
+                                        <div className="flex justify-between items-center gap-2">
+                                            <span className="text-xs sm:text-sm text-muted-foreground">Total Points</span>
+                                            <span className="text-xl sm:text-2xl font-bold text-primary">
                                                 {userTeam.total_points.toFixed(1)}
                                             </span>
                                         </div>
 
                                         {league.mode === 'budget' && (
                                             <>
-                                                <div className="flex justify-between items-center text-sm">
+                                                <div className="flex justify-between items-center gap-2 text-xs sm:text-sm">
                                                     <span className="text-muted-foreground">Budget Spent</span>
-                                                    <span className="font-medium">
+                                                    <span className="font-medium whitespace-nowrap">
                                                         ${(userTeam.budget_spent / 1000000).toFixed(1)}M
                                                     </span>
                                                 </div>
-                                                <div className="flex justify-between items-center text-sm">
+                                                <div className="flex justify-between items-center gap-2 text-xs sm:text-sm">
                                                     <span className="text-muted-foreground">Budget Remaining</span>
-                                                    <span className="font-medium text-green-600">
+                                                    <span className="font-medium text-green-600 whitespace-nowrap">
                                                         ${(userTeam.budget_remaining / 1000000).toFixed(1)}M
                                                     </span>
                                                 </div>
                                             </>
                                         )}
 
-                                        <div className="flex justify-between items-center text-sm">
+                                        <div className="flex justify-between items-center gap-2 text-xs sm:text-sm">
                                             <span className="text-muted-foreground">Players</span>
-                                            <span className="font-medium">
+                                            <span className="font-medium whitespace-nowrap">
                                                 {userTeam.players?.length || 0}/{league.team_size}
                                             </span>
                                         </div>
@@ -359,56 +359,56 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                         )}
 
                         {/* Leaderboard */}
-                        <Card className={userTeam ? 'lg:col-span-2' : 'lg:col-span-3'}>
+                        <Card className={userTeam ? 'lg:col-span-2 w-full' : 'lg:col-span-3 w-full'}>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <Trophy className="h-5 w-5" />
                                     Leaderboard
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="w-12">Rank</TableHead>
-                                            <TableHead>Team</TableHead>
-                                            <TableHead>Manager</TableHead>
-                                            <TableHead className="text-right">Points</TableHead>
-                                            {league.mode === 'budget' && (
-                                                <>
-                                                    <TableHead className="text-right">Spent</TableHead>
-                                                    <TableHead className="text-right">Remaining</TableHead>
-                                                </>
-                                            )}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {leaderboard.map((team, index) => (
-                                            <TableRow
-                                                key={team.id}
-                                                className={userTeam?.id === team.id ? 'bg-primary/5' : ''}
-                                            >
-                                                <TableCell className="font-medium">
-                                                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
-                                                </TableCell>
-                                                <TableCell className="font-medium">{team.team_name}</TableCell>
-                                                <TableCell>{team.user.name}</TableCell>
-                                                <TableCell className="text-right font-bold">
-                                                    {team.total_points.toFixed(1)}
-                                                </TableCell>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-12">Rank</TableHead>
+                                                <TableHead>Team</TableHead>
+                                                <TableHead>Manager</TableHead>
+                                                <TableHead className="text-right">Points</TableHead>
                                                 {league.mode === 'budget' && (
                                                     <>
-                                                        <TableCell className="text-right">
-                                                            ${(team.budget_spent / 1000000).toFixed(1)}M
-                                                        </TableCell>
-                                                        <TableCell className="text-right text-green-600">
-                                                            ${(team.budget_remaining / 1000000).toFixed(1)}M
-                                                        </TableCell>
+                                                        <TableHead className="text-right">Spent</TableHead>
+                                                        <TableHead className="text-right">Remaining</TableHead>
                                                     </>
                                                 )}
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {leaderboard.map((team, index) => (
+                                                <TableRow
+                                                    key={team.id}
+                                                    className={userTeam?.id === team.id ? 'bg-primary/5' : ''}
+                                                >
+                                                    <TableCell className="font-medium">
+                                                        {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`}
+                                                    </TableCell>
+                                                    <TableCell className="font-medium whitespace-nowrap">{team.team_name}</TableCell>
+                                                    <TableCell className="whitespace-nowrap">{team.user.name}</TableCell>
+                                                    <TableCell className="text-right font-bold whitespace-nowrap">
+                                                        {team.total_points.toFixed(1)}
+                                                    </TableCell>
+                                                    {league.mode === 'budget' && (
+                                                        <>
+                                                            <TableCell className="text-right whitespace-nowrap">
+                                                                ${(team.budget_spent / 1000000).toFixed(1)}M
+                                                            </TableCell>
+                                                            <TableCell className="text-right text-green-600 whitespace-nowrap">
+                                                                ${(team.budget_remaining / 1000000).toFixed(1)}M
+                                                            </TableCell>
+                                                        </>
+                                                    )}
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
                                 </Table>
                             </CardContent>
                         </Card>

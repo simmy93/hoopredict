@@ -32,7 +32,11 @@ class FantasyLeagueController extends Controller
             ->get()
             ->map(fn ($team) => $team->fantasyLeague)
             ->unique('id')
-            ->values();
+            ->values()
+            ->map(function ($league) {
+                $league->teams_count = $league->teams()->count();
+                return $league;
+            });
 
         return Inertia::render('Fantasy/Index', [
             'userLeagues' => $userLeagues,

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Users, Crown, Settings, Plus, UserPlus } from 'lucide-react'
+import { Users, Crown, Settings, Plus, UserPlus, Trophy } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 interface League {
@@ -53,10 +53,13 @@ export default function Index({ userLeagues }: Props) {
             <Head title="My Leagues" />
 
             <div className="py-12">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center mb-6">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                         <div>
-                            <h2 className="text-2xl font-bold text-foreground">My Leagues</h2>
+                            <div className="flex items-center gap-2">
+                                <Trophy className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                                <h2 className="text-2xl font-bold text-foreground">My Leagues</h2>
+                            </div>
                             <p className="text-muted-foreground mt-1">
                                 Manage your prediction leagues and compete with friends
                             </p>
@@ -64,9 +67,10 @@ export default function Index({ userLeagues }: Props) {
                         <div className="flex gap-2">
                             <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button variant="outline" className="flex items-center gap-2">
+                                    <Button variant="outline" className="flex items-center justify-center gap-2 flex-1 sm:flex-initial">
                                         <UserPlus className="h-4 w-4" />
-                                        Join League
+                                        <span className="hidden sm:inline">Join League</span>
+                                        <span className="sm:hidden">Join</span>
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
@@ -108,10 +112,11 @@ export default function Index({ userLeagues }: Props) {
                                     </form>
                                 </DialogContent>
                             </Dialog>
-                            <Link href="/leagues/create">
-                                <Button className="flex items-center gap-2">
+                            <Link href="/leagues/create" className="flex-1 sm:flex-initial">
+                                <Button className="flex items-center justify-center gap-2 w-full">
                                     <Plus className="h-4 w-4" />
-                                    Create League
+                                    <span className="hidden sm:inline">Create League</span>
+                                    <span className="sm:hidden">Create</span>
                                 </Button>
                             </Link>
                         </div>
@@ -176,49 +181,71 @@ export default function Index({ userLeagues }: Props) {
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {userLeagues.map((league) => (
-                                <Card key={league.id} className="hover:shadow-md transition-shadow">
-                                    <CardHeader>
+                                <Card
+                                    key={league.id}
+                                    className="group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 hover:-translate-y-1 hover:border-purple-400/50 bg-gradient-to-br from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20"
+                                >
+                                    {/* Animated gradient overlay on hover */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-blue-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:via-blue-500/5 group-hover:to-pink-500/5 transition-all duration-500" />
+
+                                    <CardHeader className="relative">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
-                                                <CardTitle className="flex items-center gap-2">
+                                                <CardTitle className="flex items-center gap-2 text-lg group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
                                                     {league.name}
                                                     {league.owner.id === 1 && (
-                                                        <Crown className="h-4 w-4 text-yellow-600" />
+                                                        <Crown className="h-4 w-4 text-amber-500 animate-pulse" />
                                                     )}
                                                 </CardTitle>
                                                 {league.description && (
-                                                    <CardDescription className="mt-1">
+                                                    <CardDescription className="mt-1 line-clamp-2">
                                                         {league.description}
                                                     </CardDescription>
                                                 )}
                                             </div>
                                             <div className="flex gap-1">
                                                 {league.is_private && (
-                                                    <Badge variant="secondary">Private</Badge>
+                                                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                                                        Private
+                                                    </Badge>
                                                 )}
                                             </div>
                                         </div>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardContent className="relative">
                                         <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Users className="h-4 w-4" />
-                                                {league.members_count}/{league.max_members} members
+                                            <div className="flex items-center gap-2 text-sm font-medium">
+                                                <div className="p-1.5 rounded-lg bg-gradient-to-br from-purple-500 to-blue-600 text-white shadow-lg">
+                                                    <Users className="h-3.5 w-3.5" />
+                                                </div>
+                                                <span className="text-foreground">
+                                                    {league.members_count}/{league.max_members} members
+                                                </span>
                                             </div>
-                                            <Badge variant="outline">
+                                            <Badge
+                                                variant="outline"
+                                                className="font-mono font-bold border-2 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400"
+                                            >
                                                 {league.invite_code}
                                             </Badge>
                                         </div>
                                         <div className="flex gap-2">
                                             <Link href={`/leagues/${league.id}`} className="flex-1">
-                                                <Button variant="outline" size="sm" className="w-full">
+                                                <Button
+                                                    size="sm"
+                                                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all"
+                                                >
                                                     View League
                                                 </Button>
                                             </Link>
                                             {league.owner.id === 1 && (
-                                                <Button variant="ghost" size="sm">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="hover:bg-purple-100 dark:hover:bg-purple-950"
+                                                >
                                                     <Settings className="h-4 w-4" />
                                                 </Button>
                                             )}

@@ -398,27 +398,30 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                                 return (
                                                     <Card key={game.id} className="relative transition-shadow hover:shadow-md">
                                                         <CardHeader>
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Badge variant="outline">{game.championship.name}</Badge>
-                                                                    <Badge variant="secondary">Round {game.round}</Badge>
+                                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                                {/* Top row: Championship, Round, Predicted badge */}
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <Badge variant="outline" className="text-xs">{game.championship.name}</Badge>
+                                                                    <Badge variant="secondary" className="text-xs">Round {game.round}</Badge>
                                                                     {prediction && (
-                                                                        <Badge variant="default" className="bg-green-600">
+                                                                        <Badge variant="default" className="bg-green-600 text-xs">
                                                                             <Star className="mr-1 h-3 w-3" />
                                                                             Predicted
                                                                         </Badge>
                                                                     )}
                                                                 </div>
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                                        <Calendar className="h-4 w-4" />
-                                                                        {date}
-                                                                        <Clock className="h-4 w-4" />
-                                                                        {time}
+
+                                                                {/* Bottom row: Date, Time, View All link */}
+                                                                <div className="flex items-center justify-between sm:justify-end gap-3">
+                                                                    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                                                                        <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                                        <span>{date}</span>
+                                                                        <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                                                        <span>{time}</span>
                                                                     </div>
                                                                     <Link
                                                                         href={`/leagues/${league.id}/games/${game.id}/predictions`}
-                                                                        className="text-primary hover:text-primary/80 text-sm font-medium"
+                                                                        className="text-primary hover:text-primary/80 text-xs sm:text-sm font-medium whitespace-nowrap"
                                                                         title="View all predictions for this game"
                                                                     >
                                                                         View All →
