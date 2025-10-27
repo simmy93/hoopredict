@@ -18,10 +18,16 @@ use App\Http\Controllers\GamesController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\StatisticsController;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    // If user is authenticated, redirect to how-it-works
+    if (Auth::check()) {
+        return redirect()->route('how-it-works');
+    }
+
     return Inertia::render('Welcome');
 })->name('home');
 
