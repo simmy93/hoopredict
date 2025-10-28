@@ -322,15 +322,15 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex flex-col gap-4">
+                                <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                         <Users className="h-4 w-4" />
                                         {members.length}/{league.max_members} members
                                     </div>
                                     <div>Owner: {league.owner.name}</div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2">
                                     {userRole === 'owner' && (
                                         <>
                                             <Button
@@ -338,6 +338,7 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                                 size="sm"
                                                 onClick={copyInviteUrl}
                                                 title="Copy invite link"
+                                                className="w-full sm:w-auto"
                                             >
                                                 {copied === 'url' ? <CheckCircle className="mr-1 h-4 w-4" /> : <LinkIcon className="mr-1 h-4 w-4" />}
                                                 {copied === 'url' ? 'Copied!' : 'Share Link'}
@@ -347,18 +348,20 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                                 size="sm"
                                                 onClick={copyInviteCode}
                                                 title="Copy invite code"
+                                                className="w-full sm:w-auto"
                                             >
-                                                {copied === 'code' ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                                                {copied === 'code' ? <CheckCircle className="mr-1 h-4 w-4" /> : <Copy className="mr-1 h-4 w-4" />}
+                                                {copied === 'code' ? 'Copied!' : 'Code'}
                                             </Button>
                                         </>
                                     )}
                                     {userRole && userRole !== 'owner' && (
-                                        <Button variant="destructive" size="sm" onClick={leaveLeague} disabled={processing}>
+                                        <Button variant="destructive" size="sm" onClick={leaveLeague} disabled={processing} className="w-full sm:w-auto">
                                             Leave
                                         </Button>
                                     )}
                                     {userRole === 'owner' && (
-                                        <Button variant="destructive" size="sm" onClick={deleteLeague} disabled={processing}>
+                                        <Button variant="destructive" size="sm" onClick={deleteLeague} disabled={processing} className="w-full sm:w-auto">
                                             Delete
                                         </Button>
                                     )}
