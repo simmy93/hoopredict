@@ -31,30 +31,44 @@ docker compose down
 echo "🚀 Starting containers..."
 docker compose up -d
 
-# Wait for database to be ready with retry logic
-echo "⏳ Waiting for database to be ready..."
-max_attempts=30
+# Wait for services to be healthy
+echo "⏳ Waiting for services to be ready..."
+max_attempts=60
 attempt=1
 
 while [ $attempt -le $max_attempts ]; do
-    echo "Attempt $attempt/$max_attempts: Checking database connection..."
+    # Check if all services are healthy
+    db_health=$(docker inspect --format='{{.State.Health.Status}}' hoopredict-db 2>/dev/null || echo "unknown")
+    redis_health=$(docker inspect --format='{{.State.Health.Status}}' hoopredict-redis 2>/dev/null || echo "unknown")
 
-    if docker compose exec -T app php artisan db:show 2>/dev/null | grep -q "Connection:"; then
-        echo "✅ Database is ready!"
+    echo "Attempt $attempt/$max_attempts: DB=$db_health, Redis=$redis_health"
+
+    if [ "$db_health" = "healthy" ] && [ "$redis_health" = "healthy" ]; then
+        echo "✅ All services are healthy!"
         break
     fi
 
     if [ $attempt -eq $max_attempts ]; then
-        echo "❌ Database failed to become ready after $max_attempts attempts"
-        echo "📋 Checking container logs..."
+        echo "❌ Services failed to become healthy after $max_attempts attempts"
+        echo ""
+        echo "📋 Database container logs:"
         docker compose logs db --tail=50
+        echo ""
+        echo "📋 Redis container logs:"
+        docker compose logs redis --tail=20
+        echo ""
+        echo "📋 App container logs:"
+        docker compose logs app --tail=20
         exit 1
     fi
 
-    echo "Database not ready yet, waiting 2 seconds..."
-    sleep 2
+    sleep 1
     attempt=$((attempt + 1))
 done
+
+# Additional wait to ensure app container is fully started
+echo "⏳ Waiting for app container to be fully ready..."
+sleep 5
 
 # Run migrations
 echo "📊 Running database migrations..."
