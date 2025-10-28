@@ -36,14 +36,17 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
+      # Main HTTP service
       - "traefik.http.routers.hoopredict.rule=Host(`hoopredict.websimas.com`)"
       - "traefik.http.routers.hoopredict.entrypoints=websecure"
       - "traefik.http.routers.hoopredict.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hoopredict.service=hoopredict"
       - "traefik.http.services.hoopredict.loadbalancer.server.port=80"
       # WebSocket routing for Reverb
       - "traefik.http.routers.hoopredict-ws.rule=Host(`hoopredict.websimas.com`) && PathPrefix(`/app`)"
       - "traefik.http.routers.hoopredict-ws.entrypoints=websecure"
       - "traefik.http.routers.hoopredict-ws.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.hoopredict-ws.service=hoopredict-ws"
       - "traefik.http.services.hoopredict-ws.loadbalancer.server.port=8080"
 
   # MySQL Database
