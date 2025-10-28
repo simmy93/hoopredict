@@ -55,8 +55,8 @@ WORKDIR /var/www
 # Copy application files
 COPY . .
 
-# Install PHP dependencies first (needed for artisan commands during build)
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# Install PHP dependencies including dev (needed for Faker in seeders)
+RUN composer install --optimize-autoloader --no-interaction --prefer-dist
 
 # Install Node dependencies and build assets (wayfinder needs PHP available)
 RUN npm ci && npm run build
