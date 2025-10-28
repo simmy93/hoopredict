@@ -31,9 +31,30 @@ docker compose down
 echo "🚀 Starting containers..."
 docker compose up -d
 
-# Wait for database to be ready
-echo "⏳ Waiting for database..."
-sleep 10
+# Wait for database to be ready with retry logic
+echo "⏳ Waiting for database to be ready..."
+max_attempts=30
+attempt=1
+
+while [ $attempt -le $max_attempts ]; do
+    echo "Attempt $attempt/$max_attempts: Checking database connection..."
+
+    if docker compose exec -T app php artisan db:show 2>/dev/null | grep -q "Connection:"; then
+        echo "✅ Database is ready!"
+        break
+    fi
+
+    if [ $attempt -eq $max_attempts ]; then
+        echo "❌ Database failed to become ready after $max_attempts attempts"
+        echo "📋 Checking container logs..."
+        docker compose logs db --tail=50
+        exit 1
+    fi
+
+    echo "Database not ready yet, waiting 2 seconds..."
+    sleep 2
+    attempt=$((attempt + 1))
+done
 
 # Run migrations
 echo "📊 Running database migrations..."

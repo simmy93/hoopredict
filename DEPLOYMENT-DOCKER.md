@@ -163,11 +163,11 @@ MAIL_MAILER=log
 
 If you're using Traefik (like your websimas.com), you might need to ensure it's configured correctly.
 
-Check your existing Traefik docker-compose.yml:
+Check your existing Traefik docker compose.yml:
 
 ```bash
 # Find your Traefik setup
-find ~ -name "docker-compose.yml" -exec grep -l "traefik" {} \;
+find ~ -name "docker compose.yml" -exec grep -l "traefik" {} \;
 ```
 
 Your Traefik should have:
@@ -178,7 +178,7 @@ Your Traefik should have:
 If needed, here's a minimal Traefik setup:
 
 ```yaml
-# ~/traefik/docker-compose.yml
+# ~/traefik/docker compose.yml
 version: '3.8'
 
 services:
@@ -258,24 +258,24 @@ This script will:
 
 ```bash
 # Build image
-docker-compose build
+docker compose build
 
 # Start containers
-docker-compose up -d
+docker compose up -d
 
 # Generate app key (first time only)
-docker-compose exec app php artisan key:generate
+docker compose exec app php artisan key:generate
 
 # Run migrations
-docker-compose exec app php artisan migrate --force
+docker compose exec app php artisan migrate --force
 
 # Create storage link
-docker-compose exec app php artisan storage:link
+docker compose exec app php artisan storage:link
 
 # Cache config
-docker-compose exec app php artisan config:cache
-docker-compose exec app php artisan route:cache
-docker-compose exec app php artisan view:cache
+docker compose exec app php artisan config:cache
+docker compose exec app php artisan route:cache
+docker compose exec app php artisan view:cache
 ```
 
 ## Step 7: Verify Deployment
@@ -283,7 +283,7 @@ docker-compose exec app php artisan view:cache
 ### Check Container Status
 
 ```bash
-docker-compose ps
+docker compose ps
 ```
 
 All containers should show "Up" status.
@@ -292,16 +292,16 @@ All containers should show "Up" status.
 
 ```bash
 # Application logs
-docker-compose logs -f app
+docker compose logs -f app
 
 # Database logs
-docker-compose logs -f db
+docker compose logs -f db
 
 # Redis logs
-docker-compose logs -f redis
+docker compose logs -f redis
 
 # Follow all logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Access the Application
@@ -312,10 +312,10 @@ Visit: `https://hoopredict.websimas.com`
 
 ```bash
 # Scrape EuroLeague data
-docker-compose exec app php artisan scrape:euroleague
+docker compose exec app php artisan scrape:euroleague
 
 # Create admin user (if you have a seeder)
-docker-compose exec app php artisan db:seed --class=AdminUserSeeder
+docker compose exec app php artisan db:seed --class=AdminUserSeeder
 ```
 
 ## Step 9: Laravel Scheduler Setup (IMPORTANT!)
@@ -331,7 +331,7 @@ HooPredict uses Laravel's scheduler to automatically:
 
 ```bash
 # Check if Laravel scheduler is active in supervisor
-docker-compose exec app supervisorctl status
+docker compose exec app supervisorctl status
 
 # You should see:
 # laravel-scheduler    RUNNING   pid 123, uptime 0:01:00
@@ -353,7 +353,7 @@ This single cron entry handles ALL scheduled tasks. Laravel internally manages:
 
 ```bash
 # See what tasks are scheduled
-docker-compose exec app php artisan schedule:list
+docker compose exec app php artisan schedule:list
 
 # Output shows:
 # 0 * * * *  scrape:recent ........ Next Due: 1 hour from now
@@ -363,17 +363,17 @@ docker-compose exec app php artisan schedule:list
 
 ```bash
 # Trigger the scheduler manually (for testing)
-docker-compose exec app php artisan schedule:run
+docker compose exec app php artisan schedule:run
 
 # Or run the smart scraper directly
-docker-compose exec app php artisan scrape:recent
+docker compose exec app php artisan scrape:recent
 ```
 
 ### Monitor Scheduler Logs
 
 ```bash
 # View real-time logs to see scheduler activity
-docker-compose exec app tail -f storage/logs/laravel.log | grep -i "scrape\|schedule"
+docker compose exec app tail -f storage/logs/laravel.log | grep -i "scrape\|schedule"
 
 # You'll see entries like:
 # [2025-10-21 18:00:00] Starting smart scraping of recent rounds
@@ -387,16 +387,16 @@ If tasks aren't running:
 
 ```bash
 # 1. Check if supervisor is running the scheduler
-docker-compose exec app supervisorctl status laravel-scheduler
+docker compose exec app supervisorctl status laravel-scheduler
 
 # 2. Restart the scheduler
-docker-compose exec app supervisorctl restart laravel-scheduler
+docker compose exec app supervisorctl restart laravel-scheduler
 
 # 3. Check for errors in logs
-docker-compose exec app tail -f storage/logs/laravel.log
+docker compose exec app tail -f storage/logs/laravel.log
 
 # 4. Manually test the workflow
-docker-compose exec app php artisan scrape:recent
+docker compose exec app php artisan scrape:recent
 ```
 
 ### What Gets Automated
@@ -429,61 +429,61 @@ git pull origin main
 
 ```bash
 # Real-time application logs
-docker-compose logs -f app
+docker compose logs -f app
 
 # Laravel logs
-docker-compose exec app tail -f storage/logs/laravel.log
+docker compose exec app tail -f storage/logs/laravel.log
 
 # Queue worker logs
-docker-compose exec app tail -f storage/logs/worker.log
+docker compose exec app tail -f storage/logs/worker.log
 
 # Reverb logs
-docker-compose exec app tail -f storage/logs/reverb.log
+docker compose exec app tail -f storage/logs/reverb.log
 ```
 
 ### Access Container Shell
 
 ```bash
 # Access app container
-docker-compose exec app sh
+docker compose exec app sh
 
 # Access database
-docker-compose exec db mysql -u hoopredict -p hoopredict
+docker compose exec db mysql -u hoopredict -p hoopredict
 ```
 
 ### Restart Services
 
 ```bash
 # Restart all containers
-docker-compose restart
+docker compose restart
 
 # Restart only app
-docker-compose restart app
+docker compose restart app
 
 # Restart queue workers (inside container)
-docker-compose exec app supervisorctl restart laravel-worker:*
+docker compose exec app supervisorctl restart laravel-worker:*
 
 # Restart Reverb
-docker-compose exec app supervisorctl restart laravel-reverb
+docker compose exec app supervisorctl restart laravel-reverb
 ```
 
 ### Clear Cache
 
 ```bash
-docker-compose exec app php artisan cache:clear
-docker-compose exec app php artisan config:clear
-docker-compose exec app php artisan route:clear
-docker-compose exec app php artisan view:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan route:clear
+docker compose exec app php artisan view:clear
 ```
 
 ### Database Backup
 
 ```bash
 # Backup database
-docker-compose exec db mysqldump -u hoopredict -p hoopredict > backup_$(date +%Y%m%d).sql
+docker compose exec db mysqldump -u hoopredict -p hoopredict > backup_$(date +%Y%m%d).sql
 
 # Restore database
-docker-compose exec -T db mysql -u hoopredict -p hoopredict < backup_20240101.sql
+docker compose exec -T db mysql -u hoopredict -p hoopredict < backup_20240101.sql
 ```
 
 ## Troubleshooting
@@ -492,7 +492,7 @@ docker-compose exec -T db mysql -u hoopredict -p hoopredict < backup_20240101.sq
 
 ```bash
 # Check logs
-docker-compose logs app
+docker compose logs app
 
 # Check if port is already in use
 sudo netstat -tlnp | grep :80
@@ -502,19 +502,19 @@ sudo netstat -tlnp | grep :443
 ### Permission Errors
 
 ```bash
-docker-compose exec app chown -R www-data:www-data /var/www/storage
-docker-compose exec app chmod -R 775 /var/www/storage
-docker-compose exec app chmod -R 775 /var/www/bootstrap/cache
+docker compose exec app chown -R www-data:www-data /var/www/storage
+docker compose exec app chmod -R 775 /var/www/storage
+docker compose exec app chmod -R 775 /var/www/bootstrap/cache
 ```
 
 ### Database Connection Issues
 
 ```bash
 # Check if database is running
-docker-compose ps db
+docker compose ps db
 
 # Test database connection
-docker-compose exec app php artisan tinker
+docker compose exec app php artisan tinker
 >>> DB::connection()->getPdo();
 ```
 
@@ -522,24 +522,24 @@ docker-compose exec app php artisan tinker
 
 ```bash
 # Check if Reverb is running
-docker-compose exec app supervisorctl status laravel-reverb
+docker compose exec app supervisorctl status laravel-reverb
 
 # Restart Reverb
-docker-compose exec app supervisorctl restart laravel-reverb
+docker compose exec app supervisorctl restart laravel-reverb
 
 # Check Reverb logs
-docker-compose exec app tail -f storage/logs/reverb.log
+docker compose exec app tail -f storage/logs/reverb.log
 ```
 
 ### Build Errors
 
 ```bash
 # Clear Docker cache and rebuild
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Remove old containers and volumes
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ## Performance Optimization
@@ -555,7 +555,7 @@ opcache.validate_timestamps = 0  # For production
 ### Optimize Composer Autoloader
 
 ```bash
-docker-compose exec app composer install --optimize-autoloader --no-dev
+docker compose exec app composer install --optimize-autoloader --no-dev
 ```
 
 ### Database Indexing
@@ -613,7 +613,7 @@ To handle more traffic:
 ### Horizontal Scaling (Multiple App Containers)
 
 ```yaml
-# In docker-compose.yml
+# In docker compose.yml
 services:
   app:
     deploy:
@@ -647,7 +647,7 @@ For production, consider:
 
 Deploy as a stack:
 ```bash
-docker stack deploy -c docker-compose.yml hoopredict
+docker stack deploy -c docker compose.yml hoopredict
 ```
 
 ### If using Kubernetes
@@ -659,13 +659,13 @@ You'll need to convert this to K8s manifests or use Helm charts.
 | Task | Command |
 |------|---------|
 | Deploy | `./deploy-docker.sh` |
-| Logs | `docker-compose logs -f app` |
-| Restart | `docker-compose restart app` |
-| Shell | `docker-compose exec app sh` |
-| Artisan | `docker-compose exec app php artisan {command}` |
-| Migrations | `docker-compose exec app php artisan migrate` |
-| Cache clear | `docker-compose exec app php artisan cache:clear` |
-| Queue restart | `docker-compose exec app supervisorctl restart laravel-worker:*` |
+| Logs | `docker compose logs -f app` |
+| Restart | `docker compose restart app` |
+| Shell | `docker compose exec app sh` |
+| Artisan | `docker compose exec app php artisan {command}` |
+| Migrations | `docker compose exec app php artisan migrate` |
+| Cache clear | `docker compose exec app php artisan cache:clear` |
+| Queue restart | `docker compose exec app supervisorctl restart laravel-worker:*` |
 
 ---
 
@@ -673,9 +673,9 @@ You'll need to convert this to K8s manifests or use Helm charts.
 
 If you encounter issues:
 
-1. Check container logs: `docker-compose logs -f`
-2. Verify environment variables: `docker-compose exec app env | grep DB`
-3. Test database connection: `docker-compose exec app php artisan tinker`
+1. Check container logs: `docker compose logs -f`
+2. Verify environment variables: `docker compose exec app env | grep DB`
+3. Test database connection: `docker compose exec app php artisan tinker`
 4. Check Traefik dashboard (if enabled)
 5. Verify DNS propagation: `dig hoopredict.websimas.com`
 
