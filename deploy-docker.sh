@@ -19,6 +19,13 @@ if [ -d .git ]; then
     git pull origin main
 fi
 
+# Install dependencies using Docker (no need for host installation)
+echo "📦 Installing PHP dependencies..."
+docker run --rm -v $(pwd):/app -w /app composer:latest install --no-dev --optimize-autoloader --ignore-platform-reqs
+
+echo "📦 Installing Node dependencies and building assets..."
+docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm ci && npm run build"
+
 # Build Docker image
 echo "🔨 Building Docker image..."
 docker compose build --no-cache app
