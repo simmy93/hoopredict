@@ -23,8 +23,8 @@ fi
 echo "📦 Installing PHP dependencies..."
 docker run --rm -v $(pwd):/app -w /app composer:latest install --no-dev --optimize-autoloader --ignore-platform-reqs
 
-echo "📦 Installing Node dependencies and building assets..."
-docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "npm ci && npm run build"
+echo "📦 Installing Node dependencies..."
+docker run --rm -v $(pwd):/app -w /app node:20-alpine npm ci
 
 # Build Docker image
 echo "🔨 Building Docker image..."
@@ -76,6 +76,10 @@ done
 # Additional wait to ensure app container is fully started
 echo "⏳ Waiting for app container to be fully ready..."
 sleep 5
+
+# Build frontend assets inside the app container (has both PHP and Node)
+echo "🎨 Building frontend assets..."
+docker compose exec -T app npm run build
 
 # Run migrations
 echo "📊 Running database migrations..."
