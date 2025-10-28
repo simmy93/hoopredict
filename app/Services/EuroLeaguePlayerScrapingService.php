@@ -240,7 +240,7 @@ class EuroLeaguePlayerScrapingService
                 ->where('status', 'finished')
                 ->whereNotNull('home_score')
                 ->whereNotNull('away_score')
-                ->orderBy('date', 'desc')
+                ->orderBy('scheduled_at', 'desc')
                 ->get();
 
             if ($games->isEmpty()) {
