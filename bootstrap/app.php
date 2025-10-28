@@ -24,6 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => IsAdmin::class,
         ]);
+
+        // Trust Traefik proxy for HTTPS
+        $middleware->trustProxies(at: '*', headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR | \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST | \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO);
     })
     ->withSchedule(function (Schedule $schedule) {
         // Smart scraper: Updates games → stats → prices (all in one workflow)
