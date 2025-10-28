@@ -16,8 +16,7 @@ class CalculateTeamPoints extends Command
      */
     protected $signature = 'fantasy:calculate-team-points
                             {--round= : Calculate for specific round (default: latest finished round)}
-                            {--championship-id= : Championship ID (default: EuroLeague 2024-25)}
-                            {--force : Recalculate even if already processed}';
+                            {--championship-id= : Championship ID (default: active championship)}';
 
     /**
      * The console command description.
@@ -33,14 +32,11 @@ class CalculateTeamPoints extends Command
     {
         $championshipId = $this->option('championship-id');
         $roundNumber = $this->option('round');
-        $force = $this->option('force');
 
         // Get EuroLeague championship
         $championship = $championshipId
             ? Championship::find($championshipId)
-            : Championship::where('name', 'EuroLeague')
-                ->where('season', '2024-25')
-                ->first();
+            : Championship::where('is_active', true)->first();
 
         if (!$championship) {
             $this->error('Championship not found');
