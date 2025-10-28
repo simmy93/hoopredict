@@ -85,6 +85,7 @@ docker compose exec -T app php artisan migrate --force
 echo "🔗 Creating storage link..."
 docker compose exec -T app php artisan storage:link || true
 
+
 # Clear and cache config
 echo "🗑️  Clearing caches..."
 docker compose exec -T app php artisan config:clear
