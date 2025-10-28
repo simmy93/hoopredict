@@ -27,18 +27,22 @@ class DatabaseSeeder extends Seeder
 
         // Create admin and test users
         $this->command->info('👥 Creating users...');
-        $admin = User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@hoopredict.com',
-            'password' => Hash::make('password'),
-            'is_admin' => true,
-        ]);
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@hoopredict.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('password'),
+                'is_admin' => true,
+            ]
+        );
 
-        $testUser = User::create([
-            'name' => 'Test User',
-            'email' => 'test@hoopredict.com',
-            'password' => Hash::make('password'),
-        ]);
+        $testUser = User::firstOrCreate(
+            ['email' => 'test@hoopredict.com'],
+            [
+                'name' => 'Test User',
+                'password' => Hash::make('password'),
+            ]
+        );
 
         // Create 28 additional random users (total 30)
         $users = User::factory(28)->create();
