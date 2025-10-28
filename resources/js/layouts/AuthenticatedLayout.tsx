@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { home, logout } from '@/routes';
 import { Link, router, usePage } from '@inertiajs/react';
-import { BarChart3, Trophy, Users, HelpCircle, LogOut, Menu } from 'lucide-react';
+import { BarChart3, Trophy, Users, HelpCircle, LogOut, Menu, Calendar } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 
 interface AuthenticatedLayoutProps {
@@ -46,6 +46,13 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
             icon: BarChart3,
             color: 'blue',
             gradient: 'from-blue-500 to-cyan-500',
+        },
+        {
+            href: '/games',
+            label: 'Games',
+            icon: Calendar,
+            color: 'indigo',
+            gradient: 'from-indigo-500 to-blue-500',
         },
         {
             href: '/leagues',
