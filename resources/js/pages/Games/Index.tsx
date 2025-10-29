@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Head, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 interface Team {
     id: number;
@@ -88,15 +88,17 @@ export default function GamesIndex({ championship, games, pagination }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Games" />
-            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {championship?.name || 'Games'}
-                    </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">
-                        View all scheduled, live, and finished games
-                    </p>
-                </div>
+            <div className="py-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                            <h1 className="text-2xl sm:text-3xl font-bold">Games</h1>
+                        </div>
+                        <p className="text-muted-foreground mt-1">
+                            View all scheduled, live, and finished games
+                        </p>
+                    </div>
 
                 {!games || games.length === 0 ? (
                     <Card>
@@ -232,6 +234,7 @@ export default function GamesIndex({ championship, games, pagination }: Props) {
                         )}
                     </>
                 )}
+                </div>
             </div>
         </AuthenticatedLayout>
     );

@@ -2,20 +2,23 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head } from '@inertiajs/react';
+import { HelpCircle } from 'lucide-react';
 
 export default function HowItWorks() {
     return (
         <AuthenticatedLayout>
             <Head title="How It Works" />
-            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        How It Works
-                    </h1>
-                    <p className="mt-2 text-slate-600 dark:text-slate-400">
-                        Learn about prediction scoring, fantasy leagues, player pricing, and more
-                    </p>
-                </div>
+            <div className="py-8">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8">
+                        <div className="flex items-center gap-2">
+                            <HelpCircle className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+                            <h1 className="text-2xl sm:text-3xl font-bold">How It Works</h1>
+                        </div>
+                        <p className="text-muted-foreground mt-1">
+                            Learn about prediction scoring, fantasy leagues, player pricing, and more
+                        </p>
+                    </div>
 
                 <Tabs defaultValue="predictions" className="space-y-6">
                     <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto">
@@ -401,6 +404,7 @@ export default function HowItWorks() {
                         </Card>
                     </TabsContent>
                 </Tabs>
+                </div>
             </div>
         </AuthenticatedLayout>
     );
