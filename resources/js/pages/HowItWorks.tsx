@@ -1,10 +1,12 @@
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Head } from '@inertiajs/react';
 
 export default function HowItWorks() {
     return (
         <AuthenticatedLayout>
+            <Head title="How It Works" />
             <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

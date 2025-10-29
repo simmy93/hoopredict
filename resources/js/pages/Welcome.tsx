@@ -1,12 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { login, register } from '@/routes';
-import { Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { Trophy, Users, Target, TrendingUp, Star, Sparkles } from 'lucide-react';
 
 export default function Welcome() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+        <>
+            <Head title="Welcome" />
+            <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
             {/* Basketball pattern background */}
             <div className="absolute inset-0 opacity-10">
                 <div className="h-full w-full" style={{
@@ -138,5 +140,6 @@ export default function Welcome() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
