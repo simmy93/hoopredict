@@ -19,14 +19,7 @@ if [ -d .git ]; then
     git pull origin main
 fi
 
-# Install dependencies using Docker (no need for host installation)
-echo "📦 Installing PHP dependencies..."
-docker run --rm -v $(pwd):/app -w /app composer:latest install --no-dev --optimize-autoloader --ignore-platform-reqs
-
-echo "📦 Installing Node dependencies..."
-docker run --rm -v $(pwd):/app -w /app node:20-alpine npm ci
-
-# Build Docker image
+# Build Docker image (dependencies are installed inside the Dockerfile)
 echo "🔨 Building Docker image..."
 docker compose build --no-cache app
 
@@ -76,10 +69,6 @@ done
 # Additional wait to ensure app container is fully started
 echo "⏳ Waiting for app container to be fully ready..."
 sleep 5
-
-# Build frontend assets inside the app container (has both PHP and Node)
-echo "🎨 Building frontend assets..."
-docker compose exec -T app npm run build
 
 # Run migrations
 echo "📊 Running database migrations..."
