@@ -56,5 +56,10 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Force scrollbar to always show to prevent layout shift */
+  html {
+    overflow-y: scroll;
+  }
 }
 

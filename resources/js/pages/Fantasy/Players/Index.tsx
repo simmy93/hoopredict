@@ -146,10 +146,10 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     {/* Header */}
                     <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h1 className="text-3xl font-bold flex items-center gap-2">
-                                <ShoppingCart className="h-8 w-8" />
-                                Player Marketplace
-                            </h1>
+                            <div className="flex items-center gap-2">
+                                <ShoppingCart className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                                <h1 className="text-2xl font-bold">Player Marketplace</h1>
+                            </div>
                             <p className="text-muted-foreground mt-1">{league.name}</p>
                         </div>
                         <Card className="w-64">

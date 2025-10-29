@@ -68,12 +68,12 @@ export default function Index({
             <div className="py-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     {/* Header with Round Selector */}
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2">
-                                    <TrendingUp className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-                                    <h1 className="text-2xl sm:text-3xl font-bold">Statistics</h1>
+                                    <TrendingUp className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                                    <h1 className="text-2xl font-bold">Statistics</h1>
                                 </div>
                                 <p className="text-muted-foreground mt-1">
                                     View top performers across fantasy and prediction leagues

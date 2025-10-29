@@ -2,18 +2,18 @@ import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Head } from '@inertiajs/react';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Target, Trophy, DollarSign, TrendingUp, Lock, Gem } from 'lucide-react';
 
 export default function HowItWorks() {
     return (
         <AuthenticatedLayout>
             <Head title="How It Works" />
-            <div className="py-8">
+            <div className="py-12">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <div className="flex items-center gap-2">
-                            <HelpCircle className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-                            <h1 className="text-2xl sm:text-3xl font-bold">How It Works</h1>
+                            <HelpCircle className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                            <h1 className="text-2xl font-bold">How It Works</h1>
                         </div>
                         <p className="text-muted-foreground mt-1">
                             Learn about prediction scoring, fantasy leagues, player pricing, and more
@@ -21,24 +21,30 @@ export default function HowItWorks() {
                     </div>
 
                 <Tabs defaultValue="predictions" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto">
-                        <TabsTrigger value="predictions" className="text-xs sm:text-sm">
-                            🎯 Predictions
+                    <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 h-auto gap-2">
+                        <TabsTrigger value="predictions" className="text-xs sm:text-sm py-3">
+                            <Target className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">Predictions</span>
                         </TabsTrigger>
-                        <TabsTrigger value="fantasy" className="text-xs sm:text-sm">
-                            🏆 Fantasy
+                        <TabsTrigger value="fantasy" className="text-xs sm:text-sm py-3">
+                            <Trophy className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">Fantasy</span>
                         </TabsTrigger>
-                        <TabsTrigger value="pricing" className="text-xs sm:text-sm">
-                            💰 Pricing
+                        <TabsTrigger value="pricing" className="text-xs sm:text-sm py-3">
+                            <DollarSign className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">Pricing</span>
                         </TabsTrigger>
-                        <TabsTrigger value="points" className="text-xs sm:text-sm">
-                            📊 Points
+                        <TabsTrigger value="points" className="text-xs sm:text-sm py-3">
+                            <TrendingUp className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">Points</span>
                         </TabsTrigger>
-                        <TabsTrigger value="locking" className="text-xs sm:text-sm">
-                            🔒 Locking
+                        <TabsTrigger value="locking" className="text-xs sm:text-sm py-3">
+                            <Lock className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">Locking</span>
                         </TabsTrigger>
-                        <TabsTrigger value="budgets" className="text-xs sm:text-sm">
-                            💎 Budgets
+                        <TabsTrigger value="budgets" className="text-xs sm:text-sm py-3">
+                            <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                            <span className="truncate">Budgets</span>
                         </TabsTrigger>
                     </TabsList>
 

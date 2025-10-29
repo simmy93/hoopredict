@@ -88,12 +88,12 @@ export default function GamesIndex({ championship, games, pagination }: Props) {
     return (
         <AuthenticatedLayout>
             <Head title="Games" />
-            <div className="py-8">
+            <div className="py-12">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="mb-8">
+                    <div className="mb-6">
                         <div className="flex items-center gap-2">
-                            <Calendar className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
-                            <h1 className="text-2xl sm:text-3xl font-bold">Games</h1>
+                            <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+                            <h1 className="text-2xl font-bold">Games</h1>
                         </div>
                         <p className="text-muted-foreground mt-1">
                             View all scheduled, live, and finished games
