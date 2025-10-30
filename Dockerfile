@@ -1,6 +1,12 @@
 # PHP Production Image with Node.js
 FROM php:8.3-fpm-alpine
 
+# Build arguments for Vite environment variables
+ARG VITE_REVERB_APP_KEY
+ARG VITE_REVERB_HOST
+ARG VITE_REVERB_PORT=443
+ARG VITE_REVERB_SCHEME=https
+
 # Install system dependencies including Node.js
 RUN apk add --no-cache \
     git \
