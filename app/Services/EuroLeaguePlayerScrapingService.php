@@ -351,31 +351,9 @@ class EuroLeaguePlayerScrapingService
 
             Log::info("Player statistics scraping completed. Processed {$gamesProcessed} games with {$totalStats} player stats.");
 
-            // Update player prices based on recent performance
-            $this->updatePlayerPrices();
-
         } catch (\Exception $e) {
             Log::error('Error scraping player statistics: '.$e->getMessage());
             throw $e;
-        }
-    }
-
-    private function updatePlayerPrices(): void
-    {
-        try {
-            Log::info('Updating player prices based on performance');
-
-            $players = Player::where('is_active', true)->get();
-            $updatedCount = 0;
-
-            foreach ($players as $player) {
-                $player->updatePriceBasedOnPerformance();
-                $updatedCount++;
-            }
-
-            Log::info("Updated prices for {$updatedCount} players");
-        } catch (\Exception $e) {
-            Log::error('Error updating player prices: '.$e->getMessage());
         }
     }
 }
