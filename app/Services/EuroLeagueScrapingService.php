@@ -176,15 +176,27 @@ class EuroLeagueScrapingService
 
             $euroLeague = $this->getOrCreateChampionship();
 
-            // Find the highest round number with games
-            $latestRound = Game::where('championship_id', $euroLeague->id)
-                ->max('round') ?? 0;
+            // Find the current round (earliest scheduled or active game)
+            $currentRound = Game::where('championship_id', $euroLeague->id)
+                ->where(function ($query) {
+                    $query->where('status', 'scheduled')
+                        ->orWhere('status', 'live');
+                })
+                ->where('scheduled_at', '>=', now()->subDays(7))
+                ->min('round');
 
-            // Scrape current round and next 2 rounds
-            $startRound = max(1, $latestRound - 1); // Include previous round in case of late updates
-            $endRound = min(38, $latestRound + 2); // Include next 2 upcoming rounds
+            // If no active/upcoming rounds found, use the latest finished round
+            if (!$currentRound) {
+                $currentRound = Game::where('championship_id', $euroLeague->id)
+                    ->where('status', 'finished')
+                    ->max('round') ?? 0;
+            }
 
-            Log::info("Smart scraping rounds {$startRound} to {$endRound}");
+            // Scrape current round and next 2 rounds, plus 1 previous round
+            $startRound = max(1, $currentRound - 1); // Include previous round in case of late updates
+            $endRound = min(38, $currentRound + 2); // Include next 2 upcoming rounds
+
+            Log::info("Smart scraping rounds {$startRound} to {$endRound} (detected current round: {$currentRound})");
 
             $processedCount = 0;
             for ($roundNumber = $startRound; $roundNumber <= $endRound; $roundNumber++) {
