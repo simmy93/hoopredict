@@ -176,27 +176,37 @@ class EuroLeagueScrapingService
 
             $euroLeague = $this->getOrCreateChampionship();
 
-            // Find the current round (earliest scheduled or active game)
-            $currentRound = Game::where('championship_id', $euroLeague->id)
-                ->where(function ($query) {
-                    $query->where('status', 'scheduled')
-                        ->orWhere('status', 'live');
-                })
-                ->where('scheduled_at', '>=', now()->subDays(7))
-                ->min('round');
+            // Check if database is empty (fresh deployment)
+            $totalGames = Game::where('championship_id', $euroLeague->id)->count();
 
-            // If no active/upcoming rounds found, use the latest finished round
-            if (!$currentRound) {
+            if ($totalGames === 0) {
+                Log::info('Empty database detected - performing initial full scrape');
+                // On fresh deployment, scrape ALL rounds to get historical data
+                $startRound = 1;
+                $endRound = 38;
+            } else {
+                // Find the current round (earliest scheduled or active game)
                 $currentRound = Game::where('championship_id', $euroLeague->id)
-                    ->where('status', 'finished')
-                    ->max('round') ?? 0;
+                    ->where(function ($query) {
+                        $query->where('status', 'scheduled')
+                            ->orWhere('status', 'live');
+                    })
+                    ->where('scheduled_at', '>=', now()->subDays(7))
+                    ->min('round');
+
+                // If no active/upcoming rounds found, use the latest finished round
+                if (!$currentRound) {
+                    $currentRound = Game::where('championship_id', $euroLeague->id)
+                        ->where('status', 'finished')
+                        ->max('round') ?? 1;
+                }
+
+                // Scrape current round and next 2 rounds, plus 1 previous round
+                $startRound = max(1, $currentRound - 1); // Include previous round in case of late updates
+                $endRound = min(38, $currentRound + 2); // Include next 2 upcoming rounds
             }
 
-            // Scrape current round and next 2 rounds, plus 1 previous round
-            $startRound = max(1, $currentRound - 1); // Include previous round in case of late updates
-            $endRound = min(38, $currentRound + 2); // Include next 2 upcoming rounds
-
-            Log::info("Smart scraping rounds {$startRound} to {$endRound} (detected current round: {$currentRound})");
+            Log::info("Smart scraping rounds {$startRound} to {$endRound}");
 
             $processedCount = 0;
             for ($roundNumber = $startRound; $roundNumber <= $endRound; $roundNumber++) {

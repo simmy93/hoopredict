@@ -15,25 +15,35 @@ HooPredict is a Laravel 12 + React (Inertia.js) application for basketball predi
 
 ### Initial Setup (Complete Database with Test Data)
 ```bash
-# Complete fresh setup with scraped data and seeded test data
+# NEW: Simplified setup - Smart scraper auto-detects fresh DB and scrapes everything
 php artisan migrate:fresh && \
-php artisan scrape:euroleague --teams && \
-php artisan scrape:euroleague --players && \
-php artisan scrape:euroleague --games && \
-php artisan scrape:euroleague --stats && \
-php artisan rounds:process-prices --all && \
-php artisan fantasy:calculate-team-points --round=1 && \
+php artisan scrape:recent && \
 php artisan db:seed
+
+# LEGACY: Manual setup (still works, but not needed anymore)
+# php artisan scrape:euroleague --teams && \
+# php artisan scrape:euroleague --players && \
+# php artisan scrape:euroleague --games && \
+# php artisan scrape:euroleague --stats && \
+# php artisan rounds:process-prices --all
 
 # This gives you:
 # - 18 EuroLeague teams with logos
 # - ~330 active players with current prices
-# - All historical games (typically 60+ finished games from recent rounds)
+# - All historical games from all rounds (including past seasons if available)
+# - Player statistics for all finished games
 # - Player price histories for all processed rounds
+# - Fantasy team points calculated for all finished rounds
 # - 30 test users (1 admin, 1 test user, 28 random)
 # - 4 prediction leagues with realistic predictions
 # - 6 fantasy leagues (3 budget mode, 3 draft mode)
 # - 1 completed draft league with simulated snake draft
+
+# The smart scraper (scrape:recent) automatically:
+# - Detects if database is empty
+# - On fresh DB: Scrapes teams, players, ALL rounds (1-38), stats, and processes prices
+# - On existing DB: Only updates recent rounds (current ±2)
+# - Runs hourly via scheduler in production
 ```
 
 ### Development
