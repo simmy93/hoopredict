@@ -89,7 +89,7 @@ class Game extends Model
 
         // Check if any game has actually started (backup check)
         $hasStartedGames = $games->contains(function ($game) {
-            return $game->home_score !== null || $game->status !== 'scheduled';
+            return in_array($game->status, ['live', 'finished']);
         });
 
         // Check if all games are finished
