@@ -5,6 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        VITE_APP_NAME: ${VITE_APP_NAME:-HooPredict}
         VITE_REVERB_APP_KEY: ${VITE_REVERB_APP_KEY}
         VITE_REVERB_HOST: ${VITE_REVERB_HOST}
         VITE_REVERB_PORT: ${VITE_REVERB_PORT:-443}

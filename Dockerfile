@@ -2,6 +2,7 @@
 FROM php:8.3-fpm-alpine
 
 # Build arguments for Vite environment variables
+ARG VITE_APP_NAME=HooPredict
 ARG VITE_REVERB_APP_KEY
 ARG VITE_REVERB_HOST
 ARG VITE_REVERB_PORT=443
@@ -65,6 +66,7 @@ COPY . .
 RUN composer install --optimize-autoloader --no-interaction --prefer-dist
 
 # Set VITE environment variables for frontend build
+ENV VITE_APP_NAME=${VITE_APP_NAME}
 ENV VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
 ENV VITE_REVERB_HOST=${VITE_REVERB_HOST}
 ENV VITE_REVERB_PORT=${VITE_REVERB_PORT}
