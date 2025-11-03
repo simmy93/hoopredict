@@ -64,6 +64,12 @@ COPY . .
 # Install PHP dependencies including dev (needed for Faker in seeders)
 RUN composer install --optimize-autoloader --no-interaction --prefer-dist
 
+# Set VITE environment variables for frontend build
+ENV VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
+ENV VITE_REVERB_HOST=${VITE_REVERB_HOST}
+ENV VITE_REVERB_PORT=${VITE_REVERB_PORT}
+ENV VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
+
 # Install Node dependencies and build assets (wayfinder needs PHP available)
 RUN npm ci && npm run build
 
