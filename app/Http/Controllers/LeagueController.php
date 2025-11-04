@@ -125,7 +125,7 @@ class LeagueController extends Controller
     public function join(Request $request)
     {
         $request->validate([
-            'invite_code' => 'required|string|size:6',
+            'invite_code' => 'required|string|min:6|max:8',
         ]);
 
         $league = League::where('invite_code', strtoupper($request->invite_code))
