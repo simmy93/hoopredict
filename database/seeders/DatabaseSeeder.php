@@ -143,16 +143,17 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info("✅ Added {$totalMembers} league members");
 
-        // Create predictions for finished games
+        // Create predictions for finished games - EVERY member predicts EVERY game
         $this->command->info('🎯 Creating predictions...');
         $totalPredictions = 0;
 
         foreach ($leagues as $league) {
             $members = $league->members;
 
-            foreach ($games->random(min(20, $games->count())) as $game) {
-                foreach ($members->random(min($members->count(), rand(5, 15))) as $member) {
-                    // Generate realistic predictions around actual scores
+            // Every member predicts every finished game
+            foreach ($games as $game) {
+                foreach ($members as $member) {
+                    // Generate realistic predictions around actual scores with variance
                     $homeVariance = rand(-15, 15);
                     $awayVariance = rand(-15, 15);
 
@@ -173,7 +174,7 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        $this->command->info("✅ Created {$totalPredictions} predictions");
+        $this->command->info("✅ Created {$totalPredictions} predictions (all members predicted all games)");
 
         // Create Fantasy Leagues - Budget Mode (Marketplace)
         $this->command->info('💰 Creating budget fantasy leagues...');
@@ -413,57 +414,88 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Add players to a budget team
+     * Add players to a budget team - ALWAYS adds exactly 10 players
      */
     private function addPlayersToTeam(FantasyTeam $team, $allPlayers, $budget): void
     {
-        $positions = ['Guard' => 3, 'Forward' => 3, 'Center' => 2]; // Minimum requirements
         $selectedPlayers = collect();
         $totalSpent = 0;
 
-        // Filter players with valid prices
-        $availablePlayers = $allPlayers->filter(fn($p) => $p->price !== null && $p->price > 0);
+        // Filter players with valid prices and sort by price
+        $availablePlayers = $allPlayers
+            ->filter(fn($p) => $p->price !== null && $p->price > 0)
+            ->sortBy('price');
 
-        // First, ensure minimum position requirements
-        foreach ($positions as $position => $minCount) {
+        // Position requirements
+        $positionsNeeded = [
+            'Guard' => 3,
+            'Forward' => 3,
+            'Center' => 2,
+        ];
+
+        // First pass: Fill minimum position requirements with affordable players
+        foreach ($positionsNeeded as $position => $minCount) {
             $positionPlayers = $availablePlayers
                 ->where('position', $position)
-                ->sortBy('price')
-                ->take($minCount * 3); // Get some options
+                ->whereNotIn('id', $selectedPlayers->pluck('id'))
+                ->filter(fn($p) => $totalSpent + $p->price <= $budget);
 
-            $selected = $positionPlayers->random(min($minCount, $positionPlayers->count()));
+            $toSelect = min($minCount, $positionPlayers->count());
+            $selected = $positionPlayers->take($toSelect * 2)->random($toSelect);
 
             foreach ($selected as $player) {
-                if ($totalSpent + $player->price <= $budget * 0.9) { // Keep 10% buffer
-                    $selectedPlayers->push($player);
-                    $totalSpent += $player->price;
-                }
+                $selectedPlayers->push($player);
+                $totalSpent += $player->price;
             }
         }
 
-        // Fill remaining slots with random players
+        // Second pass: Fill remaining slots (up to 10 total) with any affordable players
         $remaining = 10 - $selectedPlayers->count();
         if ($remaining > 0) {
-            $remainingBudget = $budget - $totalSpent;
-            $avgPrice = $remainingBudget / $remaining;
-
-            $otherPlayers = $availablePlayers
+            $remainingPlayers = $availablePlayers
                 ->whereNotIn('id', $selectedPlayers->pluck('id'))
-                ->filter(fn($p) => $p->price <= $avgPrice * 1.5)
-                ->shuffle()
-                ->take($remaining);
+                ->filter(fn($p) => $totalSpent + $p->price <= $budget)
+                ->values();
 
-            foreach ($otherPlayers as $player) {
-                if ($totalSpent + $player->price <= $budget) {
+            // If not enough affordable players, pick cheapest ones
+            if ($remainingPlayers->count() < $remaining) {
+                $cheapest = $availablePlayers
+                    ->whereNotIn('id', $selectedPlayers->pluck('id'))
+                    ->sortBy('price')
+                    ->take($remaining)
+                    ->values();
+
+                foreach ($cheapest as $player) {
+                    $selectedPlayers->push($player);
+                    $totalSpent += $player->price;
+                }
+            } else {
+                // Pick random affordable players
+                $selected = $remainingPlayers->random($remaining);
+                foreach ($selected as $player) {
                     $selectedPlayers->push($player);
                     $totalSpent += $player->price;
                 }
             }
         }
 
-        // Attach players to team
+        // Safety check: If still not 10 players, fill with cheapest available
+        if ($selectedPlayers->count() < 10) {
+            $needed = 10 - $selectedPlayers->count();
+            $cheapest = $availablePlayers
+                ->whereNotIn('id', $selectedPlayers->pluck('id'))
+                ->sortBy('price')
+                ->take($needed);
+
+            foreach ($cheapest as $player) {
+                $selectedPlayers->push($player);
+                $totalSpent += $player->price;
+            }
+        }
+
+        // Attach exactly 10 players to team with lineup positions
         $lineupPosition = 1;
-        foreach ($selectedPlayers as $player) {
+        foreach ($selectedPlayers->take(10) as $player) {
             FantasyTeamPlayer::create([
                 'fantasy_team_id' => $team->id,
                 'player_id' => $player->id,
@@ -510,13 +542,13 @@ class DatabaseSeeder extends Seeder
                     'created_at' => now()->subDays(10)->addMinutes($pickNumber),
                 ]);
 
-                // Add player to team
+                // Add player to team with lineup position based on draft round
                 FantasyTeamPlayer::create([
                     'fantasy_team_id' => $team->id,
                     'player_id' => $player->id,
                     'purchase_price' => 0,
                     'acquired_at' => now()->subDays(10)->addMinutes($pickNumber),
-                    'lineup_position' => ($pickNumber - 1) % $league->team_size + 1,
+                    'lineup_position' => $round, // Round 1-10 becomes position 1-10
                 ]);
 
                 $pickNumber++;
