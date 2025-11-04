@@ -60,7 +60,7 @@ class FantasyLeagueController extends Controller
             'championship_id' => 'required|exists:championships,id',
             'mode' => 'required|in:budget,draft',
             'budget' => 'required|numeric|in:10000000,17500000,25000000', // Budget Genius, Balanced Baller, Rich Dad Mode
-            'team_size' => 'required|integer|min:5|max:15',
+            'team_size' => 'required|integer|min:8|max:15', // Min 8 to satisfy composition rules (3G, 3F, 2C)
             'is_private' => 'boolean',
             'max_members' => 'required|integer|min:2|max:50',
             'draft_date' => 'nullable|date|after:now',

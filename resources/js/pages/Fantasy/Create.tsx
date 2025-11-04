@@ -221,14 +221,14 @@ export default function Create({ championships }: Props) {
                                     <Input
                                         id="team_size"
                                         type="number"
-                                        min="5"
+                                        min="8"
                                         max="15"
                                         value={data.team_size}
                                         onChange={(e) => setData('team_size', parseInt(e.target.value))}
                                         className={errors.team_size ? 'border-red-500' : ''}
                                     />
                                     <p className="text-sm text-muted-foreground">
-                                        Number of players per team (5-15)
+                                        Number of players per team (8-15, min: 3 Guards, 3 Forwards, 2 Centers)
                                     </p>
                                     {errors.team_size && <p className="text-sm text-red-600">{errors.team_size}</p>}
                                 </div>
