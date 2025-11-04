@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Pagination } from '@/components/ui/pagination';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { DollarSign, Search, TrendingUp, RefreshCw, ArrowUpDown } from 'lucide-react';
@@ -358,20 +359,7 @@ export default function Index({ players, teams, filters = {} }: Props) {
                             </div>
 
                             {/* Pagination */}
-                            {players.last_page > 1 && (
-                                <div className="mt-6 flex justify-center gap-2">
-                                    {Array.from({ length: players.last_page }, (_, i) => i + 1).map((page) => (
-                                        <Button
-                                            key={page}
-                                            variant={page === players.current_page ? 'default' : 'outline'}
-                                            onClick={() => updateFilters({ page })}
-                                            size="sm"
-                                        >
-                                            {page}
-                                        </Button>
-                                    ))}
-                                </div>
-                            )}
+                            <Pagination pagination={players} onPageChange={(page) => updateFilters({ page })} />
                         </CardContent>
                     </Card>
                 </div>

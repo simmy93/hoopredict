@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { FlashMessages } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
@@ -421,76 +422,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     </div>
 
                     {/* Pagination */}
-                    {players.last_page > 1 && (
-                        <div className="mt-6 flex flex-wrap justify-center gap-2">
-                            {/* Previous Button */}
-                            <Button
-                                variant="outline"
-                                onClick={() => updateFilters({ page: players.current_page - 1 })}
-                                disabled={players.current_page === 1}
-                            >
-                                Previous
-                            </Button>
-
-                            {/* First Page */}
-                            {players.current_page > 3 && (
-                                <>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => updateFilters({ page: 1 })}
-                                    >
-                                        1
-                                    </Button>
-                                    {players.current_page > 4 && (
-                                        <span className="flex items-center px-2">...</span>
-                                    )}
-                                </>
-                            )}
-
-                            {/* Page Numbers Around Current */}
-                            {Array.from({ length: players.last_page }, (_, i) => i + 1)
-                                .filter(page => {
-                                    return page === players.current_page ||
-                                           page === players.current_page - 1 ||
-                                           page === players.current_page - 2 ||
-                                           page === players.current_page + 1 ||
-                                           page === players.current_page + 2;
-                                })
-                                .map((page) => (
-                                    <Button
-                                        key={page}
-                                        variant={page === players.current_page ? 'default' : 'outline'}
-                                        onClick={() => updateFilters({ page })}
-                                    >
-                                        {page}
-                                    </Button>
-                                ))}
-
-                            {/* Last Page */}
-                            {players.current_page < players.last_page - 2 && (
-                                <>
-                                    {players.current_page < players.last_page - 3 && (
-                                        <span className="flex items-center px-2">...</span>
-                                    )}
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => updateFilters({ page: players.last_page })}
-                                    >
-                                        {players.last_page}
-                                    </Button>
-                                </>
-                            )}
-
-                            {/* Next Button */}
-                            <Button
-                                variant="outline"
-                                onClick={() => updateFilters({ page: players.current_page + 1 })}
-                                disabled={players.current_page === players.last_page}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    )}
+                    <Pagination pagination={players} onPageChange={(page) => updateFilters({ page })} />
                 </div>
             </div>
 

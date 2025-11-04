@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Pagination } from '@/components/ui/pagination';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Calendar, CheckCircle, Clock, Copy, Crown, Link as LinkIcon, MapPin, Star, Trophy, Users, X, XCircle } from 'lucide-react';
@@ -612,74 +613,10 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                             })}
 
                                             {/* Pagination */}
-                                            {games.last_page > 1 && (
-                                                <div className="mt-6 flex justify-center items-center gap-2 flex-wrap">
-                                                    {/* Previous Button */}
-                                                    {games.current_page > 1 && (
-                                                        <Link
-                                                            href={`/leagues/${league.id}?page=${games.current_page - 1}`}
-                                                            preserveScroll
-                                                        >
-                                                            <Button variant="outline" size="sm">
-                                                                ← Previous
-                                                            </Button>
-                                                        </Link>
-                                                    )}
-
-                                                    {/* First Page */}
-                                                    {games.current_page > 3 && (
-                                                        <>
-                                                            <Link href={`/leagues/${league.id}?page=1`} preserveScroll>
-                                                                <Button variant="outline" size="sm">1</Button>
-                                                            </Link>
-                                                            {games.current_page > 4 && <span className="text-gray-400">...</span>}
-                                                        </>
-                                                    )}
-
-                                                    {/* Page Numbers (show current page and 2 pages on each side) */}
-                                                    {Array.from({ length: games.last_page }, (_, i) => i + 1)
-                                                        .filter(page =>
-                                                            page === games.current_page ||
-                                                            (page >= games.current_page - 2 && page <= games.current_page + 2)
-                                                        )
-                                                        .map((page) => (
-                                                            <Link
-                                                                key={page}
-                                                                href={`/leagues/${league.id}?page=${page}`}
-                                                                preserveScroll
-                                                            >
-                                                                <Button
-                                                                    variant={page === games.current_page ? 'default' : 'outline'}
-                                                                    size="sm"
-                                                                >
-                                                                    {page}
-                                                                </Button>
-                                                            </Link>
-                                                        ))}
-
-                                                    {/* Last Page */}
-                                                    {games.current_page < games.last_page - 2 && (
-                                                        <>
-                                                            {games.current_page < games.last_page - 3 && <span className="text-gray-400">...</span>}
-                                                            <Link href={`/leagues/${league.id}?page=${games.last_page}`} preserveScroll>
-                                                                <Button variant="outline" size="sm">{games.last_page}</Button>
-                                                            </Link>
-                                                        </>
-                                                    )}
-
-                                                    {/* Next Button */}
-                                                    {games.current_page < games.last_page && (
-                                                        <Link
-                                                            href={`/leagues/${league.id}?page=${games.current_page + 1}`}
-                                                            preserveScroll
-                                                        >
-                                                            <Button variant="outline" size="sm">
-                                                                Next →
-                                                            </Button>
-                                                        </Link>
-                                                    )}
-                                                </div>
-                                            )}
+                                            <Pagination
+                                                pagination={games}
+                                                onPageChange={(page) => router.get(`/leagues/${league.id}?page=${page}`, {}, { preserveScroll: true })}
+                                            />
                                         </div>
                                     )}
                                 </TabsContent>

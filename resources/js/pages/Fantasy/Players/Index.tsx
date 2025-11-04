@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { Pagination } from '@/components/ui/pagination'
 import { ShoppingCart, Search, ArrowLeft, DollarSign } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
@@ -298,19 +299,7 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     </div>
 
                     {/* Pagination */}
-                    {players.last_page > 1 && (
-                        <div className="mt-6 flex justify-center gap-2">
-                            {Array.from({ length: players.last_page }, (_, i) => i + 1).map((page) => (
-                                <Button
-                                    key={page}
-                                    variant={page === players.current_page ? 'default' : 'outline'}
-                                    onClick={() => updateFilters({ page })}
-                                >
-                                    {page}
-                                </Button>
-                            ))}
-                        </div>
-                    )}
+                    <Pagination pagination={players} onPageChange={(page) => updateFilters({ page })} />
                 </div>
             </div>
         </AuthenticatedLayout>

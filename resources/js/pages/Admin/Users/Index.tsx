@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { Link, router } from '@inertiajs/react';
 
 interface User {
@@ -129,20 +130,10 @@ export default function Index({ users }: Props) {
                     </table>
                 </div>
 
-                {users.last_page > 1 && (
-                    <div className="mt-4 flex justify-center space-x-2">
-                        {Array.from({ length: users.last_page }, (_, i) => i + 1).map((page) => (
-                            <Link key={page} href={`/admin/users?page=${page}`}>
-                                <Button
-                                    variant={page === users.current_page ? 'default' : 'outline'}
-                                    size="sm"
-                                >
-                                    {page}
-                                </Button>
-                            </Link>
-                        ))}
-                    </div>
-                )}
+                <Pagination
+                    pagination={users}
+                    onPageChange={(page) => router.get(`/admin/users?page=${page}`, {}, { preserveScroll: true })}
+                />
             </main>
         </div>
     );

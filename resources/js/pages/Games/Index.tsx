@@ -1,9 +1,9 @@
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { Head, router } from '@inertiajs/react';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 interface Team {
     id: number;
@@ -179,59 +179,7 @@ export default function GamesIndex({ championship, games, pagination }: Props) {
                         </div>
 
                         {/* Pagination */}
-                        {pagination && pagination.last_page > 1 && (
-                            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                    Showing {pagination.from} to {pagination.to} of {pagination.total} games
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handlePageChange(pagination.current_page - 1)}
-                                        disabled={pagination.current_page === 1}
-                                    >
-                                        <ChevronLeft className="h-4 w-4 mr-1" />
-                                        Previous
-                                    </Button>
-                                    <div className="flex items-center gap-1">
-                                        {Array.from({ length: Math.min(5, pagination.last_page) }, (_, i) => {
-                                            let pageNum;
-                                            if (pagination.last_page <= 5) {
-                                                pageNum = i + 1;
-                                            } else if (pagination.current_page <= 3) {
-                                                pageNum = i + 1;
-                                            } else if (pagination.current_page >= pagination.last_page - 2) {
-                                                pageNum = pagination.last_page - 4 + i;
-                                            } else {
-                                                pageNum = pagination.current_page - 2 + i;
-                                            }
-
-                                            return (
-                                                <Button
-                                                    key={pageNum}
-                                                    variant={pagination.current_page === pageNum ? 'default' : 'outline'}
-                                                    size="sm"
-                                                    onClick={() => handlePageChange(pageNum)}
-                                                    className="w-9 h-9 p-0"
-                                                >
-                                                    {pageNum}
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handlePageChange(pagination.current_page + 1)}
-                                        disabled={pagination.current_page === pagination.last_page}
-                                    >
-                                        Next
-                                        <ChevronRight className="h-4 w-4 ml-1" />
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
+                        {pagination && <Pagination pagination={pagination} onPageChange={handlePageChange} />}
                     </>
                 )}
                 </div>

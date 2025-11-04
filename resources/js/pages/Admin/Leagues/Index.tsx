@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/ui/pagination';
 import { Link, router } from '@inertiajs/react';
 
 interface League {
@@ -141,20 +142,10 @@ export default function Index({ leagues }: Props) {
                     </table>
                 </div>
 
-                {leagues.last_page > 1 && (
-                    <div className="mt-4 flex justify-center space-x-2">
-                        {Array.from({ length: leagues.last_page }, (_, i) => i + 1).map((page) => (
-                            <Link key={page} href={`/admin/leagues?page=${page}`}>
-                                <Button
-                                    variant={page === leagues.current_page ? 'default' : 'outline'}
-                                    size="sm"
-                                >
-                                    {page}
-                                </Button>
-                            </Link>
-                        ))}
-                    </div>
-                )}
+                <Pagination
+                    pagination={leagues}
+                    onPageChange={(page) => router.get(`/admin/leagues?page=${page}`, {}, { preserveScroll: true })}
+                />
             </main>
         </div>
     );
