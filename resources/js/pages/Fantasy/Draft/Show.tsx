@@ -232,10 +232,21 @@ export default function Show({
     useEffect(() => {
         if (!league) return
 
-        const checkEcho = setInterval(() => {
+        let checkEcho: NodeJS.Timeout | null = null
+        let attempts = 0
+        const maxAttempts = 100 // 10 seconds max (100ms * 100)
+
+        checkEcho = setInterval(() => {
+            attempts++
+
             if (window.Echo) {
-                clearInterval(checkEcho)
+                if (checkEcho) clearInterval(checkEcho)
                 setupEcho()
+            } else if (attempts >= maxAttempts) {
+                // Timeout after 10 seconds
+                if (checkEcho) clearInterval(checkEcho)
+                console.error('❌ Echo failed to initialize after 10 seconds')
+                setIsConnected(false)
             }
         }, 100)
 
@@ -362,8 +373,21 @@ export default function Show({
             })
         }
 
+        // Handle page visibility changes (mobile backgrounding)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && window.Echo && league) {
+                console.log('📱 Page became visible, reconnecting to draft channel...')
+                // Force reconnection by leaving and rejoining
+                window.Echo.leave(`draft.${league.id}`)
+                setTimeout(() => setupEcho(), 500)
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
         return () => {
-            clearInterval(checkEcho)
+            if (checkEcho) clearInterval(checkEcho)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
             if (window.Echo && league) {
                 window.Echo.leave(`draft.${league.id}`)
             }
