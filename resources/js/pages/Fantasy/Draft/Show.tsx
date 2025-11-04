@@ -438,8 +438,47 @@ export default function Show({
         return () => clearInterval(interval)
     }, [isPaused])
 
+    // Check if player can be drafted based on position limits
+    const canDraftPlayer = (player: Player): { canDraft: boolean; reason?: string } => {
+        if (!userTeam || !league) return { canDraft: false }
+
+        // Get current team composition
+        const myPicks = draftPicks.filter(pick => pick.team.id === userTeam.id)
+        const positionCounts = {
+            Guard: myPicks.filter(p => p.player.position === 'Guard').length,
+            Forward: myPicks.filter(p => p.player.position === 'Forward').length,
+            Center: myPicks.filter(p => p.player.position === 'Center').length,
+        }
+
+        // Max allowed: Guards=5, Forwards=5, Centers=4 (to ensure min 3G, 3F, 2C)
+        const maxAllowed = {
+            Guard: league.team_size - 3 - 2, // 5
+            Forward: league.team_size - 3 - 2, // 5
+            Center: league.team_size - 3 - 3, // 4
+        }
+
+        const newCount = positionCounts[player.position as keyof typeof positionCounts] + 1
+
+        if (newCount > maxAllowed[player.position as keyof typeof maxAllowed]) {
+            return {
+                canDraft: false,
+                reason: `Max ${maxAllowed[player.position as keyof typeof maxAllowed]} ${player.position}s (min 3G, 3F, 2C required)`
+            }
+        }
+
+        return { canDraft: true }
+    }
+
     const handleDraftPlayer = (player: Player) => {
         if (!isMyTurn || !league || isPaused) return
+
+        const { canDraft, reason } = canDraftPlayer(player)
+        if (!canDraft) {
+            // Show error message
+            alert(reason)
+            return
+        }
+
         setPlayerToDraft(player)
         setConfirmDialogOpen(true)
     }
@@ -757,38 +796,49 @@ export default function Show({
                                     </div>
                                 ) : (
                                     <>
-                                        {availablePlayers.map((player) => (
-                                            <div
-                                                key={player.id}
-                                                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                                            >
-                                                {player.photo_url ? (
-                                                    <img
-                                                        src={player.photo_url}
-                                                        alt={player.name}
-                                                        className="w-12 h-12 rounded-full object-cover object-top"
-                                                        loading="lazy"
-                                                    />
-                                                ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                                                        <User className="h-6 w-6 text-muted-foreground" />
-                                                    </div>
-                                                )}
-                                                <div className="flex-1">
-                                                    <div className="font-medium">{player.name}</div>
-                                                    <div className="text-sm text-muted-foreground">
-                                                        {player.position} • {player.team.name}
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleDraftPlayer(player)}
-                                                    disabled={!isMyTurn || isPaused || draftingPlayerId !== null}
+                                        {availablePlayers.map((player) => {
+                                            const { canDraft, reason } = canDraftPlayer(player)
+                                            const isDisabled = !isMyTurn || isPaused || draftingPlayerId !== null || !canDraft
+
+                                            return (
+                                                <div
+                                                    key={player.id}
+                                                    className={`flex items-center gap-3 p-3 border rounded-lg transition-colors ${
+                                                        !canDraft ? 'opacity-50 bg-muted' : 'hover:bg-muted/50'
+                                                    }`}
+                                                    title={!canDraft ? reason : ''}
                                                 >
-                                                    {draftingPlayerId === player.id ? 'Drafting...' : 'Draft'}
-                                                </Button>
-                                            </div>
-                                        ))}
+                                                    {player.photo_url ? (
+                                                        <img
+                                                            src={player.photo_url}
+                                                            alt={player.name}
+                                                            className="w-12 h-12 rounded-full object-cover object-top"
+                                                            loading="lazy"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                                                            <User className="h-6 w-6 text-muted-foreground" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <div className="font-medium">{player.name}</div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {player.position} • {player.team.name}
+                                                        </div>
+                                                        {!canDraft && isMyTurn && (
+                                                            <div className="text-xs text-red-500 mt-1">{reason}</div>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleDraftPlayer(player)}
+                                                        disabled={isDisabled}
+                                                    >
+                                                        {draftingPlayerId === player.id ? 'Drafting...' : 'Draft'}
+                                                    </Button>
+                                                </div>
+                                            )
+                                        })}
 
                                         {/* Load More Button */}
                                         {playersPagination && playersPagination.current_page < playersPagination.last_page && (

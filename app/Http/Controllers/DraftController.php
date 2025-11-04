@@ -172,6 +172,40 @@ class DraftController extends Controller
                     throw new \Exception('Your team is full');
                 }
 
+                // Validate team composition - minimum: 3 Guards, 3 Forwards, 2 Centers
+                $currentPlayers = $userTeam->players()->get();
+                $positionCounts = [
+                    'Guard' => $currentPlayers->where('position', 'Guard')->count(),
+                    'Forward' => $currentPlayers->where('position', 'Forward')->count(),
+                    'Center' => $currentPlayers->where('position', 'Center')->count(),
+                ];
+
+                // Count after adding this player
+                $positionCounts[$player->position]++;
+
+                // Check if this would violate composition rules
+                $totalPicks = $currentPlayers->count() + 1;
+                $remainingPicks = $league->team_size - $totalPicks;
+
+                // Calculate maximum allowed for this position
+                // Max Guards = team_size - min_forwards - min_centers = 10 - 3 - 2 = 5
+                // Max Forwards = team_size - min_guards - min_centers = 10 - 3 - 2 = 5
+                // Max Centers = team_size - min_guards - min_forwards = 10 - 3 - 3 = 4
+                $maxAllowed = [
+                    'Guard' => $league->team_size - 3 - 2, // 5
+                    'Forward' => $league->team_size - 3 - 2, // 5
+                    'Center' => $league->team_size - 3 - 3, // 4
+                ];
+
+                if ($positionCounts[$player->position] > $maxAllowed[$player->position]) {
+                    $minRequired = [
+                        'Guard' => 3,
+                        'Forward' => 3,
+                        'Center' => 2,
+                    ];
+                    throw new \Exception("Cannot draft another {$player->position}. Team composition requires minimum: {$minRequired['Guard']} Guards, {$minRequired['Forward']} Forwards, {$minRequired['Center']} Centers. You already have {$positionCounts[$player->position]} {$player->position}s.");
+                }
+
                 // Store current pick number before incrementing
                 $currentPickNumber = $league->current_pick;
                 $totalTeams = $league->teams()->count();
