@@ -777,8 +777,84 @@ export default function ManageNew({
                                     </CardContent>
                                 </Card>
 
-                                {/* Sidebar: Sixth Man + Available Players */}
-                                <div className="lg:col-span-4 space-y-6">
+                                {/* Mobile-only: Sixth Man */}
+                                <Card className="lg:hidden">
+                                    <CardHeader>
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                            <Sparkles className="h-4 w-4 text-yellow-500" />
+                                            Sixth Man
+                                            <Badge className="bg-yellow-600 text-white text-xs">75%</Badge>
+                                        </CardTitle>
+                                        <CardDescription className="text-xs">Key substitute - earns 75% of fantasy points</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={handleDropOnSixthMan}
+                                            className={`
+                                                relative flex flex-col items-center p-3 rounded-lg border-2 border-dashed
+                                                min-h-[120px] transition-all
+                                                ${sixthMan ? 'bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400' : 'dark:bg-gray-800/50 bg-white/50 dark:border-gray-600 border-gray-300'}
+                                                ${draggedPlayer ? 'ring-4 ring-yellow-500/30' : ''}
+                                            `}
+                                        >
+                                            {sixthMan ? (
+                                                <div
+                                                    draggable
+                                                    onDragStart={() => handleDragStart(sixthMan)}
+                                                    onDragEnd={handleDragEnd}
+                                                    className="flex flex-col items-center gap-1 cursor-move w-full"
+                                                >
+                                                    {sixthMan.player.photo_url ? (
+                                                        <img
+                                                            src={sixthMan.player.photo_url}
+                                                            alt={sixthMan.player.name}
+                                                            className="w-14 h-14 rounded-full object-cover object-top border-2 border-yellow-400"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-yellow-400">
+                                                            <User className="h-6 w-6 text-gray-400" />
+                                                        </div>
+                                                    )}
+                                                    <div className="text-center w-full">
+                                                        <div className="font-medium text-xs truncate">{sixthMan.player.name}</div>
+                                                        <Badge className="text-[10px] mt-1">{sixthMan.player.position}</Badge>
+                                                        {isRoundFinished ? (
+                                                            <div className="text-[10px] mt-1">
+                                                                <div className="font-bold text-green-600">
+                                                                    {sixthMan.round_team_points?.toFixed(1)} pts
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-[10px] font-bold text-blue-600 mt-1">
+                                                                {sixthMan.points_earned.toFixed(1)} pts
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => {
+                                                            setBench([...bench, sixthMan])
+                                                            setSixthMan(null)
+                                                        }}
+                                                        className="mt-1 text-xs h-6"
+                                                    >
+                                                        Remove
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center text-muted-foreground text-xs h-full flex flex-col items-center justify-center">
+                                                    <Sparkles className="h-6 w-6 mb-1 opacity-50" />
+                                                    <span>Drag player here</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Sidebar: Sixth Man + Available Players (Desktop only) */}
+                                <div className="hidden lg:block lg:col-span-4 space-y-6">
                                     {/* Sixth Man Slot */}
                                     <Card>
                                         <CardHeader>
