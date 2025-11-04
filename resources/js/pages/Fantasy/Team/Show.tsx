@@ -5,11 +5,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
+import PlayerStatsModal from '@/components/PlayerStatsModal';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { FlashMessages } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, DollarSign, Loader2, Search, ShoppingCart, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 
 interface User {
     id: number;
@@ -82,8 +84,27 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
     const [confirmSellDialogOpen, setConfirmSellDialogOpen] = useState(false);
     const [playerToSell, setPlayerToSell] = useState<Player | null>(null);
 
+    // Player stats modal state
+    const [statsModalOpen, setStatsModalOpen] = useState(false);
+    const [selectedPlayerStats, setSelectedPlayerStats] = useState<any>(null);
+    const [loadingStats, setLoadingStats] = useState(false);
+
     const { props } = usePage();
     const flash = (props.flash || {}) as FlashMessages;
+
+    // Function to fetch and show player stats
+    const showPlayerStats = async (playerId: number) => {
+        setLoadingStats(true);
+        setStatsModalOpen(true);
+        try {
+            const response = await axios.get(`/api/players/${playerId}/stats`);
+            setSelectedPlayerStats(response.data);
+        } catch (error) {
+            console.error('Failed to load player stats:', error);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
 
     // Automatically scroll to top when errors appear
     useEffect(() => {
@@ -219,7 +240,12 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                         </div>
                                                     )}
                                                     <div className="flex-1">
-                                                        <h4 className="font-medium">{player.name}</h4>
+                                                        <h4
+                                                            className="font-medium hover:text-primary cursor-pointer transition-colors"
+                                                            onClick={() => showPlayerStats(player.id)}
+                                                        >
+                                                            {player.name}
+                                                        </h4>
                                                         <p className="text-sm text-muted-foreground">{player.team.name}</p>
                                                         <div className="mt-1 flex gap-2">
                                                             <Badge variant="secondary" className="text-xs">
@@ -347,7 +373,12 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                 </div>
                                             )}
                                             <div className="flex-1">
-                                                <CardTitle className="text-lg">{player.name}</CardTitle>
+                                                <CardTitle
+                                                    className="text-lg hover:text-primary cursor-pointer transition-colors"
+                                                    onClick={() => showPlayerStats(player.id)}
+                                                >
+                                                    {player.name}
+                                                </CardTitle>
                                                 <CardDescription>
                                                     {player.team.name}
                                                     {player.jersey_number && ` #${player.jersey_number}`}
@@ -479,6 +510,18 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Player Stats Modal */}
+            <PlayerStatsModal
+                player={selectedPlayerStats}
+                open={statsModalOpen}
+                onOpenChange={(open) => {
+                    setStatsModalOpen(open);
+                    if (!open) {
+                        setSelectedPlayerStats(null);
+                    }
+                }}
+            />
         </AuthenticatedLayout>
     );
 }

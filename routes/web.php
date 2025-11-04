@@ -16,6 +16,7 @@ use App\Http\Controllers\FantasyPlayerController;
 use App\Http\Controllers\FantasyTeamController;
 use App\Http\Controllers\GamesController;
 use App\Http\Controllers\LeagueController;
+use App\Http\Controllers\PlayerStatsController;
 use App\Http\Controllers\PredictionController;
 use App\Http\Controllers\StatisticsController;
 use Illuminate\Support\Facades\Auth;
@@ -80,6 +81,9 @@ Route::middleware('auth')->group(function () {
     })->name('how-it-works');
 
     Route::get('/games', [GamesController::class, 'index'])->name('games.index');
+
+    // Player stats API endpoint
+    Route::get('/api/players/{player}/stats', [PlayerStatsController::class, 'show'])->name('players.stats');
 
     Route::resource('leagues', LeagueController::class)->except(['edit', 'update']);
     Route::post('/leagues/join', [LeagueController::class, 'join'])->name('leagues.join');
