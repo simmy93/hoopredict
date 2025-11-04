@@ -185,15 +185,28 @@ export default function Show({
 
     // Play sound and show notification when it's user's turn
     useEffect(() => {
-        if (isMyTurn && Notification.permission === 'granted') {
-            // Show browser notification
-            const notification = new Notification("It's Your Turn to Draft! 🏀", {
-                body: `Pick #${currentPick} in ${league?.name}. Make your selection now!`,
-                icon: '/favicon.ico',
-                badge: '/favicon.ico',
-                tag: 'draft-turn',
-                requireInteraction: true,
-            })
+        if (isMyTurn && league && currentPick) {
+            try {
+                // Only attempt notification if permission is granted AND Notification API is available
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    // Show browser notification
+                    const notification = new Notification("It's Your Turn to Draft! 🏀", {
+                        body: `Pick #${currentPick} in ${league.name}. Make your selection now!`,
+                        icon: '/favicon.ico',
+                        badge: '/favicon.ico',
+                        tag: 'draft-turn',
+                        requireInteraction: true,
+                    })
+
+                    notification.onclick = () => {
+                        window.focus()
+                        notification.close()
+                    }
+                }
+            } catch (e) {
+                // Ignore notification errors (common on mobile browsers)
+                console.warn('Could not show notification:', e)
+            }
 
             // Play a sound (you can add an audio file)
             try {
@@ -204,13 +217,8 @@ export default function Show({
             } catch (e) {
                 // Ignore if audio not available
             }
-
-            notification.onclick = () => {
-                window.focus()
-                notification.close()
-            }
         }
-    }, [isMyTurn, currentPick])
+    }, [isMyTurn, currentPick, league])
 
     // Initialize timer on mount or when draft is paused/resumed
     useEffect(() => {
@@ -311,7 +319,13 @@ export default function Show({
 
                 const newCurrentTeam = teams?.find(t => t.draft_order === positionInRound)
                 setCurrentTeam(newCurrentTeam || null)
-                setIsMyTurn(newCurrentTeam?.id === userTeam?.id)
+                const newIsMyTurn = newCurrentTeam?.id === userTeam?.id
+                console.log('🔄 Turn updated:', {
+                    currentTeam: newCurrentTeam?.team_name,
+                    isMyTurn: newIsMyTurn,
+                    userTeam: userTeam?.team_name
+                })
+                setIsMyTurn(newIsMyTurn)
 
                 // Calculate time remaining using server time offset (like countdown)
                 if (data.endTime && data.serverTime) {
