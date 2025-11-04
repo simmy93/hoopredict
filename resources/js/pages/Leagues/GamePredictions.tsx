@@ -127,23 +127,27 @@ export default function GamePredictions({ league, game, predictions, gameStarted
                     {/* Game Header */}
                     <Card className="mb-6">
                         <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge variant="outline" className="text-xs sm:text-sm">
                                         {game.championship.name}
                                     </Badge>
-                                    <Badge variant="secondary">
+                                    <Badge variant="secondary" className="text-xs sm:text-sm">
                                         Round {game.round}
                                     </Badge>
-                                    <Badge variant={game.status === 'finished' ? 'default' : 'secondary'}>
+                                    <Badge variant={game.status === 'finished' ? 'default' : 'secondary'} className="text-xs sm:text-sm">
                                         {game.status.charAt(0).toUpperCase() + game.status.slice(1)}
                                     </Badge>
                                 </div>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <Calendar className="h-4 w-4" />
-                                    {date}
-                                    <Clock className="h-4 w-4" />
-                                    {time}
+                                <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                                        <span>{date}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                                        <span>{time}</span>
+                                    </div>
                                 </div>
                             </div>
                         </CardHeader>
