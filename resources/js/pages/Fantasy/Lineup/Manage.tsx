@@ -719,6 +719,63 @@ export default function ManageNew({
                                     </CardContent>
                                 </Card>
 
+                                {/* Mobile-only: Available Players Horizontal Scroll */}
+                                <Card className="lg:hidden">
+                                    <CardHeader>
+                                        <CardTitle className="text-sm flex items-center gap-2">
+                                            Available Players
+                                            <Badge className="bg-blue-600 text-white text-xs">50%</Badge>
+                                        </CardTitle>
+                                        <CardDescription className="text-xs">Drag players to positions above</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
+                                            {bench.map((player) => (
+                                                <div
+                                                    key={player.player.id}
+                                                    draggable
+                                                    onDragStart={() => handleDragStart(player)}
+                                                    onDragEnd={handleDragEnd}
+                                                    className="flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-blue-900/20 dark:to-indigo-900/20 from-blue-50 to-indigo-50 border-blue-300 cursor-move"
+                                                >
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        {player.player.photo_url ? (
+                                                            <img
+                                                                src={player.player.photo_url}
+                                                                alt={player.player.name}
+                                                                className="w-14 h-14 rounded-full object-cover object-top border-2 border-blue-300"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-blue-300">
+                                                                <User className="h-6 w-6 text-gray-400" />
+                                                            </div>
+                                                        )}
+                                                        <div className="text-center w-full">
+                                                            <div className="font-medium text-xs truncate">{player.player.name}</div>
+                                                            <Badge className="text-[10px] mt-1">{player.player.position}</Badge>
+                                                            {isRoundFinished ? (
+                                                                <div className="text-[10px] mt-1">
+                                                                    <div className="font-bold text-green-600">
+                                                                        {player.round_team_points?.toFixed(1)} pts
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-[10px] font-bold text-blue-600 mt-1">
+                                                                    {player.points_earned.toFixed(1)} pts
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            {bench.length === 0 && (
+                                                <div className="w-full text-center text-sm text-muted-foreground py-4">
+                                                    No bench players
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
 
                                 {/* Sidebar: Sixth Man + Available Players */}
                                 <div className="lg:col-span-4 space-y-6">

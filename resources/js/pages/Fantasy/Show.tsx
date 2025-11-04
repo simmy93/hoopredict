@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered } from 'lucide-react'
+import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered, Trash, UserMinus } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
 declare global {
@@ -69,9 +69,26 @@ interface Props {
 export default function Show({ league: initialLeague, userTeam, leaderboard, inviteUrl }: Props) {
     const [copied, setCopied] = useState(false)
     const [startDraftDialogOpen, setStartDraftDialogOpen] = useState(false)
+    const [confirmDialog, setConfirmDialog] = useState<{
+        open: boolean
+        title: string
+        description: string
+        variant?: 'default' | 'destructive'
+        onConfirm: () => void
+    }>({
+        open: false,
+        title: '',
+        description: '',
+        variant: 'default',
+        onConfirm: () => {}
+    })
     const { post: startDraft, processing: startingDraft } = useForm()
+    const { delete: destroy, processing } = useForm()
     const [league, setLeague] = useState(initialLeague)
     const [isConnected, setIsConnected] = useState(false)
+
+    const isOwner = userTeam?.user.id === league.owner_id
+    const isMember = !!userTeam
 
     const copyInviteUrl = () => {
         navigator.clipboard.writeText(inviteUrl)
@@ -86,6 +103,30 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
     const confirmStartDraft = () => {
         startDraft(`/fantasy/leagues/${league.id}/draft/start`)
         setStartDraftDialogOpen(false)
+    }
+
+    const leaveLeague = () => {
+        setConfirmDialog({
+            open: true,
+            title: 'Leave Fantasy League',
+            description: `Are you sure you want to leave "${league.name}"? You can rejoin later if the league is still active.`,
+            variant: 'destructive',
+            onConfirm: () => {
+                destroy(`/fantasy/leagues/${league.id}/leave`)
+            }
+        })
+    }
+
+    const deleteLeague = () => {
+        setConfirmDialog({
+            open: true,
+            title: 'Delete Fantasy League',
+            description: `Are you sure you want to delete "${league.name}"? This action cannot be undone and will remove all teams and data.`,
+            variant: 'destructive',
+            onConfirm: () => {
+                destroy(`/fantasy/leagues/${league.id}`)
+            }
+        })
     }
 
     // Subscribe to draft channel to listen for real-time updates
@@ -264,6 +305,36 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                                     )}
                                 </Button>
                             </div>
+
+                            {/* Leave/Delete League */}
+                            {isMember && (
+                                <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                                    {!isOwner && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={leaveLeague}
+                                            disabled={processing}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <UserMinus className="h-4 w-4 mr-2" />
+                                            Leave League
+                                        </Button>
+                                    )}
+                                    {isOwner && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={deleteLeague}
+                                            disabled={processing}
+                                            className="w-full sm:w-auto"
+                                        >
+                                            <Trash className="h-4 w-4 mr-2" />
+                                            Delete League
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -441,6 +512,35 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                         </Button>
                         <Button onClick={confirmStartDraft} disabled={startingDraft}>
                             {startingDraft ? 'Starting...' : 'Start Draft'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* General Confirmation Dialog (Leave/Delete) */}
+            <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{confirmDialog.title}</DialogTitle>
+                        <DialogDescription>{confirmDialog.description}</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmDialog({ ...confirmDialog, open: false })}
+                            disabled={processing}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant={confirmDialog.variant === 'destructive' ? 'destructive' : 'default'}
+                            onClick={() => {
+                                confirmDialog.onConfirm()
+                                setConfirmDialog({ ...confirmDialog, open: false })
+                            }}
+                            disabled={processing}
+                        >
+                            {processing ? 'Processing...' : 'Confirm'}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

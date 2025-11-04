@@ -196,6 +196,29 @@ class FantasyLeagueController extends Controller
             ->with('success', "🎉 Welcome to {$league->name}!");
     }
 
+    public function leave(FantasyLeague $league)
+    {
+        $user = auth()->user();
+
+        // Check if user is the owner
+        if ($league->owner_id === $user->id) {
+            return back()->withErrors(['error' => 'League owners cannot leave. Please delete the league instead or transfer ownership first.']);
+        }
+
+        // Find and delete user's fantasy team
+        $team = $league->teams()->where('user_id', $user->id)->first();
+
+        if (!$team) {
+            return back()->withErrors(['error' => 'You are not a member of this league.']);
+        }
+
+        // Delete the fantasy team (this will cascade delete fantasy_team_players)
+        $team->delete();
+
+        return redirect()->route('fantasy.leagues.index')
+            ->with('success', "You have left {$league->name}.");
+    }
+
     public function destroy(FantasyLeague $league)
     {
         if ($league->owner_id !== auth()->id()) {
