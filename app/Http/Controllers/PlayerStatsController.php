@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Player;
 use App\Models\PlayerGameStat;
 use App\Models\PlayerPriceHistory;
-use Illuminate\Http\Request;
 
 class PlayerStatsController extends Controller
 {
@@ -62,7 +61,7 @@ class PlayerStatsController extends Controller
             'name' => $player->name,
             'position' => $player->position,
             'team_name' => $player->team->name,
-            'team_logo' => $player->team->logo_url ? asset('storage/' . $player->team->logo_url) : null,
+            'photo_url' => $player->photo_url,
             'price' => $player->price,
             'stats' => $gameStats,
         ]);
