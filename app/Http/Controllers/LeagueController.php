@@ -30,11 +30,22 @@ class LeagueController extends Controller
 
     public function create()
     {
-        return Inertia::render('Leagues/Create');
+        $userCreatedLeaguesCount = League::where('owner_id', auth()->id())->count();
+
+        return Inertia::render('Leagues/Create', [
+            'userCreatedLeaguesCount' => $userCreatedLeaguesCount,
+        ]);
     }
 
     public function store(Request $request)
     {
+        // Check if user has already created 3 leagues
+        $userCreatedLeaguesCount = League::where('owner_id', auth()->id())->count();
+
+        if ($userCreatedLeaguesCount >= 3) {
+            return back()->withErrors(['error' => 'You can only create up to 3 prediction leagues.']);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',

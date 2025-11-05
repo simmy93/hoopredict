@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Head, Link, useForm } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,7 +9,11 @@ import { Switch } from '@/components/ui/switch'
 import { ArrowLeft, Users } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 
-export default function Create() {
+interface Props {
+    userCreatedLeaguesCount: number
+}
+
+export default function Create({ userCreatedLeaguesCount }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
@@ -42,7 +46,7 @@ export default function Create() {
                                 Create New League
                             </CardTitle>
                             <CardDescription>
-                                Set up your prediction league and invite friends to compete
+                                Set up your prediction league and invite friends to compete. You can create up to 3 prediction leagues ({userCreatedLeaguesCount}/3).
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

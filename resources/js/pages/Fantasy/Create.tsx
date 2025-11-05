@@ -19,9 +19,10 @@ interface Championship {
 
 interface Props {
     championships: Championship[]
+    userCreatedLeaguesCount: number
 }
 
-export default function Create({ championships }: Props) {
+export default function Create({ championships, userCreatedLeaguesCount }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
         description: '',
@@ -59,7 +60,7 @@ export default function Create({ championships }: Props) {
                                 Create Fantasy League
                             </CardTitle>
                             <CardDescription>
-                                Set up your fantasy basketball league and invite friends to compete
+                                Set up your fantasy basketball league and invite friends to compete. You can create up to 3 fantasy leagues ({userCreatedLeaguesCount}/3).
                             </CardDescription>
                         </CardHeader>
                         <CardContent>

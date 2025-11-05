@@ -46,14 +46,23 @@ class FantasyLeagueController extends Controller
     public function create()
     {
         $championships = Championship::where('is_active', true)->get();
+        $userCreatedLeaguesCount = FantasyLeague::where('owner_id', auth()->id())->count();
 
         return Inertia::render('Fantasy/Create', [
             'championships' => $championships,
+            'userCreatedLeaguesCount' => $userCreatedLeaguesCount,
         ]);
     }
 
     public function store(Request $request)
     {
+        // Check if user has already created 3 leagues
+        $userCreatedLeaguesCount = FantasyLeague::where('owner_id', auth()->id())->count();
+
+        if ($userCreatedLeaguesCount >= 3) {
+            return back()->withErrors(['error' => 'You can only create up to 3 fantasy leagues.']);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
