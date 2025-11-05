@@ -114,61 +114,77 @@ export default function GamesIndex({ championship, games, pagination }: Props) {
                             {games.map((game) => (
                                 <Card
                                     key={game.id}
-                                    className="hover:shadow-lg transition-shadow duration-200"
+                                    className="group relative overflow-hidden border-2 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:-translate-y-1 hover:border-blue-400/50 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20"
                                 >
-                                    <CardHeader className="pb-3">
+                                    {/* Animated gradient overlay on hover */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-cyan-500/0 to-indigo-500/0 group-hover:from-blue-500/5 group-hover:via-cyan-500/5 group-hover:to-indigo-500/5 transition-all duration-500" />
+
+                                    <CardHeader className="pb-3 relative">
                                         <div className="flex items-center justify-between">
-                                            <CardDescription>
-                                                Round {game.round}
+                                            <CardDescription className="flex items-center gap-2">
+                                                <div className="px-2 py-1 rounded bg-gradient-to-br from-blue-500 to-cyan-600 text-white shadow-sm">
+                                                    <span className="text-xs font-bold">R{game.round}</span>
+                                                </div>
                                             </CardDescription>
                                             {getStatusBadge(game.status)}
                                         </div>
-                                        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                        <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                             {formatGameDate(game.scheduled_at)}
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent>
+                                    <CardContent className="relative">
                                         {/* Home Team */}
-                                        <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center justify-between mb-3 p-2 rounded-lg bg-gradient-to-r from-transparent to-blue-50/50 dark:to-blue-950/30 group-hover:from-blue-50/50 dark:group-hover:from-blue-950/30 transition-all">
                                             <div className="flex items-center space-x-3 flex-1 min-w-0">
                                                 {game.home_team.logo_url ? (
-                                                    <img
-                                                        src={game.home_team.logo_url}
-                                                        alt={game.home_team.name}
-                                                        className="w-10 h-10 object-contain flex-shrink-0"
-                                                    />
+                                                    <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                                        <img
+                                                            src={game.home_team.logo_url}
+                                                            alt={game.home_team.name}
+                                                            className="w-8 h-8 object-contain flex-shrink-0"
+                                                        />
+                                                    </div>
                                                 ) : (
-                                                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0" />
+                                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-800 dark:to-cyan-800 rounded-lg flex-shrink-0" />
                                                 )}
-                                                <span className="font-semibold text-gray-900 dark:text-white truncate">
+                                                <span className="font-semibold text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                                     {game.home_team.name}
                                                 </span>
                                             </div>
                                             {game.status === 'finished' && game.home_score !== null && (
-                                                <span className="text-2xl font-bold text-gray-900 dark:text-white ml-2">
+                                                <span className="text-2xl font-bold bg-gradient-to-br from-blue-600 to-cyan-600 bg-clip-text text-transparent ml-2">
                                                     {game.home_score}
                                                 </span>
                                             )}
                                         </div>
 
+                                        {/* VS Divider */}
+                                        <div className="flex justify-center mb-3">
+                                            <span className="px-3 py-1 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-bold shadow-lg">
+                                                VS
+                                            </span>
+                                        </div>
+
                                         {/* Away Team */}
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-transparent to-blue-50/50 dark:to-blue-950/30 group-hover:from-blue-50/50 dark:group-hover:from-blue-950/30 transition-all">
                                             <div className="flex items-center space-x-3 flex-1 min-w-0">
                                                 {game.away_team.logo_url ? (
-                                                    <img
-                                                        src={game.away_team.logo_url}
-                                                        alt={game.away_team.name}
-                                                        className="w-10 h-10 object-contain flex-shrink-0"
-                                                    />
+                                                    <div className="p-1.5 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+                                                        <img
+                                                            src={game.away_team.logo_url}
+                                                            alt={game.away_team.name}
+                                                            className="w-8 h-8 object-contain flex-shrink-0"
+                                                        />
+                                                    </div>
                                                 ) : (
-                                                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0" />
+                                                    <div className="w-10 h-10 bg-gradient-to-br from-blue-200 to-cyan-200 dark:from-blue-800 dark:to-cyan-800 rounded-lg flex-shrink-0" />
                                                 )}
-                                                <span className="font-semibold text-gray-900 dark:text-white truncate">
+                                                <span className="font-semibold text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                                                     {game.away_team.name}
                                                 </span>
                                             </div>
                                             {game.status === 'finished' && game.away_score !== null && (
-                                                <span className="text-2xl font-bold text-gray-900 dark:text-white ml-2">
+                                                <span className="text-2xl font-bold bg-gradient-to-br from-blue-600 to-cyan-600 bg-clip-text text-transparent ml-2">
                                                     {game.away_score}
                                                 </span>
                                             )}
