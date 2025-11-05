@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -85,15 +85,12 @@ export function DateTimePicker({ value, onChange, placeholder = 'Pick a date and
                     />
                 </PopoverContent>
             </Popover>
-            <div className="relative w-[130px]">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                    type="time"
-                    value={timeValue}
-                    onChange={handleTimeChange}
-                    className="pl-9"
-                />
-            </div>
+            <Input
+                type="time"
+                value={timeValue}
+                onChange={handleTimeChange}
+                className="w-[130px] [color-scheme:light] dark:[color-scheme:dark]"
+            />
         </div>
     );
 }
