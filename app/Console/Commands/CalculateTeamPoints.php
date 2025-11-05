@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Championship;
 use App\Models\FantasyTeam;
+use App\Models\FantasyTeamRoundPoints;
 use App\Models\Game;
 use Illuminate\Console\Command;
 
@@ -109,11 +110,26 @@ class CalculateTeamPoints extends Command
                 $this->line("  {$teamPlayer->player->name}: {$roundPoints} FP × {$multiplier} = {$adjustedPoints} points");
             }
 
-            // Update team's total points
-            $team->total_points = round($totalPoints, 2);
+            // Store round-specific points
+            FantasyTeamRoundPoints::updateOrCreate(
+                [
+                    'fantasy_team_id' => $team->id,
+                    'round' => $roundNumber,
+                ],
+                [
+                    'points' => round($totalPoints, 2),
+                ]
+            );
+
+            // Update team's cumulative total points
+            // Sum all round points to get accurate cumulative total
+            $cumulativeTotal = FantasyTeamRoundPoints::where('fantasy_team_id', $team->id)
+                ->sum('points');
+
+            $team->total_points = round($cumulativeTotal, 2);
             $team->save();
 
-            $this->info("✓ {$team->team_name}: {$team->total_points} total points");
+            $this->info("✓ {$team->team_name}: Round {$roundNumber}: " . round($totalPoints, 2) . " pts | Total: {$team->total_points} pts");
             $teamsUpdated++;
         }
 

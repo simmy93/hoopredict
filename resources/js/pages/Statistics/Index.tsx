@@ -152,7 +152,7 @@ export default function Index({
 
                                                     <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg flex-shrink-0 ${
                                                                 index === 0
                                                                     ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
@@ -217,7 +217,7 @@ export default function Index({
 
                                                     <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg flex-shrink-0 ${
                                                                 index === 0
                                                                     ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
@@ -279,7 +279,7 @@ export default function Index({
 
                                                     <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg flex-shrink-0 ${
                                                                 index === 0
                                                                     ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
@@ -344,7 +344,7 @@ export default function Index({
 
                                                     <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg flex-shrink-0 ${
                                                                 index === 0
                                                                     ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
@@ -416,7 +416,7 @@ export default function Index({
 
                                                     <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg flex-shrink-0 ${
                                                                 index === 0
                                                                     ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1

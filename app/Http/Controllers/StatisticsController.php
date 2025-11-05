@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FantasyTeam;
+use App\Models\FantasyTeamRoundPoints;
 use App\Models\Player;
 use App\Models\Game;
 use App\Models\Championship;
@@ -50,31 +51,55 @@ class StatisticsController extends Controller
 
     private function getFantasyLeaders($mode, $round)
     {
-        $query = FantasyTeam::with(['user', 'fantasyLeague'])
-            ->whereHas('fantasyLeague', function ($q) use ($mode) {
-                $q->where('mode', $mode);
-            })
-            ->select('fantasy_teams.*');
+        if ($round === 'all') {
+            // Use cumulative total_points for all rounds
+            $query = FantasyTeam::with(['user', 'fantasyLeague'])
+                ->whereHas('fantasyLeague', function ($q) use ($mode) {
+                    $q->where('mode', $mode);
+                })
+                ->select('fantasy_teams.*');
 
-        // If specific round, we'd need round-specific points
-        // For now, use total_points
-
-        return $query->orderBy('total_points', 'desc')
-            ->take(10)
-            ->get()
-            ->map(function ($team) {
-                return [
-                    'team_name' => $team->team_name,
-                    'user_name' => $team->user->name,
-                    'league_name' => $team->fantasyLeague->name,
-                    'total_points' => round($team->total_points, 2),
-                    'budget_spent' => $team->budget_spent,
-                    'budget_remaining' => $team->budget_remaining,
-                    'efficiency' => $team->budget_spent > 0
-                        ? round($team->total_points / ($team->budget_spent / 1000000), 2)
-                        : 0, // Points per million spent
-                ];
-            });
+            return $query->orderBy('total_points', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function ($team) {
+                    return [
+                        'team_name' => $team->team_name,
+                        'user_name' => $team->user->name,
+                        'league_name' => $team->fantasyLeague->name,
+                        'total_points' => round($team->total_points, 2),
+                        'budget_spent' => $team->budget_spent,
+                        'budget_remaining' => $team->budget_remaining,
+                        'efficiency' => $team->budget_spent > 0
+                            ? round($team->total_points / ($team->budget_spent / 1000000), 2)
+                            : 0, // Points per million spent
+                    ];
+                });
+        } else {
+            // Use round-specific points
+            return FantasyTeamRoundPoints::with(['fantasyTeam.user', 'fantasyTeam.fantasyLeague'])
+                ->where('round', $round)
+                ->whereHas('fantasyTeam.fantasyLeague', function ($q) use ($mode) {
+                    $q->where('mode', $mode);
+                })
+                ->orderBy('points', 'desc')
+                ->take(10)
+                ->get()
+                ->map(function ($roundPoints) {
+                    $team = $roundPoints->fantasyTeam;
+                    return [
+                        'team_name' => $team->team_name,
+                        'user_name' => $team->user->name,
+                        'league_name' => $team->fantasyLeague->name,
+                        'total_points' => round($roundPoints->points, 2),
+                        'budget_spent' => $team->budget_spent,
+                        'budget_remaining' => $team->budget_remaining,
+                        'efficiency' => $team->budget_spent > 0
+                            ? round($roundPoints->points / ($team->budget_spent / 1000000), 2)
+                            : 0, // Points per million spent
+                    ];
+                });
+        }
     }
 
     private function getPredictionLeaders($round)

@@ -52,6 +52,11 @@ class FantasyTeam extends Model
         return $this->hasMany(DraftPick::class);
     }
 
+    public function roundPoints(): HasMany
+    {
+        return $this->hasMany(FantasyTeamRoundPoints::class);
+    }
+
     public function players(): BelongsToMany
     {
         return $this->belongsToMany(Player::class, 'fantasy_team_players')
