@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
@@ -73,20 +73,18 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
                         )}
                         <div className="flex-1">
                             <DialogTitle className="text-2xl">{player.name}</DialogTitle>
-                            <DialogDescription className="mt-1">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="outline">{player.position}</Badge>
-                                    <span className="text-muted-foreground">{player.team_name}</span>
-                                    <span className="text-muted-foreground">•</span>
-                                    <span className="font-semibold text-foreground">{currentPrice}</span>
-                                    {priceDiff !== 0 && (
-                                        <span className={`flex items-center gap-1 text-sm ${priceDiff > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {priceDiff > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                                            {priceChange}%
-                                        </span>
-                                    )}
-                                </div>
-                            </DialogDescription>
+                            <div className="mt-1 flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                                <Badge variant="outline">{player.position}</Badge>
+                                <span className="text-muted-foreground">{player.team_name}</span>
+                                <span className="text-muted-foreground">•</span>
+                                <span className="font-semibold text-foreground">{currentPrice}</span>
+                                {priceDiff !== 0 && (
+                                    <span className={`flex items-center gap-1 text-sm ${priceDiff > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {priceDiff > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                        {priceChange}%
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </DialogHeader>
