@@ -61,7 +61,7 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby={undefined}>
                 <DialogHeader>
                     <div className="flex items-start gap-4">
                         {player.photo_url ? (
@@ -114,15 +114,15 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
                 </div>
 
                 {/* Game Log */}
-                <div>
+                <div className="w-full overflow-hidden">
                     <h3 className="font-semibold mb-3">Game Log ({stats.length} games)</h3>
                     {stats.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                             No games played yet this season
                         </div>
                     ) : (
-                        <div className="border rounded-lg overflow-hidden">
-                            <Table>
+                        <div className="border rounded-lg overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+                            <Table className="min-w-[600px]">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-16">R</TableHead>
