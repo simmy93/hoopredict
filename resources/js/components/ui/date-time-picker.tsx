@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,13 @@ export function DateTimePicker({ value, onChange, placeholder = 'Pick a date and
     const [timeValue, setTimeValue] = React.useState<string>(
         value ? format(new Date(value), 'HH:mm') : '12:00'
     );
+
+    // Get today's date at midnight for comparison
+    const today = React.useMemo(() => {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        return now;
+    }, []);
 
     React.useEffect(() => {
         if (value) {
@@ -69,15 +76,24 @@ export function DateTimePicker({ value, onChange, placeholder = 'Pick a date and
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={date} onSelect={handleDateSelect} initialFocus />
+                    <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={handleDateSelect}
+                        disabled={(date) => date < today}
+                        defaultMonth={date || new Date()}
+                    />
                 </PopoverContent>
             </Popover>
-            <Input
-                type="time"
-                value={timeValue}
-                onChange={handleTimeChange}
-                className="w-[130px]"
-            />
+            <div className="relative w-[130px]">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                    type="time"
+                    value={timeValue}
+                    onChange={handleTimeChange}
+                    className="pl-9"
+                />
+            </div>
         </div>
     );
 }
