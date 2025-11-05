@@ -145,31 +145,34 @@ export default function Index({
                                             {fantasyBudgetLeaders.map((team, index) => (
                                                 <div
                                                     key={index}
-                                                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                    className="group relative overflow-hidden flex items-center justify-between p-4 rounded-lg border-2 bg-gradient-to-r from-white to-purple-50/30 dark:from-slate-900 dark:to-purple-950/20 hover:shadow-lg hover:-translate-y-0.5 hover:border-purple-400/50 transition-all duration-300"
                                                 >
-                                                    <div className="flex items-center gap-4">
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-pink-500/0 group-hover:from-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500" />
+
+                                                    <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
                                                                 index === 0
-                                                                    ? 'bg-yellow-500 text-white'
+                                                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
-                                                                    ? 'bg-gray-400 text-white'
+                                                                    ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
                                                                     : index === 2
-                                                                    ? 'bg-orange-600 text-white'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                                    ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                    : 'bg-gradient-to-br from-purple-400 to-blue-500 text-white'
                                                             }`}
                                                         >
-                                                            {index + 1}
+                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                         </div>
                                                         <div>
-                                                            <div className="font-semibold">{team.team_name}</div>
+                                                            <div className="font-semibold group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{team.team_name}</div>
                                                             <div className="text-sm text-muted-foreground">
                                                                 {team.user_name} • {team.league_name}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-bold text-primary">
+                                                    <div className="text-right relative z-10">
+                                                        <div className="text-lg font-bold bg-gradient-to-br from-purple-600 to-pink-600 bg-clip-text text-transparent">
                                                             {team.total_points} pts
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
@@ -207,31 +210,34 @@ export default function Index({
                                             {fantasyDraftLeaders.map((team, index) => (
                                                 <div
                                                     key={index}
-                                                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                    className="group relative overflow-hidden flex items-center justify-between p-4 rounded-lg border-2 bg-gradient-to-r from-white to-amber-50/30 dark:from-slate-900 dark:to-amber-950/20 hover:shadow-lg hover:-translate-y-0.5 hover:border-amber-400/50 transition-all duration-300"
                                                 >
-                                                    <div className="flex items-center gap-4">
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 to-orange-500/0 group-hover:from-amber-500/5 group-hover:to-orange-500/5 transition-all duration-500" />
+
+                                                    <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
                                                                 index === 0
-                                                                    ? 'bg-yellow-500 text-white'
+                                                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
-                                                                    ? 'bg-gray-400 text-white'
+                                                                    ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
                                                                     : index === 2
-                                                                    ? 'bg-orange-600 text-white'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                                    ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                    : 'bg-gradient-to-br from-amber-400 to-orange-500 text-white'
                                                             }`}
                                                         >
-                                                            {index + 1}
+                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                         </div>
                                                         <div>
-                                                            <div className="font-semibold">{team.team_name}</div>
+                                                            <div className="font-semibold group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{team.team_name}</div>
                                                             <div className="text-sm text-muted-foreground">
                                                                 {team.user_name} • {team.league_name}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-bold text-primary">
+                                                    <div className="text-right relative z-10">
+                                                        <div className="text-lg font-bold bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-transparent">
                                                             {team.total_points} pts
                                                         </div>
                                                     </div>
@@ -266,31 +272,34 @@ export default function Index({
                                             {predictionLeaders.map((leader, index) => (
                                                 <div
                                                     key={index}
-                                                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                    className="group relative overflow-hidden flex items-center justify-between p-4 rounded-lg border-2 bg-gradient-to-r from-white to-green-50/30 dark:from-slate-900 dark:to-green-950/20 hover:shadow-lg hover:-translate-y-0.5 hover:border-green-400/50 transition-all duration-300"
                                                 >
-                                                    <div className="flex items-center gap-4">
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 to-emerald-500/0 group-hover:from-green-500/5 group-hover:to-emerald-500/5 transition-all duration-500" />
+
+                                                    <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
                                                                 index === 0
-                                                                    ? 'bg-yellow-500 text-white'
+                                                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
-                                                                    ? 'bg-gray-400 text-white'
+                                                                    ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
                                                                     : index === 2
-                                                                    ? 'bg-orange-600 text-white'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                                    ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                    : 'bg-gradient-to-br from-green-400 to-emerald-500 text-white'
                                                             }`}
                                                         >
-                                                            {index + 1}
+                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                         </div>
                                                         <div>
-                                                            <div className="font-semibold">{leader.user_name}</div>
+                                                            <div className="font-semibold group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">{leader.user_name}</div>
                                                             <div className="text-sm text-muted-foreground">
                                                                 {leader.league_name}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-bold text-primary">
+                                                    <div className="text-right relative z-10">
+                                                        <div className="text-lg font-bold bg-gradient-to-br from-green-600 to-emerald-600 bg-clip-text text-transparent">
                                                             {leader.points} pts
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
@@ -328,31 +337,34 @@ export default function Index({
                                             {topPlayers.map((player, index) => (
                                                 <div
                                                     key={index}
-                                                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                    className="group relative overflow-hidden flex items-center justify-between p-4 rounded-lg border-2 bg-gradient-to-r from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-400/50 transition-all duration-300"
                                                 >
-                                                    <div className="flex items-center gap-4">
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-cyan-500/0 group-hover:from-blue-500/5 group-hover:to-cyan-500/5 transition-all duration-500" />
+
+                                                    <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
                                                                 index === 0
-                                                                    ? 'bg-yellow-500 text-white'
+                                                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
-                                                                    ? 'bg-gray-400 text-white'
+                                                                    ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
                                                                     : index === 2
-                                                                    ? 'bg-orange-600 text-white'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                                    ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                    : 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white'
                                                             }`}
                                                         >
-                                                            {index + 1}
+                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                         </div>
                                                         <div>
-                                                            <div className="font-semibold">{player.name}</div>
+                                                            <div className="font-semibold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{player.name}</div>
                                                             <div className="text-sm text-muted-foreground">
                                                                 {player.team} • {player.position}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-bold text-primary">
+                                                    <div className="text-right relative z-10">
+                                                        <div className="text-lg font-bold bg-gradient-to-br from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                                                             {selectedRound === 'all'
                                                                 ? `${player.total_fantasy_points} pts`
                                                                 : `${player.round_fantasy_points} pts`}
@@ -397,31 +409,34 @@ export default function Index({
                                             {bestValuePlayers.map((player, index) => (
                                                 <div
                                                     key={index}
-                                                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                                                    className="group relative overflow-hidden flex items-center justify-between p-4 rounded-lg border-2 bg-gradient-to-r from-white to-emerald-50/30 dark:from-slate-900 dark:to-emerald-950/20 hover:shadow-lg hover:-translate-y-0.5 hover:border-emerald-400/50 transition-all duration-300"
                                                 >
-                                                    <div className="flex items-center gap-4">
+                                                    {/* Gradient overlay */}
+                                                    <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-teal-500/0 group-hover:from-emerald-500/5 group-hover:to-teal-500/5 transition-all duration-500" />
+
+                                                    <div className="flex items-center gap-4 relative z-10">
                                                         <div
-                                                            className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${
+                                                            className={`flex items-center justify-center w-10 h-10 rounded-full font-bold shadow-lg ${
                                                                 index === 0
-                                                                    ? 'bg-yellow-500 text-white'
+                                                                    ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300 animate-pulse'
                                                                     : index === 1
-                                                                    ? 'bg-gray-400 text-white'
+                                                                    ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
                                                                     : index === 2
-                                                                    ? 'bg-orange-600 text-white'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                                    ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                    : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white'
                                                             }`}
                                                         >
-                                                            {index + 1}
+                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                         </div>
                                                         <div>
-                                                            <div className="font-semibold">{player.name}</div>
+                                                            <div className="font-semibold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{player.name}</div>
                                                             <div className="text-sm text-muted-foreground">
                                                                 {player.team} • €{(player.price / 1000000).toFixed(1)}M
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                                                    <div className="text-right relative z-10">
+                                                        <div className="text-lg font-bold bg-gradient-to-br from-emerald-600 to-teal-600 bg-clip-text text-transparent">
                                                             {player.value_rating} pts/€M
                                                         </div>
                                                         <div className="text-xs text-muted-foreground">
