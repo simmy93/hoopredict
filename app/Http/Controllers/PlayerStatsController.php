@@ -46,7 +46,7 @@ class PlayerStatsController extends Controller
                     'opponent' => $opponent,
                     'minutes' => $stat->minutes_played ?? 0,
                     'points' => $stat->points ?? 0,
-                    'rebounds' => ($stat->offensive_rebounds ?? 0) + ($stat->defensive_rebounds ?? 0),
+                    'rebounds' => $stat->rebounds ?? 0,
                     'assists' => $stat->assists ?? 0,
                     'steals' => $stat->steals ?? 0,
                     'blocks' => $stat->blocks ?? 0,
