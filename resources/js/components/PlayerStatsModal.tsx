@@ -23,7 +23,7 @@ interface Player {
     name: string;
     position: string;
     team_name: string;
-    team_logo: string | null;
+    photo_url: string | null;
     price: number;
     stats: PlayerGameStat[];
 }
@@ -64,12 +64,16 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <div className="flex items-start gap-4">
-                        {player.team_logo && (
+                        {player.photo_url ? (
                             <img
-                                src={player.team_logo}
-                                alt={player.team_name}
-                                className="w-12 h-12 object-contain"
+                                src={player.photo_url}
+                                alt={player.name}
+                                className="w-16 h-16 rounded-full object-cover object-top"
                             />
+                        ) : (
+                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center text-2xl font-bold">
+                                {player.name.charAt(0).toUpperCase()}
+                            </div>
                         )}
                         <div className="flex-1">
                             <DialogTitle className="text-2xl">{player.name}</DialogTitle>
