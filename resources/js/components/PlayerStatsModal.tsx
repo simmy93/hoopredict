@@ -2,20 +2,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
 
 interface PlayerGameStat {
     round: number;
     game_date: string;
     opponent: string;
-    minutes: number;
-    points: number;
-    rebounds: number;
-    assists: number;
-    steals: number;
-    blocks: number;
-    turnovers: number;
-    fantasy_points: number;
+    minutes: number | null;
+    points: number | null;
+    rebounds: number | null;
+    assists: number | null;
+    steals: number | null;
+    blocks: number | null;
+    turnovers: number | null;
+    fantasy_points: number | null;
     price: number | null;
 }
 
@@ -41,16 +40,16 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
     // Calculate averages
     const stats = player.stats || [];
     const avgFantasyPoints = stats.length > 0
-        ? stats.reduce((sum, s) => sum + s.fantasy_points, 0) / stats.length
+        ? stats.reduce((sum, s) => sum + (Number(s.fantasy_points) || 0), 0) / stats.length
         : 0;
     const avgPoints = stats.length > 0
-        ? stats.reduce((sum, s) => sum + s.points, 0) / stats.length
+        ? stats.reduce((sum, s) => sum + (Number(s.points) || 0), 0) / stats.length
         : 0;
     const avgRebounds = stats.length > 0
-        ? stats.reduce((sum, s) => sum + s.rebounds, 0) / stats.length
+        ? stats.reduce((sum, s) => sum + (Number(s.rebounds) || 0), 0) / stats.length
         : 0;
     const avgAssists = stats.length > 0
-        ? stats.reduce((sum, s) => sum + s.assists, 0) / stats.length
+        ? stats.reduce((sum, s) => sum + (Number(s.assists) || 0), 0) / stats.length
         : 0;
 
     // Get price trend
@@ -79,7 +78,7 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
                                     <Badge variant="outline">{player.position}</Badge>
                                     <span className="text-muted-foreground">{player.team_name}</span>
                                     <span className="text-muted-foreground">•</span>
-                                    <span className="font-semibold text-foreground">{formatCurrency(currentPrice)}</span>
+                                    <span className="font-semibold text-foreground">{currentPrice}</span>
                                     {priceDiff !== 0 && (
                                         <span className={`flex items-center gap-1 text-sm ${priceDiff > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                             {priceDiff > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -149,18 +148,18 @@ export default function PlayerStatsModal({ player, open, onOpenChange }: PlayerS
                                                 })}
                                             </TableCell>
                                             <TableCell className="text-sm">{stat.opponent}</TableCell>
-                                            <TableCell className="text-right">{stat.minutes}</TableCell>
-                                            <TableCell className="text-right font-medium">{stat.points}</TableCell>
-                                            <TableCell className="text-right">{stat.rebounds}</TableCell>
-                                            <TableCell className="text-right">{stat.assists}</TableCell>
-                                            <TableCell className="text-right">{stat.steals}</TableCell>
-                                            <TableCell className="text-right">{stat.blocks}</TableCell>
-                                            <TableCell className="text-right text-red-600">{stat.turnovers}</TableCell>
+                                            <TableCell className="text-right">{stat.minutes || 0}</TableCell>
+                                            <TableCell className="text-right font-medium">{stat.points || 0}</TableCell>
+                                            <TableCell className="text-right">{stat.rebounds || 0}</TableCell>
+                                            <TableCell className="text-right">{stat.assists || 0}</TableCell>
+                                            <TableCell className="text-right">{stat.steals || 0}</TableCell>
+                                            <TableCell className="text-right">{stat.blocks || 0}</TableCell>
+                                            <TableCell className="text-right text-red-600">{stat.turnovers || 0}</TableCell>
                                             <TableCell className="text-right font-bold text-primary">
-                                                {stat.fantasy_points.toFixed(1)}
+                                                {(Number(stat.fantasy_points) || 0).toFixed(1)}
                                             </TableCell>
                                             <TableCell className="text-right text-sm">
-                                                {stat.price ? formatCurrency(stat.price) : '-'}
+                                                {stat.price ? stat.price : '-'}
                                             </TableCell>
                                         </TableRow>
                                     ))}
