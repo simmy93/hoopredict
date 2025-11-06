@@ -49,9 +49,9 @@ export default function Edit({ league, users }: Props) {
                         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                             Admin Panel - Edit League
                         </h1>
-                        <Link href="/admin/leagues">
-                            <Button variant="outline">Back to Leagues</Button>
-                        </Link>
+                        <Button variant="outline" asChild>
+                            <Link href="/admin/leagues">Back to Leagues</Link>
+                        </Button>
                     </div>
                 </div>
             </nav>
@@ -144,11 +144,9 @@ export default function Edit({ league, users }: Props) {
                         </div>
 
                         <div className="flex justify-end space-x-4">
-                            <Link href="/admin/leagues">
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </Link>
+                            <Button type="button" variant="outline" asChild>
+                                <Link href="/admin/leagues">Cancel</Link>
+                            </Button>
                             <Button type="submit" disabled={processing}>
                                 Update League
                             </Button>

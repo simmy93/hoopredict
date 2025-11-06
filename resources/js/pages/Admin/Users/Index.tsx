@@ -41,15 +41,15 @@ export default function Index({ users }: Props) {
                             Admin Panel - Users
                         </h1>
                         <div className="flex items-center space-x-4">
-                            <Link href="/admin/leagues">
-                                <Button variant="ghost">Leagues</Button>
-                            </Link>
-                            <Link href="/admin/league-members">
-                                <Button variant="ghost">Members</Button>
-                            </Link>
-                            <Link href="/dashboard">
-                                <Button variant="outline">Dashboard</Button>
-                            </Link>
+                            <Button variant="ghost" asChild>
+                                <Link href="/admin/leagues">Leagues</Link>
+                            </Button>
+                            <Button variant="ghost" asChild>
+                                <Link href="/admin/league-members">Members</Link>
+                            </Button>
+                            <Button variant="outline" asChild>
+                                <Link href="/dashboard">Dashboard</Link>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -60,9 +60,9 @@ export default function Index({ users }: Props) {
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Users Management
                     </h2>
-                    <Link href="/admin/users/create">
-                        <Button>Create User</Button>
-                    </Link>
+                    <Button asChild>
+                        <Link href="/admin/users/create">Create User</Link>
+                    </Button>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
@@ -111,12 +111,12 @@ export default function Index({ users }: Props) {
                                         {user.owned_leagues_count} leagues, {user.league_members_count} memberships
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                        <Link href={`/admin/users/${user.id}`}>
-                                            <Button variant="ghost" size="sm">View</Button>
-                                        </Link>
-                                        <Link href={`/admin/users/${user.id}/edit`}>
-                                            <Button variant="outline" size="sm">Edit</Button>
-                                        </Link>
+                                        <Button variant="ghost" size="sm" asChild>
+                                            <Link href={`/admin/users/${user.id}`}>View</Link>
+                                        </Button>
+                                        <Button variant="outline" size="sm" asChild>
+                                            <Link href={`/admin/users/${user.id}/edit`}>Edit</Link>
+                                        </Button>
                                         <Button
                                             variant="destructive"
                                             size="sm"

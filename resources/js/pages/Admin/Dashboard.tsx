@@ -25,9 +25,9 @@ export default function Dashboard({ stats }: Props) {
                         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                             Admin Panel
                         </h1>
-                        <Link href="/dashboard">
-                            <Button variant="outline">Back to Dashboard</Button>
-                        </Link>
+                        <Button variant="outline" asChild>
+                            <Link href="/dashboard">Back to Dashboard</Link>
+                        </Button>
                     </div>
                 </div>
             </nav>

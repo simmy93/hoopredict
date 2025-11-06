@@ -36,9 +36,9 @@ export default function Edit({ user }: Props) {
                         <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                             Admin Panel - Edit User
                         </h1>
-                        <Link href="/admin/users">
-                            <Button variant="outline">Back to Users</Button>
-                        </Link>
+                        <Button variant="outline" asChild>
+                            <Link href="/admin/users">Back to Users</Link>
+                        </Button>
                     </div>
                 </div>
             </nav>
@@ -102,11 +102,9 @@ export default function Edit({ user }: Props) {
                         </div>
 
                         <div className="flex justify-end space-x-4">
-                            <Link href="/admin/users">
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </Link>
+                            <Button type="button" variant="outline" asChild>
+                                <Link href="/admin/users">Cancel</Link>
+                            </Button>
                             <Button type="submit" disabled={processing}>
                                 Update User
                             </Button>
