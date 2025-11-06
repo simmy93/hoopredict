@@ -31,7 +31,7 @@ export default function Create({ userCreatedLeaguesCount }: Props) {
             <Head title="Create League" />
 
             <div className="py-12">
-                <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
+                <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="mb-6">
                         <Link href="/leagues" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                             <ArrowLeft className="h-4 w-4" />

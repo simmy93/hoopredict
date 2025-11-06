@@ -1,25 +1,25 @@
-import React from 'react'
-import { Head, Link, useForm } from '@inertiajs/react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DateTimePicker } from '@/components/ui/date-time-picker'
-import { ArrowLeft, Trophy, Users, Calendar, DollarSign, Shield, Info } from 'lucide-react'
-import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateTimePicker } from '@/components/ui/date-time-picker';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import { cn } from '@/lib/utils';
+import { Head, Link, useForm } from '@inertiajs/react';
+import { ArrowLeft, Calendar, DollarSign, Info, Shield, Trophy, Users } from 'lucide-react';
+import React from 'react';
 
 interface Championship {
-    id: number
-    name: string
-    season: string
+    id: number;
+    name: string;
+    season: string;
 }
 
 interface Props {
-    championships: Championship[]
-    userCreatedLeaguesCount: number
+    championships: Championship[];
+    userCreatedLeaguesCount: number;
 }
 
 export default function Create({ championships, userCreatedLeaguesCount }: Props) {
@@ -33,19 +33,19 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
         is_private: false,
         max_members: 10,
         draft_date: '',
-    })
+    });
 
     const submit = (e: React.FormEvent) => {
-        e.preventDefault()
-        post('/fantasy/leagues')
-    }
+        e.preventDefault();
+        post('/fantasy/leagues');
+    };
 
     return (
         <AuthenticatedLayout>
             <Head title="Create Fantasy League" />
 
             <div className="py-12">
-                <div className="max-w-2xl mx-auto sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-6">
                         <Link href="/fantasy/leagues" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
                             <ArrowLeft className="h-4 w-4" />
@@ -54,21 +54,22 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                     </div>
 
                     <Card className="border-2 shadow-xl">
-                        <CardHeader className="bg-gradient-to-r from-orange-50 to-purple-50 dark:from-orange-950/20 dark:to-purple-950/20 border-b">
+                        <CardHeader className="border-b bg-gradient-to-r from-orange-50 to-purple-50 dark:from-orange-950/20 dark:to-purple-950/20">
                             <CardTitle className="flex items-center gap-3 text-2xl">
-                                <div className="p-2 bg-gradient-to-br from-orange-500 to-purple-600 rounded-lg shadow-lg">
+                                <div className="rounded-lg bg-gradient-to-br from-orange-500 to-purple-600 p-2 shadow-lg">
                                     <Trophy className="h-6 w-6 text-white" />
                                 </div>
                                 Create Fantasy League
                             </CardTitle>
-                            <CardDescription className="text-base mt-2">
-                                Set up your fantasy basketball league and invite friends to compete. You can create up to 3 fantasy leagues ({userCreatedLeaguesCount}/3).
+                            <CardDescription className="mt-2 text-base">
+                                Set up your fantasy basketball league and invite friends to compete. You can create up to 3 fantasy leagues (
+                                {userCreatedLeaguesCount}/3).
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-6">
                             <form onSubmit={submit} className="space-y-8">
                                 {/* Basic Info Section */}
-                                <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700">
+                                <div className="space-y-4 rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:border-slate-700 dark:from-slate-900 dark:to-slate-800">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
                                         <Info className="h-4 w-4" />
                                         Basic Information
@@ -101,7 +102,7 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                 </div>
 
                                 {/* League Settings Section */}
-                                <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800">
+                                <div className="space-y-4 rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 dark:border-blue-800 dark:from-blue-950/20 dark:to-indigo-950/20">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-blue-700 dark:text-blue-300">
                                         <Trophy className="h-4 w-4" />
                                         League Settings
@@ -109,44 +110,64 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
 
                                     <div className="space-y-2">
                                         <Label htmlFor="championship_id">Championship *</Label>
-                                        <Select
+                                        <select
+                                            id="championship_id"
                                             value={data.championship_id.toString()}
-                                            onValueChange={(value) => setData('championship_id', parseInt(value))}
+                                            onChange={(e) => setData('championship_id', parseInt(e.target.value))}
+                                            className={cn(
+                                                'block w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+                                                'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                                                errors.championship_id && 'border-red-500',
+                                            )}
                                         >
-                                            <SelectTrigger className={errors.championship_id ? 'border-red-500' : ''}>
-                                                <SelectValue placeholder="Select championship" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {championships.map((championship) => (
-                                                    <SelectItem key={championship.id} value={championship.id.toString()}>
-                                                        {championship.name} - {championship.season}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                            {championships.map((championship) => (
+                                                <option key={championship.id} value={championship.id}>
+                                                    {championship.name} – {championship.season}
+                                                </option>
+                                            ))}
+                                        </select>
                                         {errors.championship_id && <p className="text-sm text-red-600">{errors.championship_id}</p>}
                                     </div>
 
                                     <div className="space-y-2">
                                         <Label htmlFor="mode">League Mode *</Label>
-                                        <Select
-                                            value={data.mode}
-                                            onValueChange={(value) => setData('mode', value as 'budget' | 'draft')}
-                                        >
-                                            <SelectTrigger className={errors.mode ? 'border-red-500' : ''}>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="budget">Budget Mode - Buy/Sell players with money</SelectItem>
-                                                <SelectItem value="draft">Draft Mode - Take turns picking players</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="relative">
+                                            <select
+                                                id="mode"
+                                                value={data.mode}
+                                                onChange={(e) => setData('mode', e.target.value as 'budget' | 'draft')}
+                                                className={cn(
+                                                    'block w-full appearance-none rounded-md border border-input bg-background px-3 py-2 text-sm',
+                                                    'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                                                    'pr-8',
+                                                    errors.mode && 'border-red-500',
+                                                )}
+                                            >
+                                                <option value="budget">💰 Budget Mode – Buy/Sell players with money</option>
+                                                <option value="draft">🧩 Draft Mode – Take turns picking players</option>
+                                            </select>
+
+                                            {/* custom arrow icon */}
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-60"
+                                                viewBox="0 0 20 20"
+                                                fill="currentColor"
+                                            >
+                                                <path
+                                                    fillRule="evenodd"
+                                                    d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.25a.75.75 0 01-1.06 0L5.25 8.27a.75.75 0 01-.02-1.06z"
+                                                    clipRule="evenodd"
+                                                />
+                                            </svg>
+                                        </div>
+
                                         {errors.mode && <p className="text-sm text-red-600">{errors.mode}</p>}
                                     </div>
                                 </div>
 
                                 {data.mode === 'budget' && (
-                                    <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-200 dark:border-green-800">
+                                    <div className="space-y-4 rounded-lg border border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 p-4 dark:border-green-800 dark:from-green-950/20 dark:to-emerald-950/20">
                                         <div className="flex items-center gap-2 text-sm font-semibold text-green-700 dark:text-green-300">
                                             <DollarSign className="h-4 w-4" />
                                             Budget Configuration
@@ -154,71 +175,67 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                         <div className="space-y-3">
                                             <Label>Budget Difficulty *</Label>
                                             <div className="grid gap-3">
-                                            {/* Budget Genius */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setData('budget', 10000000)}
-                                                className={`text-left p-4 rounded-lg border-2 transition-all ${
-                                                    data.budget === 10000000
-                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">🧠</span>
-                                                    <div className="flex-1">
-                                                        <div className="font-semibold text-lg">Budget Genius</div>
-                                                        <div className="text-sm text-muted-foreground">€10M - Big brain, small wallet</div>
+                                                {/* Budget Genius */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setData('budget', 10000000)}
+                                                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                                                        data.budget === 10000000
+                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                                            : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">🧠</span>
+                                                        <div className="flex-1">
+                                                            <div className="text-lg font-semibold">Budget Genius</div>
+                                                            <div className="text-sm text-muted-foreground">€10M - Big brain, small wallet</div>
+                                                        </div>
+                                                        {data.budget === 10000000 && <div className="text-blue-500">✓</div>}
                                                     </div>
-                                                    {data.budget === 10000000 && (
-                                                        <div className="text-blue-500">✓</div>
-                                                    )}
-                                                </div>
-                                            </button>
+                                                </button>
 
-                                            {/* Balanced Baller */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setData('budget', 17500000)}
-                                                className={`text-left p-4 rounded-lg border-2 transition-all ${
-                                                    data.budget === 17500000
-                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">⚖️</span>
-                                                    <div className="flex-1">
-                                                        <div className="font-semibold text-lg">Balanced Baller</div>
-                                                        <div className="text-sm text-muted-foreground">€17.5M - Working hard, playing smart</div>
+                                                {/* Balanced Baller */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setData('budget', 17500000)}
+                                                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                                                        data.budget === 17500000
+                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                                            : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">⚖️</span>
+                                                        <div className="flex-1">
+                                                            <div className="text-lg font-semibold">Balanced Baller</div>
+                                                            <div className="text-sm text-muted-foreground">€17.5M - Working hard, playing smart</div>
+                                                        </div>
+                                                        {data.budget === 17500000 && <div className="text-blue-500">✓</div>}
                                                     </div>
-                                                    {data.budget === 17500000 && (
-                                                        <div className="text-blue-500">✓</div>
-                                                    )}
-                                                </div>
-                                            </button>
+                                                </button>
 
-                                            {/* Rich Dad Mode */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setData('budget', 25000000)}
-                                                className={`text-left p-4 rounded-lg border-2 transition-all ${
-                                                    data.budget === 25000000
-                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-2xl">💎</span>
-                                                    <div className="flex-1">
-                                                        <div className="font-semibold text-lg">Rich Dad Mode</div>
-                                                        <div className="text-sm text-muted-foreground">€25M - Buy everyone, ask questions later</div>
+                                                {/* Rich Dad Mode */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setData('budget', 25000000)}
+                                                    className={`rounded-lg border-2 p-4 text-left transition-all ${
+                                                        data.budget === 25000000
+                                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+                                                            : 'border-gray-200 hover:border-gray-300 dark:border-gray-700 dark:hover:border-gray-600'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-2xl">💎</span>
+                                                        <div className="flex-1">
+                                                            <div className="text-lg font-semibold">Rich Dad Mode</div>
+                                                            <div className="text-sm text-muted-foreground">
+                                                                €25M - Buy everyone, ask questions later
+                                                            </div>
+                                                        </div>
+                                                        {data.budget === 25000000 && <div className="text-blue-500">✓</div>}
                                                     </div>
-                                                    {data.budget === 25000000 && (
-                                                        <div className="text-blue-500">✓</div>
-                                                    )}
-                                                </div>
-                                            </button>
+                                                </button>
                                             </div>
                                             {errors.budget && <p className="text-sm text-red-600">{errors.budget}</p>}
                                         </div>
@@ -226,7 +243,7 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                 )}
 
                                 {data.mode === 'draft' && (
-                                    <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-200 dark:border-purple-800">
+                                    <div className="space-y-4 rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50 p-4 dark:border-purple-800 dark:from-purple-950/20 dark:to-pink-950/20">
                                         <div className="flex items-center gap-2 text-sm font-semibold text-purple-700 dark:text-purple-300">
                                             <Calendar className="h-4 w-4" />
                                             Draft Configuration
@@ -248,7 +265,7 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                 )}
 
                                 {/* Team & Privacy Settings Section */}
-                                <div className="space-y-4 p-4 rounded-lg bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800">
+                                <div className="space-y-4 rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 p-4 dark:border-amber-800 dark:from-amber-950/20 dark:to-orange-950/20">
                                     <div className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
                                         <Users className="h-4 w-4" />
                                         Team & Privacy Settings
@@ -282,21 +299,17 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                             onChange={(e) => setData('max_members', parseInt(e.target.value))}
                                             className={errors.max_members ? 'border-red-500' : ''}
                                         />
-                                        <p className="text-sm text-muted-foreground">
-                                            Maximum number of teams in this league (2-50)
-                                        </p>
+                                        <p className="text-sm text-muted-foreground">Maximum number of teams in this league (2-50)</p>
                                         {errors.max_members && <p className="text-sm text-red-600">{errors.max_members}</p>}
                                     </div>
 
-                                    <div className="flex items-center justify-between p-3 rounded-md bg-white/50 dark:bg-black/10 border border-amber-100 dark:border-amber-900">
-                                        <div className="space-y-1 flex-1">
+                                    <div className="flex items-center justify-between rounded-md border border-amber-100 bg-white/50 p-3 dark:border-amber-900 dark:bg-black/10">
+                                        <div className="flex-1 space-y-1">
                                             <Label htmlFor="is_private" className="flex items-center gap-2">
                                                 <Shield className="h-4 w-4" />
                                                 Private League
                                             </Label>
-                                            <p className="text-sm text-muted-foreground">
-                                                Private leagues require an invite code to join
-                                            </p>
+                                            <p className="text-sm text-muted-foreground">Private leagues require an invite code to join</p>
                                         </div>
                                         <Switch
                                             id="is_private"
@@ -306,9 +319,9 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                     </div>
                                 </div>
 
-                                <div className="flex gap-3 pt-6 border-t mt-8">
+                                <div className="mt-8 flex gap-3 border-t pt-6">
                                     <Link href="/fantasy/leagues" className="flex-1">
-                                        <Button type="button" variant="outline" className="w-full h-12 text-base">
+                                        <Button type="button" variant="outline" className="h-12 w-full text-base">
                                             <ArrowLeft className="mr-2 h-4 w-4" />
                                             Cancel
                                         </Button>
@@ -316,7 +329,7 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                     <Button
                                         type="submit"
                                         disabled={processing}
-                                        className="flex-1 h-12 text-base bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 shadow-lg"
+                                        className="h-12 flex-1 bg-gradient-to-r from-orange-500 to-purple-600 text-base shadow-lg hover:from-orange-600 hover:to-purple-700"
                                     >
                                         {processing ? (
                                             <>Creating League...</>
@@ -334,5 +347,5 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                 </div>
             </div>
         </AuthenticatedLayout>
-    )
+    );
 }
