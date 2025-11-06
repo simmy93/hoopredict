@@ -329,7 +329,7 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                     <Button
                                         type="submit"
                                         disabled={processing}
-                                        className="h-12 flex-1 bg-gradient-to-r from-orange-500 to-purple-600 text-base shadow-lg hover:from-orange-600 hover:to-purple-700"
+                                        className="h-12 flex-1 text-base bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
                                     >
                                         {processing ? (
                                             <>Creating League...</>
