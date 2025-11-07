@@ -22,6 +22,7 @@ interface Player {
     position: string;
     price: number;
     photo_url: string | null;
+    photo_headshot_url: string | null;
     team: Team;
 }
 
@@ -612,9 +613,9 @@ export default function LineupTab({
                                                             {player.player.position}
                                                         </div>
 
-                                                        {player.player.photo_url ? (
+                                                        {(player.player.photo_headshot_url || player.player.photo_url) ? (
                                                             <img
-                                                                src={player.player.photo_url}
+                                                                src={(player.player.photo_headshot_url || player.player.photo_url)\!}
                                                                 alt={player.player.name}
                                                                 className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full object-cover object-top border-2 border-white/80"
                                                             />
@@ -676,9 +677,9 @@ export default function LineupTab({
                                         className="flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-blue-900/20 dark:to-indigo-900/20 from-blue-50 to-indigo-50 border-blue-300 cursor-move"
                                     >
                                         <div className="flex flex-col items-center gap-1">
-                                            {player.player.photo_url ? (
+                                            {(player.player.photo_headshot_url || player.player.photo_url) ? (
                                                 <img
-                                                    src={player.player.photo_url}
+                                                    src={(player.player.photo_headshot_url || player.player.photo_url)\!}
                                                     alt={player.player.name}
                                                     className="w-14 h-14 rounded-full object-cover object-top border-2 border-blue-300"
                                                 />
@@ -742,9 +743,9 @@ export default function LineupTab({
                                         onDragEnd={handleDragEnd}
                                         className="flex flex-col items-center gap-1 cursor-move w-full"
                                     >
-                                        {sixthMan.player.photo_url ? (
+                                        {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
                                             <img
-                                                src={sixthMan.player.photo_url}
+                                                src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)\!}
                                                 alt={sixthMan.player.name}
                                                 className="w-14 h-14 rounded-full object-cover object-top border-2 border-yellow-400"
                                             />
@@ -819,9 +820,9 @@ export default function LineupTab({
                                             onDragEnd={handleDragEnd}
                                             className="flex flex-col items-center gap-2 cursor-move w-full p-2"
                                         >
-                                            {sixthMan.player.photo_url ? (
+                                            {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
                                                 <img
-                                                    src={sixthMan.player.photo_url}
+                                                    src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)\!}
                                                     alt={sixthMan.player.name}
                                                     className="w-16 h-16 rounded-full object-cover object-top border-2 border-yellow-400"
                                                 />
@@ -901,9 +902,9 @@ export default function LineupTab({
                                                 onDragEnd={handleDragEnd}
                                                 className="flex items-center gap-3 p-3 border rounded-lg cursor-move hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700"
                                             >
-                                                {teamPlayer.player.photo_url ? (
+                                                {team(player.player.photo_headshot_url || player.player.photo_url) ? (
                                                     <img
-                                                        src={teamPlayer.player.photo_url}
+                                                        src={(teamPlayer.player.photo_headshot_url || teamPlayer.player.photo_url)\!}
                                                         alt={teamPlayer.player.name}
                                                         className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0"
                                                     />

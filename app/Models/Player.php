@@ -18,6 +18,7 @@ class Player extends Model
         'jersey_number',
         'team_id',
         'photo_url',
+        'photo_headshot_url',
         'country',
         'price',
         'is_active',

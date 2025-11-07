@@ -91,11 +91,14 @@ class EuroLeaguePlayerScrapingService
 
                 // Download player photo if available, otherwise use placeholder
                 $photoUrl = null;
+                $photoHeadshotUrl = null;
                 if (isset($playerData['images']['headshot']) && ! empty($playerData['images']['headshot'])) {
                     Log::info("Attempting to download photo for {$person['name']}: {$playerData['images']['headshot']}");
-                    $photoUrl = $this->downloadPlayerPhoto($playerData['images']['headshot'], $person['code']);
-                    if ($photoUrl) {
-                        Log::info("Successfully downloaded photo for {$person['name']}");
+                    $photos = $this->downloadPlayerPhoto($playerData['images']['headshot'], $person['code']);
+                    if ($photos) {
+                        $photoUrl = $photos['full'];
+                        $photoHeadshotUrl = $photos['headshot'];
+                        Log::info("Successfully downloaded photos for {$person['name']}");
                     }
                 }
 
@@ -103,6 +106,7 @@ class EuroLeaguePlayerScrapingService
                 if (! $photoUrl) {
                     $position = $this->mapPositionCode($playerData['position'] ?? null);
                     $photoUrl = $this->getPlaceholderAvatar($position, $person['name']);
+                    $photoHeadshotUrl = $photoUrl; // Same placeholder for both
                 }
 
                 // Map position code to name
@@ -126,6 +130,7 @@ class EuroLeaguePlayerScrapingService
                         'jersey_number' => $playerData['dorsal'] ?? null,
                         'team_id' => $team->id,
                         'photo_url' => $photoUrl,
+                        'photo_headshot_url' => $photoHeadshotUrl,
                         'country' => $person['country']['name'] ?? null,
                         'price' => $price,
                         'is_active' => $isActive,
@@ -183,7 +188,7 @@ class EuroLeaguePlayerScrapingService
         }
     }
 
-    private function downloadPlayerPhoto(string $photoUrl, string $playerCode): ?string
+    private function downloadPlayerPhoto(string $photoUrl, string $playerCode): ?array
     {
         try {
             // Download the image
@@ -196,17 +201,86 @@ class EuroLeaguePlayerScrapingService
                 $extension = 'png'; // Default to png
             }
 
-            // Create filename
-            $filename = 'player-photos/'.strtolower($playerCode).'.'.$extension;
+            // Create filenames
+            $fullFilename = 'player-photos/'.strtolower($playerCode).'.'.$extension;
+            $headshotFilename = 'player-photos/'.strtolower($playerCode).'-headshot.'.$extension;
 
-            // Save to public storage
-            Storage::disk('public')->put($filename, $imageContent);
+            // Save original full photo to public storage
+            Storage::disk('public')->put($fullFilename, $imageContent);
 
-            // Return the public URL path
-            return '/storage/'.$filename;
+            // Create headshot version (crop top 40% of image)
+            $headshotContent = $this->createHeadshotFromImage($imageContent, $extension);
+            if ($headshotContent) {
+                Storage::disk('public')->put($headshotFilename, $headshotContent);
+            }
+
+            // Return both public URL paths
+            return [
+                'full' => '/storage/'.$fullFilename,
+                'headshot' => $headshotContent ? '/storage/'.$headshotFilename : '/storage/'.$fullFilename,
+            ];
         } catch (\Exception $e) {
             Log::warning("Failed to download photo for player {$playerCode}: ".$e->getMessage());
 
+            return null;
+        }
+    }
+
+    private function createHeadshotFromImage(string $imageContent, string $extension): ?string
+    {
+        // Check if GD library is available
+        if (!function_exists('imagecreatefromstring')) {
+            Log::info("GD library not available - skipping headshot creation. Enable GD extension in php.ini to generate cropped headshots.");
+            return null;
+        }
+
+        try {
+            // Create image resource from string
+            $image = imagecreatefromstring($imageContent);
+
+            if (!$image) {
+                Log::warning("Failed to create image resource from downloaded content");
+                return null;
+            }
+
+            $originalWidth = imagesx($image);
+            $originalHeight = imagesy($image);
+
+            // Crop to top 40% (headshot area)
+            // Most player photos show head in top 30-40% of the image
+            $cropHeight = (int)($originalHeight * 0.4);
+
+            // Create new image with cropped dimensions
+            $headshot = imagecreatetruecolor($originalWidth, $cropHeight);
+
+            // Preserve transparency for PNG
+            if (strtolower($extension) === 'png') {
+                imagealphablending($headshot, false);
+                imagesavealpha($headshot, true);
+                $transparent = imagecolorallocatealpha($headshot, 0, 0, 0, 127);
+                imagefill($headshot, 0, 0, $transparent);
+            }
+
+            // Copy top portion of original image
+            imagecopy($headshot, $image, 0, 0, 0, 0, $originalWidth, $cropHeight);
+
+            // Save to string buffer
+            ob_start();
+            match (strtolower($extension)) {
+                'jpg', 'jpeg' => imagejpeg($headshot, null, 90),
+                'png' => imagepng($headshot, null, 9),
+                'gif' => imagegif($headshot),
+                default => imagepng($headshot, null, 9),
+            };
+            $headshotContent = ob_get_clean();
+
+            // Clean up resources
+            imagedestroy($image);
+            imagedestroy($headshot);
+
+            return $headshotContent;
+        } catch (\Exception $e) {
+            Log::warning("Failed to create headshot: ".$e->getMessage());
             return null;
         }
     }

@@ -30,6 +30,7 @@ interface Player {
     jersey_number: number | null;
     price: number;
     photo_url: string | null;
+    photo_headshot_url: string | null;
     country: string | null;
     is_active: boolean;
     team: Team;
@@ -236,9 +237,9 @@ export default function MarketplaceTab({
                                 <Card key={player.id} className="border-primary">
                                     <CardContent className="pt-6">
                                         <div className="mb-4 flex items-start gap-3">
-                                            {player.photo_url ? (
+                                            {(player.photo_headshot_url || player.photo_url) ? (
                                                 <img
-                                                    src={player.photo_url}
+                                                    src={(player.photo_headshot_url || player.photo_url)!}
                                                     alt={player.name}
                                                     className="h-12 w-12 rounded-full object-cover object-top"
                                                 />
@@ -367,9 +368,9 @@ export default function MarketplaceTab({
                         <Card key={player.id} className={owned ? 'border-primary' : ''}>
                             <CardHeader>
                                 <div className="flex items-start gap-4">
-                                    {player.photo_url ? (
+                                    {(player.photo_headshot_url || player.photo_url) ? (
                                         <img
-                                            src={player.photo_url}
+                                            src={(player.photo_headshot_url || player.photo_url)!}
                                             alt={player.name}
                                             className="h-16 w-16 rounded-full object-cover object-top"
                                         />
@@ -471,9 +472,9 @@ export default function MarketplaceTab({
                     {playerToSell && (
                         <div className="py-4">
                             <div className="flex items-center gap-3 rounded-lg bg-muted p-4">
-                                {playerToSell.photo_url ? (
+                                {(playerToSell.photo_headshot_url || playerToSell.photo_url) ? (
                                     <img
-                                        src={playerToSell.photo_url}
+                                        src={(playerToSell.photo_headshot_url || playerToSell.photo_url)!}
                                         alt={playerToSell.name}
                                         className="h-16 w-16 rounded-full object-cover object-top"
                                     />
