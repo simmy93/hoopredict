@@ -163,6 +163,8 @@ class StatisticsController extends Controller
                         'team' => $player->team->name ?? 'N/A',
                         'position' => $player->position,
                         'price' => $player->price,
+                        'photo_url' => $player->photo_url,
+                        'photo_headshot_url' => $player->photo_headshot_url,
                         'total_fantasy_points' => round($player->total_fantasy_points, 2),
                         'games_played' => $player->games_played,
                         'avg_fantasy_points' => round($player->avg_fantasy_points, 2),
@@ -186,6 +188,8 @@ class StatisticsController extends Controller
                         'team' => $player->team->name ?? 'N/A',
                         'position' => $player->position,
                         'price' => $player->price,
+                        'photo_url' => $player->photo_url,
+                        'photo_headshot_url' => $player->photo_headshot_url,
                         'round_fantasy_points' => round($player->round_fantasy_points, 2),
                     ];
                 });
@@ -211,6 +215,8 @@ class StatisticsController extends Controller
                         'team' => $player->team->name ?? 'N/A',
                         'position' => $player->position,
                         'price' => $player->price,
+                        'photo_url' => $player->photo_url,
+                        'photo_headshot_url' => $player->photo_headshot_url,
                         'total_fantasy_points' => round($player->total_fantasy_points, 2),
                         'games_played' => $player->games_played,
                         'value_rating' => round($valueRating, 2), // Points per million
