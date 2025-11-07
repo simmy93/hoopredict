@@ -26,7 +26,7 @@ export default function Dashboard({ stats }: Props) {
                             Admin Panel
                         </h1>
                         <Button variant="outline" asChild>
-                            <Link href="/dashboard">Back to Dashboard</Link>
+                            <Link href="/how-it-works">Back to App</Link>
                         </Button>
                     </div>
                 </div>

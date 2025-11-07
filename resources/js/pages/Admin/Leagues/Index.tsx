@@ -58,7 +58,7 @@ export default function Index({ leagues }: Props) {
                                 <Link href="/admin/league-members">Members</Link>
                             </Button>
                             <Button variant="outline" asChild>
-                                <Link href="/dashboard">Dashboard</Link>
+                                <Link href="/admin">Admin</Link>
                             </Button>
                         </div>
                     </div>
@@ -66,13 +66,10 @@ export default function Index({ leagues }: Props) {
             </nav>
 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-                <div className="mb-6 flex justify-between items-center">
+                <div className="mb-6">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Leagues Management
                     </h2>
-                    <Button asChild>
-                        <Link href="/admin/leagues/create">Create League</Link>
-                    </Button>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
