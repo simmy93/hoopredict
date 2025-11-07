@@ -101,6 +101,13 @@ export default function MarketplaceTab({
     const { props } = usePage();
     const flash = (props.flash || {}) as FlashMessages;
 
+    // Sync local state with filters from props
+    useEffect(() => {
+        setPosition(filters?.position ? String(filters.position) : 'all');
+        setSearch(String(filters?.search || ''));
+        setSortBy(String(filters?.sort || 'price'));
+    }, [filters]);
+
     // Function to fetch and show player stats
     const showPlayerStats = async (playerId: number) => {
         setLoadingStats(true);
@@ -123,12 +130,20 @@ export default function MarketplaceTab({
     }, [flash]);
 
     const updateFilters = (newFilters: any) => {
+        // Build clean filter object, removing null values
+        const cleanFilters: Record<string, any> = {};
+        const allFilters = { ...filters, ...newFilters };
+
+        Object.keys(allFilters).forEach(key => {
+            const value = newFilters.hasOwnProperty(key) ? newFilters[key] : (filters as Record<string, any>)[key];
+            if (value !== null && value !== undefined) {
+                cleanFilters[key] = value;
+            }
+        });
+
         router.get(
             `/fantasy/leagues/${league.id}/team`,
-            {
-                ...filters,
-                ...newFilters,
-            },
+            cleanFilters,
             {
                 preserveState: true,
                 preserveScroll: true,
