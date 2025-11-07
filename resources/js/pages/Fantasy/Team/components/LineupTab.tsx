@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trophy, User, Sparkles, AlertCircle, CheckCircle2, Info, Users } from 'lucide-react';
 
 interface User {
@@ -414,23 +413,19 @@ export default function LineupTab({
                             </CardDescription>
                         </div>
                         <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <Select
+                            <select
                                 value={selectedRound.toString()}
-                                onValueChange={(value) => {
-                                    router.get(`/fantasy/leagues/${league.id}/team`, { round: value }, { preserveState: true });
+                                onChange={(e) => {
+                                    router.get(`/fantasy/leagues/${league.id}/team`, { round: e.target.value }, { preserveState: true });
                                 }}
+                                className="flex h-9 w-full sm:w-40 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                                <SelectTrigger className="w-full sm:w-40">
-                                    <SelectValue placeholder="Select Round" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {allRounds.map((round) => (
-                                        <SelectItem key={round} value={round.toString()}>
-                                            Round {round}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                {allRounds.map((round) => (
+                                    <option key={round} value={round.toString()}>
+                                        Round {round}
+                                    </option>
+                                ))}
+                            </select>
 
                             {!isRoundFinished && !isRoundLocked && (
                                 <Button
@@ -523,18 +518,18 @@ export default function LineupTab({
                         <CardDescription>Choose your starting five combination (Guards-Forwards-Centers)</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Select value={lineupType || ''} onValueChange={handleLineupTypeChange}>
-                            <SelectTrigger className="w-full max-w-md">
-                                <SelectValue placeholder="Select a formation..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {Object.entries(LINEUP_CONFIGS).map(([key, config]) => (
-                                    <SelectItem key={key} value={key}>
-                                        <span className="font-medium">{key}</span> - {config.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <select
+                            value={lineupType || ''}
+                            onChange={(e) => handleLineupTypeChange(e.target.value)}
+                            className="flex h-9 w-full max-w-md items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="">Select a formation...</option>
+                            {Object.entries(LINEUP_CONFIGS).map(([key, config]) => (
+                                <option key={key} value={key}>
+                                    {key} - {config.label}
+                                </option>
+                            ))}
+                        </select>
 
                         <Alert className="mt-4">
                             <Info className="h-4 w-4" />

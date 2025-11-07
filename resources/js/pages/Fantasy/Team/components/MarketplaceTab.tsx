@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import PlayerStatsModal from '@/components/PlayerStatsModal';
@@ -318,27 +317,25 @@ export default function MarketplaceTab({
                             </Button>
                         </div>
                         <div className="flex flex-col gap-2 sm:flex-row">
-                            <Select value={position} onValueChange={handlePositionChange}>
-                                <SelectTrigger className="w-full sm:w-[180px]">
-                                    <SelectValue placeholder="All Positions" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Positions</SelectItem>
-                                    <SelectItem value="Guard">Guards</SelectItem>
-                                    <SelectItem value="Forward">Forwards</SelectItem>
-                                    <SelectItem value="Center">Centers</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select value={sortBy} onValueChange={handleSortChange}>
-                                <SelectTrigger className="w-full sm:w-[180px]">
-                                    <SelectValue placeholder="Sort by" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="price">Price</SelectItem>
-                                    <SelectItem value="name">Name</SelectItem>
-                                    <SelectItem value="position">Position</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <select
+                                value={position}
+                                onChange={(e) => handlePositionChange(e.target.value)}
+                                className="flex h-9 w-full sm:w-[180px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="all">All Positions</option>
+                                <option value="Guard">Guards</option>
+                                <option value="Forward">Forwards</option>
+                                <option value="Center">Centers</option>
+                            </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => handleSortChange(e.target.value)}
+                                className="flex h-9 w-full sm:w-[180px] items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="price">Price</option>
+                                <option value="name">Name</option>
+                                <option value="position">Position</option>
+                            </select>
                         </div>
                     </div>
                 </CardContent>
