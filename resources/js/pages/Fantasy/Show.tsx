@@ -345,17 +345,11 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                                 <CardHeader>
                                     <CardTitle>My Team</CardTitle>
                                     <CardDescription>{userTeam.team_name}</CardDescription>
-                                    <div className="flex flex-col gap-2 mt-3 sm:flex-row">
-                                        <Link href={`/fantasy/leagues/${league.id}/team`} className="flex-1">
-                                            <Button size="sm" variant="outline" className="w-full text-xs sm:text-sm">
-                                                <ShoppingCart className="h-4 w-4 mr-1 sm:mr-2" />
-                                                View Team
-                                            </Button>
-                                        </Link>
-                                        <Link href={`/fantasy/leagues/${league.id}/lineup`} className="flex-1">
+                                    <div className="mt-3">
+                                        <Link href={`/fantasy/leagues/${league.id}/team`}>
                                             <Button size="sm" className="w-full text-xs sm:text-sm">
-                                                <ListOrdered className="h-4 w-4 mr-1 sm:mr-2" />
-                                                Manage Lineup
+                                                <Users className="h-4 w-4 mr-1 sm:mr-2" />
+                                                Manage Team
                                             </Button>
                                         </Link>
                                     </div>
