@@ -46,8 +46,8 @@ export default function Edit({ league, users }: Props) {
             <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between items-center">
-                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                            Admin Panel - Edit League
+                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white truncate">
+                            <span className="hidden sm:inline">Admin Panel - </span>Edit League
                         </h1>
                         <Button variant="outline" asChild>
                             <Link href="/admin/leagues">Back to Leagues</Link>

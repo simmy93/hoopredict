@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/ui/pagination';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 
 interface LeagueMember {
     id: number;
@@ -30,9 +32,12 @@ interface Props {
 }
 
 export default function Index({ members }: Props) {
-    const handleDelete = (id: number) => {
-        if (confirm('Are you sure you want to remove this member?')) {
-            router.delete(`/admin/league-members/${id}`);
+    const [deleteMemberId, setDeleteMemberId] = useState<number | null>(null);
+
+    const handleDelete = () => {
+        if (deleteMemberId) {
+            router.delete(`/admin/league-members/${deleteMemberId}`);
+            setDeleteMemberId(null);
         }
     };
 
@@ -41,8 +46,8 @@ export default function Index({ members }: Props) {
             <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between items-center">
-                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
-                            Admin Panel - League Members
+                        <h1 className="text-xl font-semibold text-gray-900 dark:text-white truncate">
+                            <span className="hidden sm:inline">Admin Panel - </span>Members
                         </h1>
                         <div className="flex items-center space-x-4">
                             <Button variant="ghost" asChild>
@@ -121,7 +126,7 @@ export default function Index({ members }: Props) {
                                         <Button
                                             variant="destructive"
                                             size="sm"
-                                            onClick={() => handleDelete(member.id)}
+                                            onClick={() => setDeleteMemberId(member.id)}
                                         >
                                             Remove
                                         </Button>
@@ -138,6 +143,25 @@ export default function Index({ members }: Props) {
                     onPageChange={(page) => router.get(`/admin/league-members?page=${page}`, {}, { preserveScroll: true })}
                 />
             </main>
+
+            <Dialog open={deleteMemberId !== null} onOpenChange={(open) => !open && setDeleteMemberId(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Remove Member</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to remove this member from the league? This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteMemberId(null)}>
+                            Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete}>
+                            Remove
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

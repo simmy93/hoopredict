@@ -55,7 +55,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        $user->load(['ownedLeagues', 'leagueMembers.league', 'predictions']);
+        $user->loadCount(['ownedLeagues', 'leagueMembers', 'predictions']);
 
         return Inertia::render('Admin/Users/Show', [
             'user' => $user,

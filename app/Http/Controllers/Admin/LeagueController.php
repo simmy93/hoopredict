@@ -61,7 +61,8 @@ class LeagueController extends Controller
      */
     public function show(League $league)
     {
-        $league->load(['owner', 'members.user', 'predictions']);
+        $league->load('owner');
+        $league->loadCount(['members', 'predictions']);
 
         return Inertia::render('Admin/Leagues/Show', [
             'league' => $league,
