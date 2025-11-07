@@ -615,7 +615,7 @@ export default function LineupTab({
 
                                                         {(player.player.photo_headshot_url || player.player.photo_url) ? (
                                                             <img
-                                                                src={(player.player.photo_headshot_url || player.player.photo_url)\!}
+                                                                src={(player.player.photo_headshot_url || player.player.photo_url)!}
                                                                 alt={player.player.name}
                                                                 className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full object-cover object-top border-2 border-white/80"
                                                             />
@@ -679,7 +679,7 @@ export default function LineupTab({
                                         <div className="flex flex-col items-center gap-1">
                                             {(player.player.photo_headshot_url || player.player.photo_url) ? (
                                                 <img
-                                                    src={(player.player.photo_headshot_url || player.player.photo_url)\!}
+                                                    src={(player.player.photo_headshot_url || player.player.photo_url)!}
                                                     alt={player.player.name}
                                                     className="w-14 h-14 rounded-full object-cover object-top border-2 border-blue-300"
                                                 />
@@ -745,7 +745,7 @@ export default function LineupTab({
                                     >
                                         {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
                                             <img
-                                                src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)\!}
+                                                src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)!}
                                                 alt={sixthMan.player.name}
                                                 className="w-14 h-14 rounded-full object-cover object-top border-2 border-yellow-400"
                                             />
@@ -822,7 +822,7 @@ export default function LineupTab({
                                         >
                                             {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
                                                 <img
-                                                    src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)\!}
+                                                    src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)!}
                                                     alt={sixthMan.player.name}
                                                     className="w-16 h-16 rounded-full object-cover object-top border-2 border-yellow-400"
                                                 />
@@ -902,9 +902,9 @@ export default function LineupTab({
                                                 onDragEnd={handleDragEnd}
                                                 className="flex items-center gap-3 p-3 border rounded-lg cursor-move hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700"
                                             >
-                                                {team(player.player.photo_headshot_url || player.player.photo_url) ? (
+                                                {(teamPlayer.player.photo_headshot_url || teamPlayer.player.photo_url) ? (
                                                     <img
-                                                        src={(teamPlayer.player.photo_headshot_url || teamPlayer.player.photo_url)\!}
+                                                        src={(teamPlayer.player.photo_headshot_url || teamPlayer.player.photo_url)!}
                                                         alt={teamPlayer.player.name}
                                                         className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0"
                                                     />
