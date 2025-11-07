@@ -13,6 +13,7 @@ class FantasyTeamController extends Controller
     {
         $userTeam = $league->teams()->where('user_id', auth()->id())->firstOrFail();
 
+        // ============ MARKETPLACE DATA ============
         // Get user's current players IDs
         $myPlayerIds = $userTeam->players()->pluck('player_id')->toArray();
 
@@ -49,12 +50,98 @@ class FantasyTeamController extends Controller
         // Get user's current players
         $myPlayers = $userTeam->players()->with('team')->get();
 
+        // ============ LINEUP DATA ============
+        // Get selected round (default to current/next round)
+        $selectedRound = $request->input('round');
+
+        // Get the latest finished round to determine current round
+        $latestFinishedRound = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('status', 'finished')
+            ->max('round');
+
+        // Get only past and current rounds (exclude future rounds)
+        $allRounds = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('round', '<=', ($latestFinishedRound + 1))
+            ->select('round')
+            ->distinct()
+            ->orderBy('round')
+            ->pluck('round');
+
+        // If no round selected, default to the current round
+        if (!$selectedRound) {
+            $selectedRound = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
+
+            if (!$allRounds->contains($selectedRound) && $allRounds->isNotEmpty()) {
+                $selectedRound = $latestFinishedRound ?: $allRounds->first();
+            }
+        }
+
+        // Check if selected round is finished
+        $roundGames = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('round', $selectedRound)
+            ->get();
+
+        $isRoundFinished = $roundGames->isNotEmpty() &&
+            $roundGames->every(fn($game) => $game->status === 'finished');
+
+        // Check if current round is active (locked)
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        $isRoundLocked = $currentActiveRound !== null;
+
+        // Get team players with their stats for the selected round
+        $teamPlayers = $userTeam->fantasyTeamPlayers()
+            ->with(['player.team', 'player.gameStats' => function ($query) use ($league, $selectedRound) {
+                $query->whereHas('game', function ($q) use ($league, $selectedRound) {
+                    $q->where('championship_id', $league->championship_id)
+                      ->where('round', $selectedRound);
+                });
+            }])
+            ->orderBy('lineup_position')
+            ->get()
+            ->map(function ($teamPlayer) use ($isRoundFinished) {
+                $roundFantasyPoints = $teamPlayer->player->gameStats->sum('fantasy_points');
+
+                $multiplier = 0.5; // Bench default
+                if ($teamPlayer->lineup_position) {
+                    if ($teamPlayer->lineup_position >= 1 && $teamPlayer->lineup_position <= 5) {
+                        $multiplier = 1.0; // Starter
+                    } elseif ($teamPlayer->lineup_position === 6) {
+                        $multiplier = 0.75; // Sixth man
+                    }
+                }
+
+                $teamPlayer->round_fantasy_points = $roundFantasyPoints;
+                $teamPlayer->round_team_points = $isRoundFinished ? round($roundFantasyPoints * $multiplier, 2) : null;
+                $teamPlayer->multiplier = $multiplier;
+
+                return $teamPlayer;
+            });
+
+        $roundTotalPoints = $isRoundFinished ? $teamPlayers->sum('round_team_points') : null;
+
+        // Get position counts for validation
+        $positionCounts = $userTeam->getPositionCounts();
+        $startingLineupCounts = $userTeam->getStartingLineupPositionCounts();
+
         return Inertia::render('Fantasy/Team/Show', [
-            'league' => $league,
+            'league' => $league->load('championship'),
             'userTeam' => $userTeam,
+            // Marketplace data
             'players' => $players,
             'myPlayers' => $myPlayers,
             'filters' => $request->only(['position', 'team_id', 'search', 'sort', 'direction']),
+            // Lineup data
+            'teamPlayers' => $teamPlayers,
+            'allRounds' => $allRounds->toArray(),
+            'selectedRound' => (int) $selectedRound,
+            'isRoundFinished' => $isRoundFinished,
+            'isRoundLocked' => $isRoundLocked,
+            'roundTotalPoints' => $roundTotalPoints,
+            'currentActiveRound' => $currentActiveRound,
+            'positionCounts' => $positionCounts,
+            'startingLineupCounts' => $startingLineupCounts,
+            'hasValidTeamComposition' => $userTeam->hasValidTeamComposition(),
+            'hasValidStartingLineup' => $userTeam->hasValidStartingLineup(),
         ]);
     }
 }

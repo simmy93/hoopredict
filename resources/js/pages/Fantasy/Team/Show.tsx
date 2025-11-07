@@ -1,17 +1,10 @@
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import PlayerStatsModal from '@/components/PlayerStatsModal';
+import { useState } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
-import { FlashMessages } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, DollarSign, Loader2, Search, ShoppingCart, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import axios from 'axios';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, ShoppingCart, Users as UsersIcon } from 'lucide-react';
+import MarketplaceTab from './components/MarketplaceTab';
+import LineupTab from './components/LineupTab';
 
 interface User {
     id: number;
@@ -36,13 +29,23 @@ interface Player {
     team: Team;
 }
 
-interface FantasyTeam {
+interface FantasyTeamPlayer {
     id: number;
-    team_name: string;
-    budget_spent: number;
-    budget_remaining: number;
-    total_points: number;
-    user: User;
+    fantasy_team_id: number;
+    player_id: number;
+    lineup_position: number | null;
+    purchase_price: number;
+    points_earned: number;
+    player: Player;
+    round_fantasy_points?: number;
+    round_team_points?: number | null;
+    multiplier?: number;
+}
+
+interface Championship {
+    id: number;
+    name: string;
+    season: string;
 }
 
 interface FantasyLeague {
@@ -51,6 +54,17 @@ interface FantasyLeague {
     mode: 'budget' | 'draft';
     budget: number;
     team_size: number;
+    championship: Championship;
+}
+
+interface FantasyTeam {
+    id: number;
+    team_name: string;
+    budget_spent: number;
+    budget_remaining: number;
+    total_points: number;
+    lineup_type: string | null;
+    user: User;
 }
 
 interface PaginatedPlayers {
@@ -61,142 +75,70 @@ interface PaginatedPlayers {
     total: number;
 }
 
+interface PositionCounts {
+    Guard: number;
+    Forward: number;
+    Center: number;
+}
+
 interface Props {
-    league?: FantasyLeague;
-    userTeam?: FantasyTeam;
-    players?: PaginatedPlayers;
-    myPlayers?: Player[];
-    filters?: {
+    league: FantasyLeague;
+    userTeam: FantasyTeam;
+    // Marketplace data
+    players: PaginatedPlayers;
+    myPlayers: Player[];
+    filters: {
         position?: string;
         team_id?: number;
         search?: string;
         sort?: string;
         direction?: string;
     };
+    // Lineup data
+    teamPlayers: FantasyTeamPlayer[];
+    positionCounts: PositionCounts;
+    startingLineupCounts: PositionCounts;
+    hasValidTeamComposition: boolean;
+    hasValidStartingLineup: boolean;
+    selectedRound: number;
+    allRounds: number[];
+    isRoundFinished: boolean;
+    roundTotalPoints: number | null;
+    isRoundLocked: boolean;
+    currentActiveRound: number | null;
 }
 
-export default function Index({ league, userTeam, players, myPlayers = [], filters = {} }: Props) {
-    const [search, setSearch] = useState(String(filters?.search || ''));
-    const [position, setPosition] = useState(filters?.position ? String(filters.position) : 'all');
-    const [sortBy, setSortBy] = useState(String(filters?.sort || 'price'));
-    const [buyingPlayerId, setBuyingPlayerId] = useState<number | null>(null);
-    const [sellingPlayerId, setSellingPlayerId] = useState<number | null>(null);
-    const [confirmSellDialogOpen, setConfirmSellDialogOpen] = useState(false);
-    const [playerToSell, setPlayerToSell] = useState<Player | null>(null);
-
-    // Player stats modal state
-    const [statsModalOpen, setStatsModalOpen] = useState(false);
-    const [selectedPlayerStats, setSelectedPlayerStats] = useState<any>(null);
-    const [loadingStats, setLoadingStats] = useState(false);
-
-    const { props } = usePage();
-    const flash = (props.flash || {}) as FlashMessages;
-
-    // Function to fetch and show player stats
-    const showPlayerStats = async (playerId: number) => {
-        setLoadingStats(true);
-        setStatsModalOpen(true);
-        try {
-            const response = await axios.get(`/api/players/${playerId}/stats`);
-            setSelectedPlayerStats(response.data);
-        } catch (error) {
-            console.error('Failed to load player stats:', error);
-        } finally {
-            setLoadingStats(false);
-        }
-    };
-
-    // Automatically scroll to top when errors appear
-    useEffect(() => {
-        if (flash.error) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    }, [flash]);
-
-    const updateFilters = (newFilters: any) => {
-        if (!league?.id) return;
-        router.get(
-            `/fantasy/leagues/${league.id}/team`,
-            {
-                ...filters,
-                ...newFilters,
-            },
-            {
-                preserveState: true,
-                preserveScroll: true,
-            },
-        );
-    };
-
-    const handleSearch = () => {
-        updateFilters({ search, page: 1 });
-    };
-
-    const handlePositionChange = (value: string) => {
-        setPosition(value);
-        updateFilters({ position: value === 'all' ? null : value, page: 1 });
-    };
-
-    const handleSortChange = (value: string) => {
-        setSortBy(value);
-        updateFilters({ sort: value, page: 1 });
-    };
-
-    const buyPlayer = (playerId: number) => {
-        if (!league?.id) return;
-        setBuyingPlayerId(playerId);
-        router.post(
-            `/fantasy/leagues/${league.id}/players/${playerId}/buy`,
-            {},
-            {
-                preserveScroll: true,
-                onFinish: () => setBuyingPlayerId(null),
-            },
-        );
-    };
-
-    const handleSellClick = (player: Player) => {
-        setPlayerToSell(player);
-        setConfirmSellDialogOpen(true);
-    };
-
-    const confirmSell = () => {
-        if (!league?.id || !playerToSell) return;
-        setSellingPlayerId(playerToSell.id);
-        setConfirmSellDialogOpen(false);
-        router.delete(`/fantasy/leagues/${league.id}/players/${playerToSell.id}/sell`, {
-            preserveScroll: true,
-            onFinish: () => {
-                setSellingPlayerId(null);
-                setPlayerToSell(null);
-            },
-        });
-    };
-
-    const isOwned = (playerId: number) => {
-        return myPlayers?.some((p) => p.id === playerId) || false;
-    };
-
-    const canAfford = (price: number) => {
-        return userTeam?.budget_remaining ? Number(userTeam.budget_remaining) >= price : false;
-    };
-
-    const isTeamFull = () => {
-        return league?.team_size ? (myPlayers?.length || 0) >= league.team_size : false;
-    };
-
-    if (!league || !userTeam || !players) {
-        return <div>Loading...</div>;
-    }
+export default function Show({
+    league,
+    userTeam,
+    players,
+    myPlayers,
+    filters,
+    teamPlayers,
+    positionCounts,
+    startingLineupCounts,
+    hasValidTeamComposition,
+    hasValidStartingLineup,
+    selectedRound,
+    allRounds,
+    isRoundFinished,
+    roundTotalPoints,
+    isRoundLocked,
+    currentActiveRound,
+}: Props) {
+    const [activeTab, setActiveTab] = useState('marketplace');
 
     return (
         <AuthenticatedLayout>
-            <Head title={`My Team - ${league.name}`} />
+            <Head title={`${userTeam.team_name} - ${league.name}`} />
 
             <div className="py-12">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="mb-6">
-                        <Link href={`/fantasy/leagues/${league.id}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+                        <Link
+                            href={`/fantasy/leagues/${league.id}`}
+                            className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                        >
                             <ArrowLeft className="h-4 w-4" />
                             Back to League
                         </Link>
@@ -205,323 +147,59 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                     {/* Header */}
                     <div className="mb-6">
                         <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
-                            <Users className="h-7 w-7 sm:h-8 sm:w-8" />
+                            <UsersIcon className="h-7 w-7 sm:h-8 sm:w-8" />
                             {userTeam.team_name}
                         </h1>
                         <p className="mt-1 text-muted-foreground">{league.name}</p>
                     </div>
 
-                    {/* My Team Section */}
-                    <Card className="mb-6">
-                        <CardHeader>
-                            <CardTitle>
-                                My Players ({myPlayers?.length || 0}/{league.team_size})
-                            </CardTitle>
-                            <CardDescription>
-                                {league.mode === 'budget' && <>Budget: ${(Number(userTeam.budget_remaining) / 1000000).toFixed(1)}M remaining</>}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {myPlayers && myPlayers.length > 0 ? (
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {myPlayers.map((player) => (
-                                        <Card key={player.id} className="border-primary">
-                                            <CardContent className="pt-6">
-                                                <div className="mb-4 flex items-start gap-3">
-                                                    {player.photo_url ? (
-                                                        <img
-                                                            src={player.photo_url}
-                                                            alt={player.name}
-                                                            className="h-12 w-12 rounded-full object-cover object-top"
-                                                        />
-                                                    ) : (
-                                                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold">
-                                                            {player.name.charAt(0)}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex-1">
-                                                        <h4
-                                                            className="font-medium hover:text-primary cursor-pointer transition-colors"
-                                                            onClick={() => showPlayerStats(player.id)}
-                                                        >
-                                                            {player.name}
-                                                        </h4>
-                                                        <p className="text-sm text-muted-foreground">{player.team.name}</p>
-                                                        <div className="mt-1 flex gap-2">
-                                                            <Badge variant="secondary" className="text-xs">
-                                                                {player.position}
-                                                            </Badge>
-                                                            {player.jersey_number && (
-                                                                <Badge variant="outline" className="text-xs">
-                                                                    #{player.jersey_number}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="text-sm">
-                                                        <span className="text-muted-foreground">Value:</span>
-                                                        <span className="ml-1 font-bold">${(player.price / 1000000).toFixed(1)}M</span>
-                                                    </div>
-                                                    {league.mode === 'budget' && (
-                                                        <Button
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            onClick={() => handleSellClick(player)}
-                                                            disabled={sellingPlayerId === player.id}
-                                                        >
-                                                            {sellingPlayerId === player.id ? (
-                                                                <>
-                                                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                                                    Selling...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <DollarSign className="mr-1 h-3 w-3" />
-                                                                    Sell
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="py-8 text-center text-muted-foreground">
-                                    <Users className="mx-auto mb-3 h-12 w-12 opacity-50" />
-                                    <p>No players yet. Start building your team below!</p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                    {/* Tabs */}
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <TabsList className="grid w-full max-w-md grid-cols-2">
+                            <TabsTrigger value="marketplace" className="flex items-center gap-2">
+                                <ShoppingCart className="h-4 w-4" />
+                                <span className="hidden sm:inline">Marketplace</span>
+                                <span className="sm:hidden">Buy/Sell</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="lineup" className="flex items-center gap-2">
+                                <UsersIcon className="h-4 w-4" />
+                                <span className="hidden sm:inline">Manage Lineup</span>
+                                <span className="sm:hidden">Lineup</span>
+                            </TabsTrigger>
+                        </TabsList>
 
-                    {/* Available Players Title */}
-                    <div className="mb-4">
-                        <h2 className="text-2xl font-bold">Available Players</h2>
-                        <p className="text-muted-foreground">Browse and buy players for your team</p>
-                    </div>
+                        <TabsContent value="marketplace" className="mt-6">
+                            <MarketplaceTab
+                                league={league}
+                                userTeam={userTeam}
+                                players={players}
+                                myPlayers={myPlayers}
+                                filters={filters}
+                                isRoundLocked={isRoundLocked}
+                                currentActiveRound={currentActiveRound}
+                            />
+                        </TabsContent>
 
-                    {/* Filters */}
-                    <Card className="mb-6">
-                        <CardContent className="pt-6">
-                            <div className="flex flex-col gap-4">
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Search players..."
-                                            value={search}
-                                            onChange={(e) => setSearch(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                            className="pl-10"
-                                        />
-                                    </div>
-                                    <Button onClick={handleSearch} className="whitespace-nowrap">
-                                        Search
-                                    </Button>
-                                </div>
-                                <div className="flex flex-col gap-2 sm:flex-row">
-                                    <Select value={position} onValueChange={handlePositionChange}>
-                                        <SelectTrigger className="w-full sm:w-[180px]">
-                                            <SelectValue placeholder="All Positions" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All Positions</SelectItem>
-                                            <SelectItem value="Guard">Guards</SelectItem>
-                                            <SelectItem value="Forward">Forwards</SelectItem>
-                                            <SelectItem value="Center">Centers</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Select value={sortBy} onValueChange={handleSortChange}>
-                                        <SelectTrigger className="w-full sm:w-[180px]">
-                                            <SelectValue placeholder="Sort by" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="price">Price</SelectItem>
-                                            <SelectItem value="name">Name</SelectItem>
-                                            <SelectItem value="position">Position</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Players Grid */}
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {players.data?.map((player) => {
-                            const owned = isOwned(player.id);
-                            const affordable = canAfford(player.price);
-                            const teamFull = isTeamFull();
-
-                            return (
-                                <Card key={player.id} className={owned ? 'border-primary' : ''}>
-                                    <CardHeader>
-                                        <div className="flex items-start gap-4">
-                                            {player.photo_url ? (
-                                                <img
-                                                    src={player.photo_url}
-                                                    alt={player.name}
-                                                    className="h-16 w-16 rounded-full object-cover object-top"
-                                                />
-                                            ) : (
-                                                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl font-bold">
-                                                    {player.name.charAt(0)}
-                                                </div>
-                                            )}
-                                            <div className="flex-1">
-                                                <CardTitle
-                                                    className="text-lg hover:text-primary cursor-pointer transition-colors"
-                                                    onClick={() => showPlayerStats(player.id)}
-                                                >
-                                                    {player.name}
-                                                </CardTitle>
-                                                <CardDescription>
-                                                    {player.team.name}
-                                                    {player.jersey_number && ` #${player.jersey_number}`}
-                                                </CardDescription>
-                                                <div className="mt-2 flex gap-2">
-                                                    <Badge variant="secondary">{player.position}</Badge>
-                                                    {owned && <Badge variant="default">Owned</Badge>}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="mb-4 flex items-center justify-between">
-                                            <div>
-                                                <div className="text-sm text-muted-foreground">Price</div>
-                                                <div className="text-2xl font-bold">${(player.price / 1000000).toFixed(1)}M</div>
-                                            </div>
-                                            {player.country && <div className="text-sm text-muted-foreground">{player.country}</div>}
-                                        </div>
-
-                                        {league.mode === 'budget' && (
-                                            <>
-                                                {owned ? (
-                                                    <Button
-                                                        variant="destructive"
-                                                        className="w-full"
-                                                        onClick={() => handleSellClick(player)}
-                                                        disabled={sellingPlayerId === player.id}
-                                                    >
-                                                        {sellingPlayerId === player.id ? (
-                                                            <>
-                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                Selling...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <DollarSign className="mr-2 h-4 w-4" />
-                                                                Sell Player
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                ) : (
-                                                    <Button
-                                                        className="w-full"
-                                                        onClick={() => buyPlayer(player.id)}
-                                                        disabled={!affordable || teamFull || buyingPlayerId === player.id}
-                                                    >
-                                                        {buyingPlayerId === player.id ? (
-                                                            <>
-                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                                Buying...
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <ShoppingCart className="mr-2 h-4 w-4" />
-                                                                {teamFull ? 'Team Full' : !affordable ? 'Cannot Afford' : 'Buy Player'}
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                )}
-                                            </>
-                                        )}
-                                        {league.mode === 'draft' && (
-                                            <div className="py-2 text-center text-sm text-muted-foreground">
-                                                Players can only be acquired through the draft
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            );
-                        })}
-                    </div>
-
-                    {/* Pagination */}
-                    <Pagination pagination={players} onPageChange={(page) => updateFilters({ page })} />
+                        <TabsContent value="lineup" className="mt-6">
+                            <LineupTab
+                                league={league}
+                                userTeam={userTeam}
+                                teamPlayers={teamPlayers}
+                                positionCounts={positionCounts}
+                                startingLineupCounts={startingLineupCounts}
+                                hasValidTeamComposition={hasValidTeamComposition}
+                                hasValidStartingLineup={hasValidStartingLineup}
+                                selectedRound={selectedRound}
+                                allRounds={allRounds}
+                                isRoundFinished={isRoundFinished}
+                                roundTotalPoints={roundTotalPoints}
+                                isRoundLocked={isRoundLocked}
+                                currentActiveRound={currentActiveRound}
+                            />
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </div>
-
-            {/* Sell Confirmation Dialog */}
-            <Dialog open={confirmSellDialogOpen} onOpenChange={setConfirmSellDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Confirm Sell Player</DialogTitle>
-                        <DialogDescription>Are you sure you want to sell this player? You will receive the current market value.</DialogDescription>
-                    </DialogHeader>
-                    {playerToSell && (
-                        <div className="py-4">
-                            <div className="flex items-center gap-3 rounded-lg bg-muted p-4">
-                                {playerToSell.photo_url ? (
-                                    <img
-                                        src={playerToSell.photo_url}
-                                        alt={playerToSell.name}
-                                        className="h-16 w-16 rounded-full object-cover object-top"
-                                    />
-                                ) : (
-                                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-background text-2xl font-bold">
-                                        {playerToSell.name.charAt(0)}
-                                    </div>
-                                )}
-                                <div className="flex-1">
-                                    <div className="text-lg font-bold">{playerToSell.name}</div>
-                                    <div className="text-sm text-muted-foreground">{playerToSell.team.name}</div>
-                                    <div className="mt-1 flex gap-2">
-                                        <Badge variant="secondary" className="text-xs">
-                                            {playerToSell.position}
-                                        </Badge>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm text-muted-foreground">Sell for</div>
-                                    <div className="text-2xl font-bold text-green-600">${(playerToSell.price / 1000000).toFixed(1)}M</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setConfirmSellDialogOpen(false);
-                                setPlayerToSell(null);
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button variant="destructive" onClick={confirmSell}>
-                            Confirm Sell
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Player Stats Modal */}
-            <PlayerStatsModal
-                player={selectedPlayerStats}
-                open={statsModalOpen}
-                onOpenChange={(open) => {
-                    setStatsModalOpen(open);
-                    if (!open) {
-                        setSelectedPlayerStats(null);
-                    }
-                }}
-            />
         </AuthenticatedLayout>
     );
 }
