@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Trophy, User, Sparkles, AlertCircle, CheckCircle2, Info, Users } from 'lucide-react';
+import { Trophy, User, Sparkles, AlertCircle, CheckCircle2, Info, Users, Star } from 'lucide-react';
 
 interface User {
     id: number;
@@ -31,6 +31,7 @@ interface FantasyTeamPlayer {
     fantasy_team_id: number;
     player_id: number;
     lineup_position: number | null;
+    is_captain: boolean;
     purchase_price: number;
     points_earned: number;
     player: Player;
@@ -120,6 +121,7 @@ export default function LineupTab({
     const [starters, setStarters] = useState<(FantasyTeamPlayer | null)[]>([null, null, null, null, null]);
     const [sixthMan, setSixthMan] = useState<FantasyTeamPlayer | null>(null);
     const [bench, setBench] = useState<FantasyTeamPlayer[]>(initialTeamPlayers);
+    const [captain, setCaptain] = useState<FantasyTeamPlayer | null>(null);
     const [draggedPlayer, setDraggedPlayer] = useState<FantasyTeamPlayer | null>(null);
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
@@ -136,6 +138,8 @@ export default function LineupTab({
         const benchFromDb = initialTeamPlayers
             .filter(p => !p.lineup_position || p.lineup_position > 6);
 
+        const captainFromDb = initialTeamPlayers.find(p => p.is_captain);
+
         if (startersFromDb.length > 0) {
             const newStarters: (FantasyTeamPlayer | null)[] = [null, null, null, null, null];
             startersFromDb.forEach((player) => {
@@ -148,6 +152,7 @@ export default function LineupTab({
 
         setSixthMan(sixthManFromDb || null);
         setBench(benchFromDb);
+        setCaptain(captainFromDb || null);
     }, [initialTeamPlayers]);
 
     // Validate lineup
@@ -372,6 +377,17 @@ export default function LineupTab({
         }
     };
 
+    const handleCaptainToggle = (player: FantasyTeamPlayer) => {
+        if (isRoundLocked || isRoundFinished) return;
+
+        // Toggle captain - if already captain, remove; otherwise set as captain
+        if (captain?.id === player.id) {
+            setCaptain(null);
+        } else {
+            setCaptain(player);
+        }
+    };
+
     const handleSave = () => {
         if (validationErrors.length > 0 || !lineupType) return;
 
@@ -384,7 +400,8 @@ export default function LineupTab({
         router.post(`/fantasy/leagues/${league.id}/lineup`, {
             lineup,
             lineup_type: lineupType,
-            sixth_man: sixthMan?.player.id || null
+            sixth_man: sixthMan?.player.id || null,
+            captain_id: captain?.player.id || null
         }, {
             preserveScroll: true,
             onSuccess: () => {
@@ -535,7 +552,8 @@ export default function LineupTab({
                         <Alert className="mt-4">
                             <Info className="h-4 w-4" />
                             <AlertDescription>
-                                <strong>Point Multipliers:</strong> Starters earn <span className="font-bold text-green-600">100%</span> of fantasy points,
+                                <strong>Point Multipliers:</strong> Captain earns <span className="font-bold text-purple-600">200%</span> of fantasy points,
+                                Starters earn <span className="font-bold text-green-600">100%</span>,
                                 Sixth Man earns <span className="font-bold text-yellow-600">75%</span>,
                                 and Bench players earn <span className="font-bold text-blue-600">50%</span>.
                             </AlertDescription>
@@ -607,11 +625,38 @@ export default function LineupTab({
                                                         draggable
                                                         onDragStart={() => handleDragStart(player)}
                                                         onDragEnd={handleDragEnd}
-                                                        className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2"
+                                                        className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2 relative"
                                                     >
                                                         <div className={`absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold`}>
                                                             {player.player.position}
                                                         </div>
+
+                                                        {/* Captain Star - clickable */}
+                                                        {!isRoundFinished && !isRoundLocked && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleCaptainToggle(player);
+                                                                }}
+                                                                className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10 cursor-pointer hover:scale-110 transition-transform"
+                                                                title={captain?.id === player.id ? "Remove Captain" : "Make Captain"}
+                                                            >
+                                                                <Star
+                                                                    className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                                                                        captain?.id === player.id
+                                                                            ? 'fill-purple-500 text-purple-500'
+                                                                            : 'fill-gray-300 text-gray-400 hover:fill-purple-300 hover:text-purple-400'
+                                                                    }`}
+                                                                />
+                                                            </button>
+                                                        )}
+
+                                                        {/* Captain indicator for finished/locked rounds */}
+                                                        {(isRoundFinished || isRoundLocked) && player.is_captain && (
+                                                            <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10">
+                                                                <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-purple-500 text-purple-500" />
+                                                            </div>
+                                                        )}
 
                                                         {(player.player.photo_headshot_url || player.player.photo_url) ? (
                                                             <img
@@ -629,11 +674,12 @@ export default function LineupTab({
                                                             <div className="text-[8px] sm:text-[10px] dark:text-gray-300 text-gray-600 truncate hidden sm:block">{player.player.team.name}</div>
                                                             {isRoundFinished ? (
                                                                 <div className="text-[10px] sm:text-xs mt-1">
-                                                                    <div className="font-bold text-green-400">
+                                                                    <div className={`font-bold ${player.is_captain ? 'text-purple-400' : 'text-green-400'}`}>
                                                                         {player.round_team_points?.toFixed(2)} pts
                                                                     </div>
                                                                     <div className="text-[8px] text-gray-400">
                                                                         {player.round_fantasy_points?.toFixed(1)} FP × {((player.multiplier || 0.5) * 100).toFixed(0)}%
+                                                                        {player.is_captain && ' (C)'}
                                                                     </div>
                                                                 </div>
                                                             ) : (

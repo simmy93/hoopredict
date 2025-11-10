@@ -73,15 +73,8 @@ class FantasyLineupController extends Controller
                 // Calculate round points for this player
                 $roundFantasyPoints = $teamPlayer->player->gameStats->sum('fantasy_points');
 
-                // Apply multiplier if round is finished
-                $multiplier = 0.5; // Bench default
-                if ($teamPlayer->lineup_position) {
-                    if ($teamPlayer->lineup_position >= 1 && $teamPlayer->lineup_position <= 5) {
-                        $multiplier = 1.0; // Starter
-                    } elseif ($teamPlayer->lineup_position === 6) {
-                        $multiplier = 0.75; // Sixth man
-                    }
-                }
+                // Apply multiplier if round is finished (uses model's getScoringMultiplier which handles captain logic)
+                $multiplier = $teamPlayer->getScoringMultiplier();
 
                 $teamPlayer->round_fantasy_points = $roundFantasyPoints;
                 $teamPlayer->round_team_points = $isRoundFinished ? round($roundFantasyPoints * $multiplier, 2) : null;
@@ -136,15 +129,22 @@ class FantasyLineupController extends Controller
             'lineup.*' => 'required|integer|exists:players,id',
             'lineup_type' => 'required|string|in:2-2-1,3-1-1,1-3-1,1-2-2,2-1-2',
             'sixth_man' => 'nullable|integer|exists:players,id',
+            'captain_id' => 'nullable|integer|exists:players,id',
         ]);
 
         $playerIds = $request->input('lineup');
         $sixthManId = $request->input('sixth_man');
+        $captainId = $request->input('captain_id');
         $lineupType = $request->input('lineup_type');
 
         // If sixth man is provided separately, add it to the lineup array
         if ($sixthManId && !in_array($sixthManId, $playerIds)) {
             $playerIds[] = $sixthManId;
+        }
+
+        // Validate captain is in the starting lineup (positions 1-5)
+        if ($captainId && !in_array($captainId, array_slice($playerIds, 0, 5))) {
+            return back()->with('error', 'Captain must be in the starting lineup (not sixth man or bench)');
         }
 
         // Validate all players belong to the team
@@ -154,18 +154,33 @@ class FantasyLineupController extends Controller
             }
         }
 
+        // Validate captain belongs to the team if provided
+        if ($captainId && !$userTeam->players()->where('player_id', $captainId)->exists()) {
+            return back()->with('error', 'Captain does not belong to your team');
+        }
+
         try {
             // Save lineup type
             $userTeam->update(['lineup_type' => $lineupType]);
 
-            // Reset all lineup positions first
-            $userTeam->fantasyTeamPlayers()->update(['lineup_position' => null]);
+            // Reset all lineup positions and captain status first
+            $userTeam->fantasyTeamPlayers()->update([
+                'lineup_position' => null,
+                'is_captain' => false,
+            ]);
 
             // Assign new positions (1-5 for starters, 6 for sixth man)
             foreach ($playerIds as $index => $playerId) {
                 $userTeam->fantasyTeamPlayers()
                     ->where('player_id', $playerId)
                     ->update(['lineup_position' => $index + 1]);
+            }
+
+            // Set captain if provided
+            if ($captainId) {
+                $userTeam->fantasyTeamPlayers()
+                    ->where('player_id', $captainId)
+                    ->update(['is_captain' => true]);
             }
 
             return back()->with('success', 'Lineup updated successfully!');
