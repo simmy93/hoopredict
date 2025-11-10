@@ -367,6 +367,10 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info("✅ Created {$totalDraftTeams} draft fantasy teams");
 
+        // Create historical lineup snapshots for finished rounds
+        $this->command->info('📸 Creating historical lineup snapshots...');
+        $this->createLineupSnapshots($championship);
+
         $this->command->info('');
         $this->command->info('🎉 Seeding completed successfully!');
         $this->command->info('');
@@ -495,13 +499,22 @@ class DatabaseSeeder extends Seeder
 
         // Attach exactly 10 players to team with lineup positions
         $lineupPosition = 1;
+        $captainAssigned = false;
+
         foreach ($selectedPlayers->take(10) as $player) {
+            // First player in starting lineup (position 1) becomes captain
+            $isCaptain = $lineupPosition === 1 && !$captainAssigned;
+            if ($isCaptain) {
+                $captainAssigned = true;
+            }
+
             FantasyTeamPlayer::create([
                 'fantasy_team_id' => $team->id,
                 'player_id' => $player->id,
                 'purchase_price' => $player->price,
                 'acquired_at' => now()->subDays(rand(1, 15)),
                 'lineup_position' => $lineupPosition++,
+                'is_captain' => $isCaptain,
             ]);
         }
 
@@ -520,7 +533,6 @@ class DatabaseSeeder extends Seeder
         $teams = $league->teams()->orderBy('draft_order')->get();
         $availablePlayers = $allPlayers->shuffle();
         $pickNumber = 1;
-        $totalTeams = $teams->count();
 
         for ($round = 1; $round <= $league->team_size; $round++) {
             $teamsInOrder = $round % 2 === 0 ? $teams->reverse() : $teams; // Snake draft
@@ -543,16 +555,77 @@ class DatabaseSeeder extends Seeder
                 ]);
 
                 // Add player to team with lineup position based on draft round
+                // First player drafted (round 1) becomes captain
                 FantasyTeamPlayer::create([
                     'fantasy_team_id' => $team->id,
                     'player_id' => $player->id,
                     'purchase_price' => 0,
                     'acquired_at' => now()->subDays(10)->addMinutes($pickNumber),
                     'lineup_position' => $round, // Round 1-10 becomes position 1-10
+                    'is_captain' => $round === 1, // First pick becomes captain
                 ]);
 
                 $pickNumber++;
             }
         }
+    }
+
+    /**
+     * Create historical lineup snapshots for all finished rounds (for testing)
+     * NOTE: In production, snapshots are created automatically when rounds lock via hourly scheduler
+     */
+    private function createLineupSnapshots(Championship $championship): void
+    {
+        // Get all finished rounds for this championship
+        $finishedRounds = Game::where('championship_id', $championship->id)
+            ->where('status', 'finished')
+            ->distinct()
+            ->pluck('round')
+            ->sort()
+            ->values();
+
+        if ($finishedRounds->isEmpty()) {
+            $this->command->warn('  No finished rounds found to snapshot');
+            return;
+        }
+
+        $totalSnapshots = 0;
+
+        // Get all fantasy leagues for this championship
+        $fantasyLeagues = FantasyLeague::where('championship_id', $championship->id)->get();
+
+        foreach ($finishedRounds as $round) {
+            foreach ($fantasyLeagues as $league) {
+                // Get all teams in this league
+                $teams = FantasyTeam::where('fantasy_league_id', $league->id)->get();
+
+                foreach ($teams as $team) {
+                    // Snapshot current lineup for this team at this round
+                    // NOTE: In real scenario, this would be the lineup when round locked
+                    $teamPlayers = $team->fantasyTeamPlayers;
+
+                    foreach ($teamPlayers as $teamPlayer) {
+                        \App\Models\FantasyTeamLineupHistory::create([
+                            'fantasy_team_id' => $team->id,
+                            'round' => $round,
+                            'fantasy_team_player_id' => $teamPlayer->id,
+                            'lineup_position' => $teamPlayer->lineup_position,
+                            'is_captain' => $teamPlayer->is_captain,
+                        ]);
+                        $totalSnapshots++;
+                    }
+                }
+            }
+
+            // Mark round as snapshotted in round_processing_status
+            \App\Models\RoundProcessingStatus::where('championship_id', $championship->id)
+                ->where('round_number', $round)
+                ->update([
+                    'lineups_snapshotted' => true,
+                    'lineups_snapshotted_at' => now()->subDays(rand(1, 10)), // Simulate past snapshot
+                ]);
+        }
+
+        $this->command->info("✅ Created {$totalSnapshots} lineup snapshots for " . $finishedRounds->count() . " finished rounds");
     }
 }

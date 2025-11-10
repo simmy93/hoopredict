@@ -274,6 +274,10 @@ export default function LineupTab({
         const existingPlayer = newStarters[slotIndex];
         if (existingPlayer && existingPlayer.id !== draggedPlayer.id) {
             newBench = [...newBench, existingPlayer];
+            // If the displaced player was captain, remove captain status
+            if (captain?.id === existingPlayer.id) {
+                setCaptain(null);
+            }
         }
 
         if (sixthMan?.id === draggedPlayer.id) {
@@ -301,6 +305,11 @@ export default function LineupTab({
             setSixthMan(null);
         }
 
+        // If the dragged player was captain, remove captain status
+        if (captain?.id === draggedPlayer.id) {
+            setCaptain(null);
+        }
+
         if (!bench.find(p => p.id === draggedPlayer.id)) {
             setBench([...bench, draggedPlayer]);
         }
@@ -322,6 +331,15 @@ export default function LineupTab({
 
         if (sixthMan) {
             newBench.push(sixthMan);
+            // If the old sixth man was captain, remove captain status
+            if (captain?.id === sixthMan.id) {
+                setCaptain(null);
+            }
+        }
+
+        // If the dragged player was captain, remove captain status
+        if (captain?.id === draggedPlayer.id) {
+            setCaptain(null);
         }
 
         setSixthMan(draggedPlayer);
@@ -385,6 +403,10 @@ export default function LineupTab({
 
     const handleCaptainToggle = (player: FantasyTeamPlayer) => {
         if (isRoundLocked || isRoundFinished) return;
+
+        // Captain can only be selected from starters (positions 1-5)
+        const isInStartingLineup = starters.some(s => s?.id === player.id);
+        if (!isInStartingLineup) return;
 
         // Toggle captain - if already captain, remove; otherwise set as captain
         if (captain?.id === player.id) {
@@ -558,10 +580,10 @@ export default function LineupTab({
                         <Alert className="mt-4">
                             <Info className="h-4 w-4" />
                             <AlertDescription>
-                                <strong>Point Multipliers:</strong> Captain earns <span className="font-bold text-purple-600">200%</span> of fantasy points,
+                                <strong>Point Multipliers:</strong> Captain (must be a starter) earns <span className="font-bold text-purple-600">200%</span> of fantasy points,
                                 Starters earn <span className="font-bold text-green-600">100%</span>,
                                 Sixth Man earns <span className="font-bold text-yellow-600">75%</span>,
-                                and Bench players earn <span className="font-bold text-blue-600">50%</span>.
+                                and Bench players earn <span className="font-bold text-blue-600">50%</span>. Click the star on a starter to make them captain!
                             </AlertDescription>
                         </Alert>
                     </CardContent>
@@ -709,17 +731,71 @@ export default function LineupTab({
                         </CardContent>
                     </Card>
 
-                    {/* Mobile-only: Available Players Horizontal Scroll */}
+                    {/* Mobile-only: Bench & Substitutes Horizontal Scroll */}
                     <Card className="lg:hidden">
                         <CardHeader>
                             <CardTitle className="text-sm flex items-center gap-2">
-                                Available Players
-                                <Badge className="bg-blue-600 text-white text-xs">50%</Badge>
+                                Bench & Substitutes
                             </CardTitle>
-                            <CardDescription className="text-xs">Drag players to positions above</CardDescription>
+                            <CardDescription className="text-xs">6th man: 75%, Bench: 50% points</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
+                                {/* Sixth Man Card */}
+                                {sixthMan ? (
+                                    <div
+                                        key={`sixth-${sixthMan.player.id}`}
+                                        draggable
+                                        onDragStart={() => handleDragStart(sixthMan)}
+                                        onDragEnd={handleDragEnd}
+                                        className="flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400 cursor-move"
+                                    >
+                                        <div className="flex flex-col items-center gap-1">
+                                            {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
+                                                <img
+                                                    src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)!}
+                                                    alt={sixthMan.player.name}
+                                                    className="w-14 h-14 rounded-full object-cover object-top border-2 border-yellow-400"
+                                                />
+                                            ) : (
+                                                <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-yellow-400">
+                                                    <User className="h-6 w-6 text-gray-400" />
+                                                </div>
+                                            )}
+                                            <div className="text-center w-full">
+                                                <div className="font-medium text-xs truncate">{sixthMan.player.name}</div>
+                                                <Badge className="bg-yellow-500 text-white text-[10px] mt-1 flex items-center gap-1 justify-center">
+                                                    <Sparkles className="h-2 w-2" />
+                                                    6th
+                                                </Badge>
+                                                {isRoundFinished ? (
+                                                    <div className="text-[10px] mt-1">
+                                                        <div className="font-bold text-yellow-600">
+                                                            {sixthMan.round_team_points?.toFixed(1)} pts
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-[10px] font-bold text-yellow-600 mt-1">
+                                                        {sixthMan.points_earned.toFixed(1)} pts
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={handleDropOnSixthMan}
+                                        className="flex-shrink-0 w-28 p-2 border-2 border-dashed rounded-lg border-gray-300 dark:border-gray-600 cursor-pointer"
+                                    >
+                                        <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
+                                            <Sparkles className="h-8 w-8 opacity-50 mb-1" />
+                                            <span className="text-[10px]">6th Man</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Regular Bench Players */}
                                 {bench.map((player) => (
                                     <div
                                         key={player.player.id}
@@ -745,7 +821,7 @@ export default function LineupTab({
                                                 <Badge className="text-[10px] mt-1">{player.player.position}</Badge>
                                                 {isRoundFinished ? (
                                                     <div className="text-[10px] mt-1">
-                                                        <div className="font-bold text-green-600">
+                                                        <div className="font-bold text-blue-600">
                                                             {player.round_team_points?.toFixed(1)} pts
                                                         </div>
                                                     </div>
@@ -758,7 +834,7 @@ export default function LineupTab({
                                         </div>
                                     </div>
                                 ))}
-                                {bench.length === 0 && (
+                                {bench.length === 0 && !sixthMan && (
                                     <div className="w-full text-center text-sm text-muted-foreground py-4">
                                         No bench players
                                     </div>
@@ -767,160 +843,153 @@ export default function LineupTab({
                         </CardContent>
                     </Card>
 
-                    {/* Mobile-only: Sixth Man */}
+                    {/* Mobile-only: Captain */}
                     <Card className="lg:hidden">
                         <CardHeader>
                             <CardTitle className="text-sm flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-yellow-500" />
-                                Sixth Man
-                                <Badge className="bg-yellow-600 text-white text-xs">75%</Badge>
+                                <Star className="h-4 w-4 text-purple-500" />
+                                Team Captain
+                                <Badge className="bg-purple-600 text-white text-xs">200%</Badge>
                             </CardTitle>
-                            <CardDescription className="text-xs">Key substitute - earns 75% of fantasy points</CardDescription>
+                            <CardDescription className="text-xs">Choose a starter as captain - earns 200% points</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={handleDropOnSixthMan}
                                 className={`
-                                    relative flex flex-col items-center p-3 rounded-lg border-2 border-dashed
+                                    relative flex flex-col items-center p-3 rounded-lg border-2
                                     min-h-[120px] transition-all
-                                    ${sixthMan ? 'bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400' : 'dark:bg-gray-800/50 bg-white/50 dark:border-gray-600 border-gray-300'}
-                                    ${draggedPlayer ? 'ring-4 ring-yellow-500/30' : ''}
+                                    ${captain ? 'bg-gradient-to-br dark:from-purple-900/20 dark:to-indigo-900/20 from-purple-50 to-indigo-50 border-purple-400' : 'dark:bg-gray-800/50 bg-white/50 dark:border-gray-600 border-gray-300 border-dashed'}
                                 `}
                             >
-                                {sixthMan ? (
-                                    <div
-                                        draggable
-                                        onDragStart={() => handleDragStart(sixthMan)}
-                                        onDragEnd={handleDragEnd}
-                                        className="flex flex-col items-center gap-1 cursor-move w-full"
-                                    >
-                                        {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
-                                            <img
-                                                src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)!}
-                                                alt={sixthMan.player.name}
-                                                className="w-14 h-14 rounded-full object-cover object-top border-2 border-yellow-400"
-                                            />
-                                        ) : (
-                                            <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-yellow-400">
-                                                <User className="h-6 w-6 text-gray-400" />
+                                {captain ? (
+                                    <div className="flex flex-col items-center gap-1 w-full">
+                                        <div className="relative">
+                                            {(captain.player.photo_headshot_url || captain.player.photo_url) ? (
+                                                <img
+                                                    src={(captain.player.photo_headshot_url || captain.player.photo_url)!}
+                                                    alt={captain.player.name}
+                                                    className="w-16 h-16 rounded-full object-cover object-top border-2 border-purple-400"
+                                                />
+                                            ) : (
+                                                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center border-2 border-purple-400">
+                                                    <User className="h-8 w-8 text-gray-400" />
+                                                </div>
+                                            )}
+                                            <div className="absolute -top-1 -right-1">
+                                                <Star className="h-6 w-6 fill-purple-500 text-purple-500" />
                                             </div>
-                                        )}
+                                        </div>
                                         <div className="text-center w-full">
-                                            <div className="font-medium text-xs truncate">{sixthMan.player.name}</div>
-                                            <Badge className="text-[10px] mt-1">{sixthMan.player.position}</Badge>
+                                            <div className="font-bold text-xs truncate">{captain.player.name}</div>
+                                            <Badge className="bg-purple-500 text-white text-[10px] mt-1">Captain</Badge>
                                             {isRoundFinished ? (
                                                 <div className="text-[10px] mt-1">
-                                                    <div className="font-bold text-green-600">
-                                                        {sixthMan.round_team_points?.toFixed(1)} pts
+                                                    <div className="font-bold text-purple-600">
+                                                        {captain.round_team_points?.toFixed(1)} pts
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="text-[10px] font-bold text-blue-600 mt-1">
-                                                    {sixthMan.points_earned.toFixed(1)} pts
+                                                <div className="text-[10px] font-bold text-purple-600 mt-1">
+                                                    {captain.points_earned.toFixed(1)} pts
                                                 </div>
                                             )}
                                         </div>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => {
-                                                setBench([...bench, sixthMan]);
-                                                setSixthMan(null);
-                                            }}
-                                            className="mt-1 text-xs h-6"
-                                        >
-                                            Remove
-                                        </Button>
+                                        {!isRoundFinished && !isRoundLocked && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => setCaptain(null)}
+                                                className="mt-1 text-xs h-6"
+                                            >
+                                                Remove
+                                            </Button>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="text-center text-muted-foreground text-xs h-full flex flex-col items-center justify-center">
-                                        <Sparkles className="h-6 w-6 mb-1 opacity-50" />
-                                        <span>Drag player here</span>
+                                        <Star className="h-6 w-6 mb-1 opacity-50" />
+                                        <span>Click star on a starter</span>
                                     </div>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Desktop: Sixth Man + Available Players */}
+                    {/* Desktop: Captain + Available Players */}
                     <div className="hidden lg:block lg:col-span-4 space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    <Sparkles className="h-5 w-5 text-yellow-500" />
-                                    Sixth Man
-                                    <Badge className="bg-yellow-600 text-white">75%</Badge>
+                                    <Star className="h-5 w-5 text-purple-500" />
+                                    Team Captain
+                                    <Badge className="bg-purple-600 text-white">200%</Badge>
                                 </CardTitle>
-                                <CardDescription>Key substitute - earns 75% of fantasy points</CardDescription>
+                                <CardDescription>Choose a starter as captain - earns 200% of fantasy points</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div
-                                    onDragOver={(e) => e.preventDefault()}
-                                    onDrop={handleDropOnSixthMan}
                                     className={`
-                                        relative flex flex-col items-center p-4 rounded-lg border-2 border-dashed
+                                        relative flex flex-col items-center p-4 rounded-lg border-2
                                         min-h-[140px] transition-all
-                                        ${sixthMan ? 'bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400' : 'dark:bg-gray-800/50 bg-white/50 dark:border-gray-600 border-gray-300'}
-                                        ${draggedPlayer ? 'ring-4 ring-yellow-500/30' : ''}
+                                        ${captain ? 'bg-gradient-to-br dark:from-purple-900/20 dark:to-indigo-900/20 from-purple-50 to-indigo-50 border-purple-400' : 'dark:bg-gray-800/50 bg-white/50 dark:border-gray-600 border-gray-300 border-dashed'}
                                     `}
                                 >
-                                    {sixthMan ? (
-                                        <div
-                                            draggable
-                                            onDragStart={() => handleDragStart(sixthMan)}
-                                            onDragEnd={handleDragEnd}
-                                            className="flex flex-col items-center gap-2 cursor-move w-full p-2"
-                                        >
-                                            {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
-                                                <img
-                                                    src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)!}
-                                                    alt={sixthMan.player.name}
-                                                    className="w-16 h-16 rounded-full object-cover object-top border-2 border-yellow-400"
-                                                />
-                                            ) : (
-                                                <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center border-2 border-yellow-400">
-                                                    <User className="h-8 w-8 text-gray-400" />
+                                    {captain ? (
+                                        <div className="flex flex-col items-center gap-2 w-full p-2">
+                                            <div className="relative">
+                                                {(captain.player.photo_headshot_url || captain.player.photo_url) ? (
+                                                    <img
+                                                        src={(captain.player.photo_headshot_url || captain.player.photo_url)!}
+                                                        alt={captain.player.name}
+                                                        className="w-20 h-20 rounded-full object-cover object-top border-4 border-purple-400"
+                                                    />
+                                                ) : (
+                                                    <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-4 border-purple-400">
+                                                        <User className="h-10 w-10 text-gray-400" />
+                                                    </div>
+                                                )}
+                                                <div className="absolute -top-2 -right-2">
+                                                    <Star className="h-8 w-8 fill-purple-500 text-purple-500 drop-shadow-lg" />
                                                 </div>
-                                            )}
+                                            </div>
                                             <div className="text-center w-full">
-                                                <div className="font-medium text-sm truncate">{sixthMan.player.name}</div>
-                                                <div className="text-xs text-muted-foreground truncate">{sixthMan.player.team.name}</div>
+                                                <div className="font-bold text-base truncate">{captain.player.name}</div>
+                                                <div className="text-xs text-muted-foreground truncate">{captain.player.team.name}</div>
                                                 <div className="flex items-center justify-center gap-2 mt-1">
-                                                    <Badge className="text-xs">{sixthMan.player.position}</Badge>
-                                                    <Badge className="bg-yellow-500 text-white text-xs">6th Man</Badge>
+                                                    <Badge className="text-xs">{captain.player.position}</Badge>
+                                                    <Badge className="bg-purple-500 text-white text-xs">Captain</Badge>
                                                 </div>
                                                 {isRoundFinished ? (
-                                                    <div className="text-xs mt-1">
-                                                        <div className="font-bold text-green-600">
-                                                            {sixthMan.round_team_points?.toFixed(2)} pts
+                                                    <div className="text-sm mt-2">
+                                                        <div className="font-bold text-purple-600">
+                                                            {captain.round_team_points?.toFixed(2)} pts
                                                         </div>
                                                         <div className="text-[10px] text-gray-600">
-                                                            {sixthMan.round_fantasy_points?.toFixed(1)} FP × {((sixthMan.multiplier || 0.75) * 100).toFixed(0)}%
+                                                            {captain.round_fantasy_points?.toFixed(1)} FP × 200%
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="text-xs font-bold text-blue-600 mt-1">
-                                                        {sixthMan.points_earned.toFixed(1)} pts
+                                                    <div className="text-sm font-bold text-purple-600 mt-2">
+                                                        {captain.points_earned.toFixed(1)} pts
                                                     </div>
                                                 )}
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() => {
-                                                    setBench([...bench, sixthMan]);
-                                                    setSixthMan(null);
-                                                }}
-                                                className="mt-1 text-xs h-7"
-                                            >
-                                                Remove
-                                            </Button>
+                                            {!isRoundFinished && !isRoundLocked && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => setCaptain(null)}
+                                                    className="mt-1 text-xs h-7"
+                                                >
+                                                    Remove Captain
+                                                </Button>
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="text-center text-muted-foreground text-sm h-full flex flex-col items-center justify-center">
-                                            <Sparkles className="h-8 w-8 mb-2 opacity-50" />
-                                            <span>Drag player here</span>
+                                            <Star className="h-8 w-8 mb-2 opacity-50" />
+                                            <span className="font-medium">No Captain Selected</span>
+                                            <span className="text-xs mt-1">Click star on a starter to make them captain</span>
                                         </div>
                                     )}
                                 </div>
@@ -930,10 +999,9 @@ export default function LineupTab({
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg flex items-center gap-2">
-                                    Available Players
-                                    <Badge className="bg-blue-600 text-white">50%</Badge>
+                                    Bench & Substitutes
                                 </CardTitle>
-                                <CardDescription>Bench players earn 50% of fantasy points</CardDescription>
+                                <CardDescription>Sixth man earns 75%, bench players earn 50% of fantasy points</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div
@@ -941,7 +1009,74 @@ export default function LineupTab({
                                     onDrop={handleDropOnBench}
                                     className="space-y-3 max-h-[600px] overflow-y-auto"
                                 >
-                                    {bench.length === 0 ? (
+                                    {/* Sixth Man Section */}
+                                    <div
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={handleDropOnSixthMan}
+                                        className={`
+                                            p-3 border-2 rounded-lg transition-all
+                                            ${sixthMan ? 'bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400' : 'border-dashed dark:border-gray-600 border-gray-300'}
+                                            ${draggedPlayer ? 'ring-2 ring-yellow-500/50' : ''}
+                                        `}
+                                    >
+                                        {sixthMan ? (
+                                            <div
+                                                draggable
+                                                onDragStart={() => handleDragStart(sixthMan)}
+                                                onDragEnd={handleDragEnd}
+                                                className="flex items-center gap-3 cursor-move"
+                                            >
+                                                {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
+                                                    <img
+                                                        src={(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url)!}
+                                                        alt={sixthMan.player.name}
+                                                        className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0 border-2 border-yellow-400"
+                                                    />
+                                                ) : (
+                                                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0 border-2 border-yellow-400">
+                                                        <User className="h-6 w-6 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="font-medium text-sm truncate">{sixthMan.player.name}</div>
+                                                        <Badge className="bg-yellow-500 text-white text-xs flex items-center gap-1">
+                                                            <Sparkles className="h-3 w-3" />
+                                                            6th Man
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground truncate">{sixthMan.player.team.name}</div>
+                                                    <Badge className={`${getPositionColor(sixthMan.player.position)} text-white text-xs mt-1`}>
+                                                        {sixthMan.player.position}
+                                                    </Badge>
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    {isRoundFinished ? (
+                                                        <>
+                                                            <div className="text-xs font-bold text-yellow-600">
+                                                                {sixthMan.round_team_points?.toFixed(2)} pts
+                                                            </div>
+                                                            <div className="text-[10px] text-gray-500">
+                                                                {sixthMan.round_fantasy_points?.toFixed(1)} FP × 75%
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="text-xs font-bold text-yellow-600">
+                                                            {sixthMan.points_earned.toFixed(1)} pts
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center text-muted-foreground text-xs py-4">
+                                                <Sparkles className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                                                <span>Drag a player here to make them sixth man (75% points)</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Regular Bench Players */}
+                                    {bench.length === 0 && !sixthMan ? (
                                         <div className="text-center text-muted-foreground text-sm py-8">
                                             All players assigned
                                         </div>
@@ -975,11 +1110,11 @@ export default function LineupTab({
                                                 <div className="text-right flex-shrink-0">
                                                     {isRoundFinished ? (
                                                         <>
-                                                            <div className="text-xs font-bold text-green-600">
+                                                            <div className="text-xs font-bold text-blue-600">
                                                                 {teamPlayer.round_team_points?.toFixed(2)} pts
                                                             </div>
                                                             <div className="text-[10px] text-gray-500">
-                                                                {teamPlayer.round_fantasy_points?.toFixed(1)} FP × {((teamPlayer.multiplier || 0.5) * 100).toFixed(0)}%
+                                                                {teamPlayer.round_fantasy_points?.toFixed(1)} FP × 50%
                                                             </div>
                                                         </>
                                                     ) : (

@@ -10,7 +10,7 @@ class ScrapeRecentRounds extends Command
 {
     protected $signature = 'scrape:recent';
 
-    protected $description = 'Smart scraper: Auto-detects fresh DB and scrapes all data, otherwise updates recent rounds only. Runs full workflow: games → stats → prices → team points → predictions';
+    protected $description = 'Smart scraper: Auto-detects fresh DB and scrapes all data, otherwise updates recent rounds only. Runs full workflow: games → stats → prices → team points → predictions → lineup snapshots';
 
     public function __construct(
         private EuroLeagueScrapingService $scrapingService,
@@ -79,13 +79,24 @@ class ScrapeRecentRounds extends Command
             $this->newLine();
 
             // Step 5: Calculate prediction league scores
-            $this->info('Step 5/5: Calculating prediction scores...');
+            $this->info('Step 5/6: Calculating prediction scores...');
             $predictionsExitCode = $this->call('predictions:calculate-scores');
 
             if ($predictionsExitCode === 0) {
                 $this->info('✅ Prediction scores calculated');
             } else {
                 $this->warn('⚠️  Prediction scores calculation returned with warnings');
+            }
+            $this->newLine();
+
+            // Step 6: Snapshot fantasy lineups for finished rounds
+            $this->info('Step 6/6: Snapshotting fantasy lineups...');
+            $snapshotExitCode = $this->call('fantasy:snapshot-lineups');
+
+            if ($snapshotExitCode === 0) {
+                $this->info('✅ Lineup snapshots created');
+            } else {
+                $this->warn('⚠️  Lineup snapshot creation returned with warnings');
             }
 
             $this->newLine();

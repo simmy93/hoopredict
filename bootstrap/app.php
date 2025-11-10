@@ -29,9 +29,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*', headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR | \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST | \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO);
     })
     ->withSchedule(function (Schedule $schedule) {
-        // Smart scraper: Updates games → stats → prices (all in one workflow)
+        // Smart scraper: Updates games → stats → prices → team points → predictions → lineup snapshots
         // Runs every hour and only scrapes recent rounds (current + next 2)
-        // This ensures scores are updated before stats, and stats before prices
+        // This ensures proper order: scores → stats → prices → points → predictions → snapshots
         $schedule->command('scrape:recent')
             ->hourly()
             ->withoutOverlapping()

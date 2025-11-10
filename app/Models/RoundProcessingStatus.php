@@ -16,12 +16,16 @@ class RoundProcessingStatus extends Model
         'total_games',
         'finished_games',
         'players_updated',
+        'lineups_snapshotted',
+        'lineups_snapshotted_at',
     ];
 
     protected function casts(): array
     {
         return [
             'processed_at' => 'datetime',
+            'lineups_snapshotted' => 'boolean',
+            'lineups_snapshotted_at' => 'datetime',
         ];
     }
 
