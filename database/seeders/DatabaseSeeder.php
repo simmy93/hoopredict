@@ -498,11 +498,43 @@ class DatabaseSeeder extends Seeder
         }
 
         // Attach exactly 10 players to team with lineup positions
+        // Assign positions based on player position to match formation requirements
+        $guards = $selectedPlayers->where('position', 'Guard')->values();
+        $forwards = $selectedPlayers->where('position', 'Forward')->values();
+        $centers = $selectedPlayers->where('position', 'Center')->values();
+
         $lineupPosition = 1;
         $captainAssigned = false;
+        $orderedPlayers = collect();
 
-        foreach ($selectedPlayers->take(10) as $player) {
-            // First player in starting lineup (position 1) becomes captain
+        // Starting lineup (positions 1-5): 2 Guards, 2 Forwards, 1 Center
+        // Position 1-2: Guards
+        for ($i = 0; $i < 2 && $guards->count() > 0; $i++) {
+            $orderedPlayers->push($guards->shift());
+        }
+        // Position 3-4: Forwards
+        for ($i = 0; $i < 2 && $forwards->count() > 0; $i++) {
+            $orderedPlayers->push($forwards->shift());
+        }
+        // Position 5: Center
+        if ($centers->count() > 0) {
+            $orderedPlayers->push($centers->shift());
+        }
+
+        // Position 6: Sixth man (any remaining player)
+        $remaining = $guards->merge($forwards)->merge($centers)->shuffle();
+        if ($remaining->count() > 0) {
+            $orderedPlayers->push($remaining->shift());
+        }
+
+        // Positions 7-10: Bench (remaining players)
+        while ($orderedPlayers->count() < 10 && $remaining->count() > 0) {
+            $orderedPlayers->push($remaining->shift());
+        }
+
+        // Create player records with proper lineup positions
+        foreach ($orderedPlayers->take(10) as $player) {
+            // First player (first guard) becomes captain
             $isCaptain = $lineupPosition === 1 && !$captainAssigned;
             if ($isCaptain) {
                 $captainAssigned = true;
