@@ -263,7 +263,13 @@ export default function LineupTab({
             newStarters[oldSlotIndex] = null;
         }
 
-        const newBench = bench.filter(p => p.id !== draggedPlayer.id);
+        let newBench = bench.filter(p => p.id !== draggedPlayer.id);
+
+        // If there's already a player in this slot, move them to bench
+        const existingPlayer = newStarters[slotIndex];
+        if (existingPlayer && existingPlayer.id !== draggedPlayer.id) {
+            newBench = [...newBench, existingPlayer];
+        }
 
         if (sixthMan?.id === draggedPlayer.id) {
             setSixthMan(null);
