@@ -24,7 +24,7 @@ class CalculateTeamPoints extends Command
      *
      * @var string
      */
-    protected $description = 'Calculate fantasy team points based on player performance with position multipliers (Starters: 100%, Sixth Man: 75%, Bench: 50%)';
+    protected $description = 'Calculate fantasy team points based on player performance with position multipliers (Captain: 200%, Starters: 100%, Sixth Man: 75%, Bench: 50%)';
 
     /**
      * Execute the console command.
@@ -91,18 +91,8 @@ class CalculateTeamPoints extends Command
                     continue;
                 }
 
-                // Apply multiplier based on lineup position
-                $multiplier = 0.5; // Default: bench (50%)
-
-                if ($teamPlayer->lineup_position) {
-                    if ($teamPlayer->lineup_position >= 1 && $teamPlayer->lineup_position <= 5) {
-                        // Starters (positions 1-5): 100%
-                        $multiplier = 1.0;
-                    } elseif ($teamPlayer->lineup_position === 6) {
-                        // Sixth man: 75%
-                        $multiplier = 0.75;
-                    }
-                }
+                // Apply multiplier based on lineup position and captain status
+                $multiplier = $teamPlayer->getScoringMultiplier();
 
                 $adjustedPoints = $roundPoints * $multiplier;
                 $totalPoints += $adjustedPoints;

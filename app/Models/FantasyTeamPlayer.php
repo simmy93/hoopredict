@@ -14,6 +14,7 @@ class FantasyTeamPlayer extends Model
         'fantasy_team_id',
         'player_id',
         'lineup_position',
+        'is_captain',
         'purchase_price',
         'points_earned',
         'acquired_at',
@@ -22,6 +23,7 @@ class FantasyTeamPlayer extends Model
     protected function casts(): array
     {
         return [
+            'is_captain' => 'boolean',
             'purchase_price' => 'decimal:2',
             'acquired_at' => 'datetime',
         ];
@@ -38,8 +40,9 @@ class FantasyTeamPlayer extends Model
     }
 
     /**
-     * Get the scoring multiplier based on lineup position
+     * Get the scoring multiplier based on lineup position and captain status
      *
+     * Captain: 200%
      * Positions 1-5 (Starters): 100%
      * Position 6 (Sixth Man): 75%
      * Positions 7+ (Bench): 50%
@@ -48,6 +51,11 @@ class FantasyTeamPlayer extends Model
     {
         if ($this->lineup_position === null) {
             return 0.0; // Not in active lineup
+        }
+
+        // Captain gets 200% (must be in starting lineup)
+        if ($this->is_captain && $this->lineup_position <= 5) {
+            return 2.0; // 200% for captain
         }
 
         if ($this->lineup_position <= 5) {
@@ -83,5 +91,13 @@ class FantasyTeamPlayer extends Model
     public function isBench(): bool
     {
         return $this->lineup_position !== null && $this->lineup_position >= 7;
+    }
+
+    /**
+     * Check if player is captain
+     */
+    public function isCaptain(): bool
+    {
+        return $this->is_captain === true;
     }
 }
