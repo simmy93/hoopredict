@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import PlayerStatsModal from '@/components/PlayerStatsModal';
 import { Trophy, User, Sparkles, AlertCircle, CheckCircle2, Info, Users, Star } from 'lucide-react';
+import axios from 'axios';
 
 interface User {
     id: number;
@@ -125,6 +127,11 @@ export default function LineupTab({
     const [draggedPlayer, setDraggedPlayer] = useState<FantasyTeamPlayer | null>(null);
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Player stats modal state
+    const [statsModalOpen, setStatsModalOpen] = useState(false);
+    const [selectedPlayerStats, setSelectedPlayerStats] = useState<any>(null);
+    const [loadingStats, setLoadingStats] = useState(false);
 
     // Initialize lineup from database
     useEffect(() => {
@@ -401,6 +408,20 @@ export default function LineupTab({
         }
     };
 
+    // Show player stats modal
+    const showPlayerStats = async (playerId: number) => {
+        setLoadingStats(true);
+        setStatsModalOpen(true);
+        try {
+            const response = await axios.get(`/api/players/${playerId}/stats`);
+            setSelectedPlayerStats(response.data);
+        } catch (error) {
+            console.error('Failed to load player stats:', error);
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+
     const handleCaptainToggle = (player: FantasyTeamPlayer) => {
         if (isRoundLocked || isRoundFinished) return;
 
@@ -558,178 +579,190 @@ export default function LineupTab({
 
             {/* Lineup Type Selector */}
             {!isRoundFinished && (
-                <Card className="mt-6">
-                    <CardHeader>
-                        <CardTitle>Step 1: Select Formation</CardTitle>
-                        <CardDescription>Choose your starting five combination (Guards-Forwards-Centers)</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <select
-                            value={lineupType || ''}
-                            onChange={(e) => handleLineupTypeChange(e.target.value)}
-                            className="flex h-9 w-full max-w-md items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <option value="">Select a formation...</option>
-                            {Object.entries(LINEUP_CONFIGS).map(([key, config]) => (
-                                <option key={key} value={key}>
-                                    {key} - {config.label}
-                                </option>
-                            ))}
-                        </select>
+                <div className="mt-6">
+                    <div className="mb-4">
+                        <h2 className="text-lg font-semibold dark:text-white text-gray-900">Step 1: Select Formation</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Choose your starting five combination (Guards-Forwards-Centers)</p>
+                    </div>
+                    <select
+                        value={lineupType || ''}
+                        onChange={(e) => handleLineupTypeChange(e.target.value)}
+                        className="flex h-9 w-full max-w-md items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="">Select a formation...</option>
+                        {Object.entries(LINEUP_CONFIGS).map(([key, config]) => (
+                            <option key={key} value={key}>
+                                {key} - {config.label}
+                            </option>
+                        ))}
+                    </select>
 
-                        <Alert className="mt-4">
-                            <Info className="h-4 w-4" />
-                            <AlertDescription>
-                                <strong>Point Multipliers:</strong> Captain (must be a starter) earns <span className="font-bold text-purple-600">200%</span> of fantasy points,
-                                Starters earn <span className="font-bold text-green-600">100%</span>,
-                                Sixth Man earns <span className="font-bold text-yellow-600">75%</span>,
-                                and Bench players earn <span className="font-bold text-blue-600">50%</span>. Click the star on a starter to make them captain!
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
+                    <Alert className="mt-4">
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                            <strong>Point Multipliers:</strong> Captain (must be a starter) earns <span className="font-bold text-purple-600">200%</span> of fantasy points,
+                            Starters earn <span className="font-bold text-green-600">100%</span>,
+                            Sixth Man earns <span className="font-bold text-yellow-600">75%</span>,
+                            and Bench players earn <span className="font-bold text-blue-600">50%</span>. Click the star on a starter to make them captain!
+                        </AlertDescription>
+                    </Alert>
+                </div>
             )}
 
             {(lineupType || isRoundFinished) && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
                     {/* Basketball Court */}
-                    <Card className="lg:col-span-8">
-                        <CardHeader>
-                            <CardTitle className="text-lg flex items-center gap-2">
+                    <div className="lg:col-span-8">
+                        {/* Header */}
+                        <div className="mb-4">
+                            <h2 className="text-lg font-semibold dark:text-white text-gray-900 flex items-center gap-2">
                                 Step 2: Set Your Starting Five
-                                <Badge className="bg-green-600 text-white">100%</Badge>
-                            </CardTitle>
-                            <CardDescription>Drag players from the sidebar to the court - Starters earn full fantasy points</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <div
-                                className="relative rounded-lg overflow-hidden border-4 shadow-2xl dark:border-gray-800 border-gray-300"
+                                <span className="bg-green-600 text-white px-2 py-0.5 rounded text-sm font-normal">
+                                    100%
+                                </span>
+                            </h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                Drag players from the sidebar to the court – Starters earn full fantasy points
+                            </p>
+                        </div>
+
+                        {/* Court */}
+                        <div
+                            className="relative rounded-lg overflow-hidden border-4 shadow-2xl dark:border-gray-800 border-gray-300"
+                            style={{
+                                backgroundImage: 'url(/images/basketball-court-light.png)',
+                                backgroundColor: '#f8f9fa',
+                                backgroundSize: 'contain',
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'center',
+                                paddingBottom: '75%',
+                                position: 'relative'
+                            }}
+                        >
+                            <div className="absolute inset-0 dark:bg-[url('/images/basketball-court.png')] bg-[url('/images/basketball-court-light.png')]"
                                 style={{
-                                    backgroundImage: 'url(/images/basketball-court-light.png)',
                                     backgroundSize: 'contain',
                                     backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'center',
-                                    backgroundColor: '#f8f9fa',
-                                    paddingBottom: '75%',
-                                    position: 'relative'
+                                    backgroundPosition: 'center'
                                 }}
-                            >
-                                <div className="absolute inset-0 dark:bg-[url('/images/basketball-court.png')] bg-[url('/images/basketball-court-light.png')]"
-                                    style={{
-                                        backgroundSize: 'contain',
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'center'
-                                    }}
-                                ></div>
-                                <div className="absolute inset-0 dark:bg-black/20 bg-white/10"></div>
+                            ></div>
+                            <div className="absolute inset-0 dark:bg-black/20 bg-white/10"></div>
 
-                                <div className="absolute inset-0 z-10">
-                                    {[0, 1, 2, 3, 4].map((slotIndex) => {
-                                        const config = lineupType ? LINEUP_CONFIGS[lineupType] : LINEUP_CONFIGS['2-2-1'];
-                                        const slotPosition = getSlotPosition(slotIndex, config);
-                                        const player = starters[slotIndex];
-                                        const position = getCourtPosition(slotIndex, config);
+                            <div className="absolute inset-0 z-10">
+                                {[0, 1, 2, 3, 4].map((slotIndex) => {
+                                    const config = lineupType ? LINEUP_CONFIGS[lineupType] : LINEUP_CONFIGS['2-2-1'];
+                                    const slotPosition = getSlotPosition(slotIndex, config);
+                                    const player = starters[slotIndex];
+                                    const position = getCourtPosition(slotIndex, config);
 
-                                        return (
-                                            <div
-                                                key={slotIndex}
-                                                onDragOver={(e) => e.preventDefault()}
-                                                onDrop={() => handleDropOnSlot(slotIndex)}
-                                                className={`
-                                                    absolute flex flex-col items-center justify-center
-                                                    w-20 h-28 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-40
-                                                    rounded-lg sm:rounded-xl border-2 transition-all
-                                                    ${player ? 'bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 from-white to-gray-50 dark:border-white/60 border-gray-400' : 'dark:bg-black/40 bg-white/50 border-dashed dark:border-white/30 border-gray-400/50'}
-                                                    ${draggedPlayer && draggedPlayer.player.position === slotPosition ? 'ring-2 sm:ring-4 ring-green-500/70 scale-105' : ''}
-                                                `}
-                                                style={{
-                                                    left: position.left,
-                                                    top: position.top,
-                                                    transform: 'translate(-50%, -50%)'
-                                                }}
-                                            >
-                                                {player ? (
-                                                    <div
-                                                        draggable
-                                                        onDragStart={() => handleDragStart(player)}
-                                                        onDragEnd={handleDragEnd}
-                                                        className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2 relative"
-                                                    >
-                                                        <div className={`absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold`}>
-                                                            {player.player.position}
-                                                        </div>
+                                    return (
+                                        <div
+                                            key={slotIndex}
+                                            onDragOver={(e) => e.preventDefault()}
+                                            onDrop={() => handleDropOnSlot(slotIndex)}
+                                            className={`
+                                                absolute flex flex-col items-center justify-center
+                                                w-16 h-24 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-40
+                                                rounded-lg border-2 transition-all
+                                                ${player ? 'bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 from-white to-gray-50 dark:border-white/60 border-gray-400' : 'dark:bg-black/40 bg-white/50 border-dashed dark:border-white/30 border-gray-400/50'}
+                                                ${draggedPlayer && draggedPlayer.player.position === slotPosition ? 'ring-2 sm:ring-4 ring-green-500/70 scale-105' : ''}
+                                            `}
+                                            style={{
+                                                left: position.left,
+                                                top: position.top,
+                                                transform: 'translate(-50%, -50%)'
+                                            }}
+                                        >
+                                            {player ? (
+                                                <div
+                                                    draggable
+                                                    onDragStart={() => handleDragStart(player)}
+                                                    onDragEnd={handleDragEnd}
+                                                    className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2 relative"
+                                                >
+                                                    <div className={`absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold`}>
+                                                        {player.player.position}
+                                                    </div>
 
-                                                        {/* Captain Star - clickable */}
-                                                        {!isRoundFinished && !isRoundLocked && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleCaptainToggle(player);
-                                                                }}
-                                                                className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10 cursor-pointer hover:scale-110 transition-transform"
-                                                                title={captain?.id === player.id ? "Remove Captain" : "Make Captain"}
-                                                            >
-                                                                <Star
-                                                                    className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                                                                        captain?.id === player.id
-                                                                            ? 'fill-purple-500 text-purple-500'
-                                                                            : 'fill-gray-300 text-gray-400 hover:fill-purple-300 hover:text-purple-400'
-                                                                    }`}
-                                                                />
-                                                            </button>
-                                                        )}
-
-                                                        {/* Captain indicator for finished/locked rounds */}
-                                                        {(isRoundFinished || isRoundLocked) && player.is_captain && (
-                                                            <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10">
-                                                                <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-purple-500 text-purple-500" />
-                                                            </div>
-                                                        )}
-
-                                                        {(player.player.photo_headshot_url || player.player.photo_url) ? (
-                                                            <img
-                                                                src={(player.player.photo_headshot_url || player.player.photo_url)!}
-                                                                alt={player.player.name}
-                                                                className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full object-cover object-top border-2 border-white/80"
+                                                    {/* Captain Star - clickable */}
+                                                    {!isRoundFinished && !isRoundLocked && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleCaptainToggle(player);
+                                                            }}
+                                                            className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10 cursor-pointer hover:scale-110 transition-transform"
+                                                            title={captain?.id === player.id ? "Remove Captain" : "Make Captain"}
+                                                        >
+                                                            <Star
+                                                                className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                                                                    captain?.id === player.id
+                                                                        ? 'fill-purple-500 text-purple-500'
+                                                                        : 'fill-gray-300 text-gray-400 hover:fill-purple-300 hover:text-purple-400'
+                                                                }`}
                                                             />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Captain indicator for finished/locked rounds */}
+                                                    {(isRoundFinished || isRoundLocked) && player.is_captain && (
+                                                        <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10">
+                                                            <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-purple-500 text-purple-500" />
+                                                        </div>
+                                                    )}
+
+                                                    {(player.player.photo_headshot_url || player.player.photo_url) ? (
+                                                        <img
+                                                            src={(player.player.photo_headshot_url || player.player.photo_url)!}
+                                                            alt={player.player.name}
+                                                            className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full object-cover object-top border-2 border-white/80"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-white/80">
+                                                            <User className="h-4 w-4 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-300" />
+                                                        </div>
+                                                    )}
+                                                    <div className="text-center w-full">
+                                                        <div
+                                                            className="font-bold dark:text-white text-gray-900 text-[9px] sm:text-xs truncate hover:text-primary cursor-pointer transition-colors"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                showPlayerStats(player.player.id);
+                                                            }}
+                                                        >
+                                                            {player.player.name}
+                                                        </div>
+                                                        <div className="text-[8px] sm:text-[10px] dark:text-gray-300 text-gray-600 truncate hidden sm:block">{player.player.team.name}</div>
+                                                        {isRoundFinished ? (
+                                                            <div className="text-[9px] sm:text-xs mt-0.5">
+                                                                <div className={`font-bold ${player.is_captain ? 'text-purple-400' : 'text-green-400'}`}>
+                                                                    {player.round_team_points?.toFixed(2)} pts
+                                                                </div>
+                                                                <div className="text-[7px] sm:text-[8px] text-gray-400">
+                                                                    {player.round_fantasy_points?.toFixed(1)} FP × {((player.multiplier || 0.5) * 100).toFixed(0)}%
+                                                                    {player.is_captain && ' (C)'}
+                                                                </div>
+                                                            </div>
                                                         ) : (
-                                                            <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gray-700 flex items-center justify-center border-2 border-white/80">
-                                                                <User className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-gray-300" />
+                                                            <div className="text-[9px] sm:text-xs font-bold text-blue-400 mt-0.5">
+                                                                {player.points_earned.toFixed(1)} pts
                                                             </div>
                                                         )}
-                                                        <div className="text-center w-full">
-                                                            <div className="font-bold dark:text-white text-gray-900 text-[10px] sm:text-xs truncate">{player.player.name}</div>
-                                                            <div className="text-[8px] sm:text-[10px] dark:text-gray-300 text-gray-600 truncate hidden sm:block">{player.player.team.name}</div>
-                                                            {isRoundFinished ? (
-                                                                <div className="text-[10px] sm:text-xs mt-1">
-                                                                    <div className={`font-bold ${player.is_captain ? 'text-purple-400' : 'text-green-400'}`}>
-                                                                        {player.round_team_points?.toFixed(2)} pts
-                                                                    </div>
-                                                                    <div className="text-[8px] text-gray-400">
-                                                                        {player.round_fantasy_points?.toFixed(1)} FP × {((player.multiplier || 0.5) * 100).toFixed(0)}%
-                                                                        {player.is_captain && ' (C)'}
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="text-[10px] sm:text-xs font-bold text-blue-400 mt-1">
-                                                                    {player.points_earned.toFixed(1)} pts
-                                                                </div>
-                                                            )}
-                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <div className="text-center dark:text-white/50 text-gray-500 text-[10px] sm:text-xs p-1 sm:p-2">
-                                                        <Users className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 opacity-50" />
-                                                        <span className="font-medium text-[9px] sm:text-xs">{slotPosition}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center dark:text-white/50 text-gray-500 text-[10px] sm:text-xs p-1 sm:p-2">
+                                                    <Users className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-1 opacity-50" />
+                                                    <span className="font-medium text-[9px] sm:text-xs">{slotPosition}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
+
 
                     {/* Mobile-only: Bench & Substitutes Horizontal Scroll */}
                     <Card className="lg:hidden">
@@ -763,7 +796,15 @@ export default function LineupTab({
                                                 </div>
                                             )}
                                             <div className="text-center w-full">
-                                                <div className="font-medium text-xs truncate">{sixthMan.player.name}</div>
+                                                <div
+                                                    className="font-medium text-xs truncate hover:text-primary cursor-pointer transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        showPlayerStats(sixthMan.player.id);
+                                                    }}
+                                                >
+                                                    {sixthMan.player.name}
+                                                </div>
                                                 <Badge className="bg-yellow-500 text-white text-[10px] mt-1 flex items-center gap-1 justify-center">
                                                     <Sparkles className="h-2 w-2" />
                                                     6th
@@ -817,7 +858,15 @@ export default function LineupTab({
                                                 </div>
                                             )}
                                             <div className="text-center w-full">
-                                                <div className="font-medium text-xs truncate">{player.player.name}</div>
+                                                <div
+                                                    className="font-medium text-xs truncate hover:text-primary cursor-pointer transition-colors"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        showPlayerStats(player.player.id);
+                                                    }}
+                                                >
+                                                    {player.player.name}
+                                                </div>
                                                 <Badge className="text-[10px] mt-1">{player.player.position}</Badge>
                                                 {isRoundFinished ? (
                                                     <div className="text-[10px] mt-1">
@@ -1039,7 +1088,15 @@ export default function LineupTab({
                                                 )}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="font-medium text-sm truncate">{sixthMan.player.name}</div>
+                                                        <div
+                                                            className="font-medium text-sm truncate hover:text-primary cursor-pointer transition-colors"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                showPlayerStats(sixthMan.player.id);
+                                                            }}
+                                                        >
+                                                            {sixthMan.player.name}
+                                                        </div>
                                                         <Badge className="bg-yellow-500 text-white text-xs flex items-center gap-1">
                                                             <Sparkles className="h-3 w-3" />
                                                             6th Man
@@ -1101,7 +1158,15 @@ export default function LineupTab({
                                                     </div>
                                                 )}
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="font-medium text-sm truncate">{teamPlayer.player.name}</div>
+                                                    <div
+                                                        className="font-medium text-sm truncate hover:text-primary cursor-pointer transition-colors"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            showPlayerStats(teamPlayer.player.id);
+                                                        }}
+                                                    >
+                                                        {teamPlayer.player.name}
+                                                    </div>
                                                     <div className="text-xs text-muted-foreground truncate">{teamPlayer.player.team.name}</div>
                                                     <Badge className={`${getPositionColor(teamPlayer.player.position)} text-white text-xs mt-1`}>
                                                         {teamPlayer.player.position}
@@ -1132,6 +1197,19 @@ export default function LineupTab({
                     </div>
                 </div>
             )}
+
+            {/* Player Stats Modal */}
+            <PlayerStatsModal
+                player={selectedPlayerStats}
+                loading={loadingStats}
+                open={statsModalOpen}
+                onOpenChange={(open) => {
+                    setStatsModalOpen(open);
+                    if (!open) {
+                        setSelectedPlayerStats(null);
+                    }
+                }}
+            />
         </>
     );
 }

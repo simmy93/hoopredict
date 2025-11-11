@@ -62,16 +62,14 @@ class Player extends Model
      * - For first round, uses only fantasy points (no history)
      * - Smooth price transitions prevent wild swings
      *
-     * @param  float  $currentRoundFantasyPoints  Fantasy points from the current round
+     * @param  float  $currentRoundFantasyPoints  Fantasy points from the current round (can be negative)
      * @param  int  $currentRoundNumber  Current round number being processed
-     * @return float|null New calculated price, or null if player didn't play
+     * @return float New calculated price (minimum €100k, maximum €10M)
      */
-    public function calculateWeightedPrice(float $currentRoundFantasyPoints, int $currentRoundNumber): ?float
+    public function calculateWeightedPrice(float $currentRoundFantasyPoints, int $currentRoundNumber): float
     {
-        // If player didn't play this round (0 fantasy points), return null
-        if ($currentRoundFantasyPoints <= 0) {
-            return null;
-        }
+        // Note: This method should only be called if player actually played a game
+        // Negative fantasy points are valid and should decrease the price
 
         // Get price history from previous rounds (up to 4 most recent)
         // Exclude current round and only use rounds with actual prices (not null)

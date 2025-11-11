@@ -32,10 +32,6 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 })->name('home');
 
-Route::get('/countdown-test', function () {
-    return Inertia::render('CountdownTest');
-})->name('countdown.test');
-
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');

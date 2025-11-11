@@ -228,7 +228,10 @@ class ProcessRoundPrices extends Command
                 $fantasyPointsThisRound = $statsThisRound->sum('fantasy_points');
 
                 // Calculate price using weighted average (70% history + 30% current round)
-                $price = $player->calculateWeightedPrice($fantasyPointsThisRound, $roundNumber);
+                // Only calculate if player actually played (games > 0), not based on points
+                $price = $gamesPlayedInRound > 0
+                    ? $player->calculateWeightedPrice($fantasyPointsThisRound, $roundNumber)
+                    : null;
 
                 // If player played this round and got a price, update and activate
                 if ($price !== null) {
