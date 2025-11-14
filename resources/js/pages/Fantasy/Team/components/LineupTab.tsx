@@ -160,7 +160,8 @@ export default function LineupTab({
         setSixthMan(sixthManFromDb || null);
         setBench(benchFromDb);
         setCaptain(captainFromDb || null);
-    }, [initialTeamPlayers]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedRound]);
 
     // Validate lineup
     useEffect(() => {
@@ -324,20 +325,22 @@ export default function LineupTab({
         setDraggedPlayer(null);
     };
 
-    const handleDropOnSixthMan = () => {
+    const handleDropOnSixthMan = (e: React.DragEvent) => {
+        e.stopPropagation(); // Prevent event from bubbling to bench drop zone
         if (!draggedPlayer || isRoundLocked || isRoundFinished) return;
 
+        // Remove from starters if applicable
         const newStarters = [...starters];
         const slotIndex = newStarters.findIndex(s => s?.id === draggedPlayer.id);
         if (slotIndex !== -1) {
             newStarters[slotIndex] = null;
-            setStarters(newStarters);
         }
 
-        const newBench = bench.filter(p => p.id !== draggedPlayer.id);
+        // Build new bench: remove dragged player, add old sixth man if exists
+        let newBench = bench.filter(p => p.id !== draggedPlayer.id);
 
         if (sixthMan) {
-            newBench.push(sixthMan);
+            newBench = [...newBench, sixthMan];
             // If the old sixth man was captain, remove captain status
             if (captain?.id === sixthMan.id) {
                 setCaptain(null);
@@ -349,6 +352,8 @@ export default function LineupTab({
             setCaptain(null);
         }
 
+        // Update all states together
+        setStarters(newStarters);
         setSixthMan(draggedPlayer);
         setBench(newBench);
         setDraggedPlayer(null);
@@ -628,10 +633,10 @@ export default function LineupTab({
 
                         {/* Court */}
                         <div
-                            className="relative rounded-lg overflow-hidden border-4 shadow-2xl dark:border-gray-800 border-gray-300"
+                            className="relative rounded-lg overflow-hidden border-4 shadow-2xl dark:border-gray-800 border-gray-300 pt-10"
                             style={{
                                 backgroundImage: 'url(/images/basketball-court-light.png)',
-                                backgroundColor: '#f8f9fa',
+                                backgroundColor: '#1f2937',
                                 backgroundSize: 'contain',
                                 backgroundRepeat: 'no-repeat',
                                 backgroundPosition: 'center',
@@ -662,7 +667,7 @@ export default function LineupTab({
                                             onDrop={() => handleDropOnSlot(slotIndex)}
                                             className={`
                                                 absolute flex flex-col items-center justify-center
-                                                w-16 h-24 sm:w-24 sm:h-32 md:w-28 md:h-36 lg:w-32 lg:h-40
+                                                w-16 h-24 sm:w-28 sm:h-36 md:w-28 md:h-36 lg:w-32 lg:h-40
                                                 rounded-lg border-2 transition-all
                                                 ${player ? 'bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 from-white to-gray-50 dark:border-white/60 border-gray-400' : 'dark:bg-black/40 bg-white/50 border-dashed dark:border-white/30 border-gray-400/50'}
                                                 ${draggedPlayer && draggedPlayer.player.position === slotPosition ? 'ring-2 sm:ring-4 ring-green-500/70 scale-105' : ''}
@@ -678,9 +683,9 @@ export default function LineupTab({
                                                     draggable
                                                     onDragStart={() => handleDragStart(player)}
                                                     onDragEnd={handleDragEnd}
-                                                    className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2 relative"
+                                                    className="flex flex-col items-center gap-1 cursor-move w-full p-1 sm:p-4 relative"
                                                 >
-                                                    <div className={`absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold`}>
+                                                    <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0 rounded text-[10px] sm:text-xs font-bold`}>
                                                         {player.player.position}
                                                     </div>
 
@@ -691,7 +696,7 @@ export default function LineupTab({
                                                                 e.stopPropagation();
                                                                 handleCaptainToggle(player);
                                                             }}
-                                                            className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10 cursor-pointer hover:scale-110 transition-transform"
+                                                            className="absolute -top-2 -right-2 z-10 cursor-pointer hover:scale-110 transition-transform"
                                                             title={captain?.id === player.id ? "Remove Captain" : "Make Captain"}
                                                         >
                                                             <Star
@@ -837,7 +842,7 @@ export default function LineupTab({
                                 )}
 
                                 {/* Regular Bench Players */}
-                                {bench.map((player) => (
+                                {bench.filter(p => p.id !== sixthMan?.id).map((player) => (
                                     <div
                                         key={player.player.id}
                                         draggable
@@ -1138,7 +1143,7 @@ export default function LineupTab({
                                             All players assigned
                                         </div>
                                     ) : (
-                                        bench.map((teamPlayer) => (
+                                        bench.filter(p => p.id !== sixthMan?.id).map((teamPlayer) => (
                                             <div
                                                 key={teamPlayer.id}
                                                 draggable
