@@ -175,6 +175,13 @@ class FantasyTeamController extends Controller
         $positionCounts = $userTeam->getPositionCounts();
         $startingLineupCounts = $userTeam->getStartingLineupPositionCounts();
 
+        // Get upcoming games and next game time for countdown
+        $upcomingGames = \App\Models\Game::getUpcomingGames($league->championship_id, $selectedRound);
+        $nextGameTime = \App\Models\Game::getNextGameStart($league->championship_id, $selectedRound);
+
+        // Check if lineup is locked for this round (game about to start or in progress)
+        $isLineupLocked = \App\Models\Game::isLineupLocked($league->championship_id, $selectedRound);
+
         return Inertia::render('Fantasy/Team/Show', [
             'league' => $league->load('championship'),
             'userTeam' => $userTeam,
@@ -194,6 +201,10 @@ class FantasyTeamController extends Controller
             'startingLineupCounts' => $startingLineupCounts,
             'hasValidTeamComposition' => $userTeam->hasValidTeamComposition(),
             'hasValidStartingLineup' => $userTeam->hasValidStartingLineup(),
+            // Lineup locking data
+            'upcomingGames' => $upcomingGames,
+            'nextGameTime' => $nextGameTime,
+            'isLineupLocked' => $isLineupLocked,
         ]);
     }
 }

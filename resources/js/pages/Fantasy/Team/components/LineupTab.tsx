@@ -86,6 +86,9 @@ interface Props {
     roundTotalPoints: number | null;
     isRoundLocked: boolean;
     currentActiveRound: number | null;
+    upcomingGames?: any[];
+    nextGameTime?: string | null;
+    isLineupLocked?: boolean;
 }
 
 type LineupType = '2-2-1' | '3-1-1' | '1-3-1' | '1-2-2' | '2-1-2';
@@ -116,6 +119,9 @@ export default function LineupTab({
     roundTotalPoints,
     isRoundLocked,
     currentActiveRound,
+    upcomingGames = [],
+    nextGameTime = null,
+    isLineupLocked = false,
 }: Props) {
     const [lineupType, setLineupType] = useState<LineupType | null>(
         (userTeam.lineup_type as LineupType) || null
@@ -132,6 +138,9 @@ export default function LineupTab({
     const [statsModalOpen, setStatsModalOpen] = useState(false);
     const [selectedPlayerStats, setSelectedPlayerStats] = useState<any>(null);
     const [loadingStats, setLoadingStats] = useState(false);
+
+    // Countdown timer state
+    const [timeUntilLock, setTimeUntilLock] = useState<string | null>(null);
 
     // Initialize lineup from database
     useEffect(() => {
@@ -197,6 +206,44 @@ export default function LineupTab({
 
         setValidationErrors(errors);
     }, [starters, lineupType]);
+
+    // Countdown timer for lineup lock
+    useEffect(() => {
+        if (!nextGameTime || isRoundFinished || isLineupLocked) {
+            setTimeUntilLock(null);
+            return;
+        }
+
+        const updateCountdown = () => {
+            const now = new Date().getTime();
+            const lockTime = new Date(nextGameTime).getTime() - (5 * 60 * 1000); // 5 min before game
+            const distance = lockTime - now;
+
+            if (distance < 0) {
+                setTimeUntilLock(null);
+                // Refresh the page to get updated lock status
+                router.reload({ only: ['isLineupLocked', 'upcomingGames', 'nextGameTime'] });
+                return;
+            }
+
+            const hours = Math.floor(distance / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            if (hours > 0) {
+                setTimeUntilLock(`${hours}h ${minutes}m`);
+            } else if (minutes > 0) {
+                setTimeUntilLock(`${minutes}m ${seconds}s`);
+            } else {
+                setTimeUntilLock(`${seconds}s`);
+            }
+        };
+
+        updateCountdown();
+        const interval = setInterval(updateCountdown, 1000);
+
+        return () => clearInterval(interval);
+    }, [nextGameTime, isRoundFinished, isLineupLocked]);
 
     // Handle lineup type change
     const handleLineupTypeChange = (type: string) => {
@@ -270,6 +317,15 @@ export default function LineupTab({
             return;
         }
 
+        // Validate if player can be moved to this position (starter = position 1-5)
+        const newPosition = slotIndex + 1; // Convert to position number
+        const validation = canMovePlayer(draggedPlayer, newPosition, false);
+        if (!validation.valid) {
+            alert(validation.error);
+            setDraggedPlayer(null);
+            return;
+        }
+
         const newStarters = [...starters];
         const oldSlotIndex = newStarters.findIndex(s => s?.id === draggedPlayer.id);
         if (oldSlotIndex !== -1) {
@@ -302,6 +358,14 @@ export default function LineupTab({
     const handleDropOnBench = () => {
         if (!draggedPlayer || isRoundLocked || isRoundFinished) return;
 
+        // Validate if player can be moved to bench (position = null, no captain)
+        const validation = canMovePlayer(draggedPlayer, null, false);
+        if (!validation.valid) {
+            alert(validation.error);
+            setDraggedPlayer(null);
+            return;
+        }
+
         const newStarters = [...starters];
         const slotIndex = newStarters.findIndex(s => s?.id === draggedPlayer.id);
         if (slotIndex !== -1) {
@@ -328,6 +392,14 @@ export default function LineupTab({
     const handleDropOnSixthMan = (e: React.DragEvent) => {
         e.stopPropagation(); // Prevent event from bubbling to bench drop zone
         if (!draggedPlayer || isRoundLocked || isRoundFinished) return;
+
+        // Validate if player can be moved to sixth man (position = 6, no captain)
+        const validation = canMovePlayer(draggedPlayer, 6, false);
+        if (!validation.valid) {
+            alert(validation.error);
+            setDraggedPlayer(null);
+            return;
+        }
 
         // Remove from starters if applicable
         const newStarters = [...starters];
@@ -413,6 +485,59 @@ export default function LineupTab({
         }
     };
 
+    // Helper function to check if a player has already played in the current round
+    const hasPlayerPlayed = (player: FantasyTeamPlayer): boolean => {
+        // If player has round_fantasy_points > 0, they've played
+        return (player.round_fantasy_points ?? 0) > 0;
+    };
+
+    // Get numeric value for a position
+    // Captain (4) > Starter (3) > Sixth Man (2) > Bench (1)
+    const getPositionValue = (position: number | null, isCaptain: boolean): number => {
+        if (isCaptain) return 4; // Captain
+        if (position && position >= 1 && position <= 5) return 3; // Starter
+        if (position === 6) return 2; // Sixth man
+        return 1; // Bench (null or > 6)
+    };
+
+    // Check if a position change represents moving UP in value
+    const isMovingUp = (
+        oldPosition: number | null,
+        newPosition: number | null,
+        wasCaptain: boolean,
+        isNewCaptain: boolean
+    ): boolean => {
+        const oldValue = getPositionValue(oldPosition, wasCaptain);
+        const newValue = getPositionValue(newPosition, isNewCaptain);
+        return newValue > oldValue;
+    };
+
+    // Validate if a player can be moved to a new position
+    const canMovePlayer = (
+        player: FantasyTeamPlayer,
+        newPosition: number | null,
+        isNewCaptain: boolean
+    ): { valid: boolean; error?: string } => {
+        // If player hasn't played, they can move anywhere
+        if (!hasPlayerPlayed(player)) {
+            return { valid: true };
+        }
+
+        // Get current position
+        const currentPosition = player.lineup_position;
+        const wasCaptain = captain?.id === player.id;
+
+        // Check if moving up in value
+        if (isMovingUp(currentPosition, newPosition, wasCaptain, isNewCaptain)) {
+            return {
+                valid: false,
+                error: `Cannot move ${player.player.name} to a more valuable position after they've already played.`
+            };
+        }
+
+        return { valid: true };
+    };
+
     // Show player stats modal
     const showPlayerStats = async (playerId: number) => {
         setLoadingStats(true);
@@ -438,6 +563,12 @@ export default function LineupTab({
         if (captain?.id === player.id) {
             setCaptain(null);
         } else {
+            // Validate if player can be made captain (they're becoming captain)
+            const validation = canMovePlayer(player, player.lineup_position, true);
+            if (!validation.valid) {
+                alert(validation.error);
+                return;
+            }
             setCaptain(player);
         }
     };
@@ -571,6 +702,36 @@ export default function LineupTab({
                         </Alert>
                     )}
 
+                    {/* Countdown timer for lineup lock */}
+                    {timeUntilLock && !isRoundFinished && !isRoundLocked && (
+                        <Alert className="mb-4 border-amber-500 bg-amber-50">
+                            <AlertCircle className="h-4 w-4 text-amber-600" />
+                            <AlertDescription className="text-amber-800">
+                                <strong>Lineup locks in {timeUntilLock}</strong> - Save your changes before the next game starts!
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {/* Upcoming games */}
+                    {upcomingGames && upcomingGames.length > 0 && !isRoundFinished && !isRoundLocked && (
+                        <Alert className="mb-4">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription>
+                                <strong>Upcoming Games:</strong>
+                                <ul className="mt-2 space-y-1 text-sm">
+                                    {upcomingGames.slice(0, 3).map((game: any) => (
+                                        <li key={game.id}>
+                                            {game.home_team?.name} vs {game.away_team?.name} - {new Date(game.scheduled_at).toLocaleString()}
+                                        </li>
+                                    ))}
+                                    {upcomingGames.length > 3 && (
+                                        <li className="text-gray-500">+{upcomingGames.length - 3} more games</li>
+                                    )}
+                                </ul>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
                     {!isRoundFinished && !isRoundLocked && (
                         <Alert>
                             <Info className="h-4 w-4" />
@@ -688,6 +849,13 @@ export default function LineupTab({
                                                     <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0 rounded text-[10px] sm:text-xs font-bold`}>
                                                         {player.player.position}
                                                     </div>
+
+                                                    {/* Played indicator */}
+                                                    {hasPlayerPlayed(player) && (
+                                                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-green-500 text-white px-1 sm:px-2 py-0.5 rounded text-[8px] sm:text-[10px] font-bold whitespace-nowrap z-20">
+                                                            ✓ {(player.round_fantasy_points ?? 0).toFixed(1)} FP
+                                                        </div>
+                                                    )}
 
                                                     {/* Captain Star - clickable */}
                                                     {!isRoundFinished && !isRoundLocked && (
@@ -1108,9 +1276,16 @@ export default function LineupTab({
                                                         </Badge>
                                                     </div>
                                                     <div className="text-xs text-muted-foreground truncate">{sixthMan.player.team.name}</div>
-                                                    <Badge className={`${getPositionColor(sixthMan.player.position)} text-white text-xs mt-1`}>
-                                                        {sixthMan.player.position}
-                                                    </Badge>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <Badge className={`${getPositionColor(sixthMan.player.position)} text-white text-xs`}>
+                                                            {sixthMan.player.position}
+                                                        </Badge>
+                                                        {hasPlayerPlayed(sixthMan) && !isRoundFinished && (
+                                                            <Badge className="bg-green-500 text-white text-xs">
+                                                                ✓ Played
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
                                                     {isRoundFinished ? (
@@ -1173,9 +1348,16 @@ export default function LineupTab({
                                                         {teamPlayer.player.name}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground truncate">{teamPlayer.player.team.name}</div>
-                                                    <Badge className={`${getPositionColor(teamPlayer.player.position)} text-white text-xs mt-1`}>
-                                                        {teamPlayer.player.position}
-                                                    </Badge>
+                                                    <div className="flex gap-2 mt-1">
+                                                        <Badge className={`${getPositionColor(teamPlayer.player.position)} text-white text-xs`}>
+                                                            {teamPlayer.player.position}
+                                                        </Badge>
+                                                        {hasPlayerPlayed(teamPlayer) && !isRoundFinished && (
+                                                            <Badge className="bg-green-500 text-white text-xs">
+                                                                ✓ Played
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="text-right flex-shrink-0">
                                                     {isRoundFinished ? (

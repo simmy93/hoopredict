@@ -118,10 +118,15 @@ class FantasyLineupController extends Controller
             return back()->with('error', 'You are not a member of this league');
         }
 
-        // Check if round is locked (active round in progress)
-        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
-        if ($currentActiveRound !== null) {
-            return back()->with('error', "Cannot change lineup while Round {$currentActiveRound} is in progress. Please wait until the round finishes.");
+        // Get current round
+        $latestFinishedRound = \App\Models\Game::where('championship_id', $league->championship_id)
+            ->where('status', 'finished')
+            ->max('round');
+        $currentRound = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
+
+        // Check if lineup changes are locked (game about to start or in progress)
+        if (\App\Models\Game::isLineupLocked($league->championship_id, $currentRound)) {
+            return back()->with('error', 'Lineup is locked. A game is about to start or is in progress.');
         }
 
         $request->validate([
@@ -157,6 +162,35 @@ class FantasyLineupController extends Controller
         // Validate captain belongs to the team if provided
         if ($captainId && !$userTeam->players()->where('player_id', $captainId)->exists()) {
             return back()->with('error', 'Captain does not belong to your team');
+        }
+
+        // Validate position changes for players who have already played
+        $playedPlayerIds = \App\Models\PlayerGameStat::whereHas('game', function($q) use ($league, $currentRound) {
+            $q->where('championship_id', $league->championship_id)
+              ->where('round', $currentRound)
+              ->where('status', '!=', 'not_started'); // Started or finished
+        })->pluck('player_id')->toArray();
+
+        // Get current lineup positions before update
+        $currentLineup = $userTeam->fantasyTeamPlayers()->get()->keyBy('player_id');
+
+        // Check each player being moved
+        foreach ($playerIds as $index => $playerId) {
+            if (!in_array($playerId, $playedPlayerIds)) {
+                continue; // Player hasn't played, can move anywhere
+            }
+
+            $newPosition = $index + 1; // Convert array index to position (1-6)
+            $currentPlayer = $currentLineup->get($playerId);
+            $oldPosition = $currentPlayer?->lineup_position;
+            $wasCaptain = $currentPlayer?->is_captain ?? false;
+            $isNewCaptain = $captainId === $playerId;
+
+            // Check if moving UP in value (not allowed after playing)
+            if ($this->isMovingUp($oldPosition, $newPosition, $wasCaptain, $isNewCaptain)) {
+                $playerName = \App\Models\Player::find($playerId)->name;
+                return back()->with('error', "Cannot move {$playerName} to a more valuable position after they've already played.");
+            }
         }
 
         try {
@@ -312,5 +346,29 @@ class FantasyLineupController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Check if a position change represents moving UP in value
+     * Captain (4) > Starter (3) > Sixth Man (2) > Bench (1)
+     */
+    private function isMovingUp(?int $oldPosition, int $newPosition, bool $wasCaptain, bool $isNewCaptain): bool
+    {
+        $oldValue = $this->getPositionValue($oldPosition, $wasCaptain);
+        $newValue = $this->getPositionValue($newPosition, $isNewCaptain);
+
+        return $newValue > $oldValue;
+    }
+
+    /**
+     * Get numeric value for a position
+     * Captain (4) > Starter (3) > Sixth Man (2) > Bench (1)
+     */
+    private function getPositionValue(?int $position, bool $isCaptain): int
+    {
+        if ($isCaptain) return 4; // Captain
+        if ($position >= 1 && $position <= 5) return 3; // Starter
+        if ($position === 6) return 2; // Sixth man
+        return 1; // Bench (null or > 6)
     }
 }

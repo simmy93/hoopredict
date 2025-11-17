@@ -120,4 +120,52 @@ class Game extends Model
 
         return null;
     }
+
+    /**
+     * Check if lineup changes are locked for a specific round
+     * Lineup is locked if any game is about to start (within 5 min buffer) or has started
+     */
+    public static function isLineupLocked(int $championshipId, int $round): bool
+    {
+        $now = now();
+        $bufferMinutes = 5; // Lock 5 minutes before scheduled time
+
+        return self::where('championship_id', $championshipId)
+            ->where('round', $round)
+            ->where(function ($query) use ($now, $bufferMinutes) {
+                // Game is about to start (within buffer window) or has started
+                $query->where('scheduled_at', '<=', $now->addMinutes($bufferMinutes))
+                    ->where('status', '!=', 'finished');
+            })
+            ->exists();
+    }
+
+    /**
+     * Get the next upcoming game start time for a round
+     * Used for countdown timer on frontend
+     */
+    public static function getNextGameStart(int $championshipId, int $round): ?string
+    {
+        $nextGame = self::where('championship_id', $championshipId)
+            ->where('round', $round)
+            ->where('status', 'not_started')
+            ->orderBy('scheduled_at')
+            ->first();
+
+        return $nextGame?->scheduled_at?->toIso8601String();
+    }
+
+    /**
+     * Get all upcoming games for a round (not started)
+     */
+    public static function getUpcomingGames(int $championshipId, int $round)
+    {
+        return self::where('championship_id', $championshipId)
+            ->where('round', $round)
+            ->where('status', 'not_started')
+            ->with(['homeTeam:id,name', 'awayTeam:id,name'])
+            ->select('id', 'scheduled_at', 'home_team_id', 'away_team_id', 'status')
+            ->orderBy('scheduled_at')
+            ->get();
+    }
 }
