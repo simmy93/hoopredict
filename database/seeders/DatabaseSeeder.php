@@ -44,21 +44,23 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Create 28 additional random users (total 30)
-        $users = User::factory(28)->create();
+        // Create 298 additional random users (total 300)
+        $users = User::factory(298)->create();
         $allUsers = collect([$admin, $testUser])->merge($users);
         $this->command->info("✅ Created {$allUsers->count()} users");
 
         // Get championship and verify scraped data exists
         $championship = Championship::first();
-        if (!$championship) {
+        if (! $championship) {
             $this->command->error('❌ No championship found! Run scrapers first.');
+
             return;
         }
 
         $players = Player::all();
         if ($players->isEmpty()) {
             $this->command->error('❌ No players found! Run scrapers first.');
+
             return;
         }
 
@@ -73,7 +75,7 @@ class DatabaseSeeder extends Seeder
 
         // Public leagues
         $publicLeague1 = League::create([
-            'name' => 'EuroLeague Predictions 2024-25',
+            'name' => 'EuroLeague Predictions 2025-26',
             'description' => 'The main public prediction league for all fans',
             'is_private' => false,
             'owner_id' => $admin->id,
@@ -288,7 +290,7 @@ class DatabaseSeeder extends Seeder
             $ownerTeam = FantasyTeam::create([
                 'fantasy_league_id' => $league->id,
                 'user_id' => $league->owner_id,
-                'team_name' => $league->owner->name . "'s Squad",
+                'team_name' => $league->owner->name."'s Squad",
                 'lineup_type' => '2-2-1',
                 'budget_spent' => 0,
                 'budget_remaining' => $league->budget,
@@ -331,7 +333,7 @@ class DatabaseSeeder extends Seeder
             $ownerTeam = FantasyTeam::create([
                 'fantasy_league_id' => $league->id,
                 'user_id' => $league->owner_id,
-                'team_name' => $league->owner->name . "'s Draft Picks",
+                'team_name' => $league->owner->name."'s Draft Picks",
                 'lineup_type' => '2-2-1',
                 'draft_order' => 1,
                 'budget_spent' => 0,
@@ -405,16 +407,16 @@ class DatabaseSeeder extends Seeder
         $adjectives = [
             'Thunder', 'Lightning', 'Storm', 'Blaze', 'Phoenix', 'Dragons',
             'Wolves', 'Hawks', 'Eagles', 'Lions', 'Tigers', 'Panthers',
-            'Knights', 'Warriors', 'Champions', 'Legends', 'Dynasty', 'Empire'
+            'Knights', 'Warriors', 'Champions', 'Legends', 'Dynasty', 'Empire',
         ];
 
         $nouns = [
             'Ballers', 'Dunkers', 'Shooters', 'Slammers', 'Dribblers',
             'Squad', 'Crew', 'Team', 'Force', 'United', 'Athletic',
-            'Hoops', 'Court', 'Buckets', 'Rim', 'Net'
+            'Hoops', 'Court', 'Buckets', 'Rim', 'Net',
         ];
 
-        return $adjectives[array_rand($adjectives)] . ' ' . $nouns[array_rand($nouns)];
+        return $adjectives[array_rand($adjectives)].' '.$nouns[array_rand($nouns)];
     }
 
     /**
@@ -427,7 +429,7 @@ class DatabaseSeeder extends Seeder
 
         // Filter players with valid prices and sort by price
         $availablePlayers = $allPlayers
-            ->filter(fn($p) => $p->price !== null && $p->price > 0)
+            ->filter(fn ($p) => $p->price !== null && $p->price > 0)
             ->sortBy('price');
 
         // Position requirements
@@ -442,7 +444,7 @@ class DatabaseSeeder extends Seeder
             $positionPlayers = $availablePlayers
                 ->where('position', $position)
                 ->whereNotIn('id', $selectedPlayers->pluck('id'))
-                ->filter(fn($p) => $totalSpent + $p->price <= $budget);
+                ->filter(fn ($p) => $totalSpent + $p->price <= $budget);
 
             $toSelect = min($minCount, $positionPlayers->count());
             $selected = $positionPlayers->take($toSelect * 2)->random($toSelect);
@@ -458,7 +460,7 @@ class DatabaseSeeder extends Seeder
         if ($remaining > 0) {
             $remainingPlayers = $availablePlayers
                 ->whereNotIn('id', $selectedPlayers->pluck('id'))
-                ->filter(fn($p) => $totalSpent + $p->price <= $budget)
+                ->filter(fn ($p) => $totalSpent + $p->price <= $budget)
                 ->values();
 
             // If not enough affordable players, pick cheapest ones
@@ -507,17 +509,24 @@ class DatabaseSeeder extends Seeder
         $captainAssigned = false;
         $orderedPlayers = collect();
 
-        // Starting lineup (positions 1-5): 2 Guards, 2 Forwards, 1 Center
-        // Position 1-2: Guards
-        for ($i = 0; $i < 2 && $guards->count() > 0; $i++) {
+        // Starting lineup (positions 1-5) based on team's formation
+        $formationRequirements = match ($team->lineup_type) {
+            '2-2-1' => ['Guard' => 2, 'Forward' => 2, 'Center' => 1],
+            '3-1-1' => ['Guard' => 3, 'Forward' => 1, 'Center' => 1],
+            '1-3-1' => ['Guard' => 1, 'Forward' => 3, 'Center' => 1],
+            '1-2-2' => ['Guard' => 1, 'Forward' => 2, 'Center' => 2],
+            '2-1-2' => ['Guard' => 2, 'Forward' => 1, 'Center' => 2],
+            default => ['Guard' => 2, 'Forward' => 2, 'Center' => 1], // Fallback to 2-2-1
+        };
+
+        // Fill starting positions based on formation
+        for ($i = 0; $i < $formationRequirements['Guard'] && $guards->count() > 0; $i++) {
             $orderedPlayers->push($guards->shift());
         }
-        // Position 3-4: Forwards
-        for ($i = 0; $i < 2 && $forwards->count() > 0; $i++) {
+        for ($i = 0; $i < $formationRequirements['Forward'] && $forwards->count() > 0; $i++) {
             $orderedPlayers->push($forwards->shift());
         }
-        // Position 5: Center
-        if ($centers->count() > 0) {
+        for ($i = 0; $i < $formationRequirements['Center'] && $centers->count() > 0; $i++) {
             $orderedPlayers->push($centers->shift());
         }
 
@@ -535,7 +544,7 @@ class DatabaseSeeder extends Seeder
         // Create player records with proper lineup positions
         foreach ($orderedPlayers->take(10) as $player) {
             // First player (first guard) becomes captain
-            $isCaptain = $lineupPosition === 1 && !$captainAssigned;
+            $isCaptain = $lineupPosition === 1 && ! $captainAssigned;
             if ($isCaptain) {
                 $captainAssigned = true;
             }
@@ -618,6 +627,7 @@ class DatabaseSeeder extends Seeder
 
         if ($finishedRounds->isEmpty()) {
             $this->command->warn('  No finished rounds found to snapshot');
+
             return;
         }
 
@@ -626,12 +636,17 @@ class DatabaseSeeder extends Seeder
         // Get all fantasy leagues for this championship
         $fantasyLeagues = FantasyLeague::where('championship_id', $championship->id)->get();
 
+        $formations = ['2-2-1', '3-1-1', '1-3-1', '1-2-2', '2-1-2'];
+
         foreach ($finishedRounds as $round) {
             foreach ($fantasyLeagues as $league) {
                 // Get all teams in this league
                 $teams = FantasyTeam::where('fantasy_league_id', $league->id)->get();
 
                 foreach ($teams as $team) {
+                    // 80% chance to keep same formation, 20% chance to change (more realistic)
+                    $lineupType = rand(1, 100) <= 80 ? $team->lineup_type : collect($formations)->random();
+
                     // Snapshot current lineup for this team at this round
                     // NOTE: In real scenario, this would be the lineup when round locked
                     $teamPlayers = $team->fantasyTeamPlayers;
@@ -640,6 +655,7 @@ class DatabaseSeeder extends Seeder
                         \App\Models\FantasyTeamLineupHistory::create([
                             'fantasy_team_id' => $team->id,
                             'round' => $round,
+                            'lineup_type' => $lineupType, // Save formation for this round (may vary)
                             'fantasy_team_player_id' => $teamPlayer->id,
                             'lineup_position' => $teamPlayer->lineup_position,
                             'is_captain' => $teamPlayer->is_captain,
@@ -658,6 +674,6 @@ class DatabaseSeeder extends Seeder
                 ]);
         }
 
-        $this->command->info("✅ Created {$totalSnapshots} lineup snapshots for " . $finishedRounds->count() . " finished rounds");
+        $this->command->info("✅ Created {$totalSnapshots} lineup snapshots for ".$finishedRounds->count().' finished rounds');
     }
 }

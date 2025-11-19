@@ -1,14 +1,21 @@
 import { useState } from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, ShoppingCart, Users as UsersIcon } from 'lucide-react';
 import MarketplaceTab from './components/MarketplaceTab';
 import LineupTab from './components/LineupTab';
+import FantasyLeagueChat from '@/components/FantasyLeagueChat';
 
 interface User {
     id: number;
     name: string;
+}
+
+interface AuthUser {
+    id: number;
+    name: string;
+    email: string;
 }
 
 interface Team {
@@ -200,6 +207,12 @@ export default function Show({
                     </Tabs>
                 </div>
             </div>
+
+            {/* Floating Chat */}
+            <FantasyLeagueChat
+                leagueId={league.id}
+                currentUserId={(usePage().props.auth as { user: AuthUser }).user.id}
+            />
         </AuthenticatedLayout>
     );
 }

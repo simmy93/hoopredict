@@ -64,6 +64,7 @@ class StatisticsController extends Controller
                 ->get()
                 ->map(function ($team) {
                     return [
+                        'id' => $team->id,
                         'team_name' => $team->team_name,
                         'user_name' => $team->user->name,
                         'league_name' => $team->fantasyLeague->name,
@@ -88,6 +89,7 @@ class StatisticsController extends Controller
                 ->map(function ($roundPoints) {
                     $team = $roundPoints->fantasyTeam;
                     return [
+                        'id' => $team->id,
                         'team_name' => $team->team_name,
                         'user_name' => $team->user->name,
                         'league_name' => $team->fantasyLeague->name,
@@ -159,6 +161,7 @@ class StatisticsController extends Controller
                 ->get()
                 ->map(function ($player) {
                     return [
+                        'id' => $player->id,
                         'name' => $player->name,
                         'team' => $player->team->name ?? 'N/A',
                         'position' => $player->position,
@@ -184,6 +187,7 @@ class StatisticsController extends Controller
                 ->get()
                 ->map(function ($player) {
                     return [
+                        'id' => $player->id,
                         'name' => $player->name,
                         'team' => $player->team->name ?? 'N/A',
                         'position' => $player->position,
@@ -211,6 +215,7 @@ class StatisticsController extends Controller
                 ->map(function ($player) {
                     $valueRating = $player->total_fantasy_points / ($player->price / 1000000);
                     return [
+                        'id' => $player->id,
                         'name' => $player->name,
                         'team' => $player->team->name ?? 'N/A',
                         'position' => $player->position,
@@ -228,5 +233,184 @@ class StatisticsController extends Controller
         } else {
             return collect([]); // Round-specific value is less meaningful
         }
+    }
+
+    /**
+     * Get detailed stats for a specific player across all rounds
+     */
+    public function playerStats(Player $player)
+    {
+        $stats = DB::table('player_game_stats')
+            ->join('games', 'player_game_stats.game_id', '=', 'games.id')
+            ->where('player_game_stats.player_id', $player->id)
+            ->where('games.status', 'finished')
+            ->select('games.round', 'games.scheduled_at', 'player_game_stats.*')
+            ->orderBy('games.round')
+            ->get();
+
+        return response()->json([
+            'player' => $player->load('team'),
+            'stats' => $stats,
+        ]);
+    }
+
+    /**
+     * Show team lineup page - view any team's lineup for finished rounds
+     */
+    public function showTeamLineup(FantasyTeam $team)
+    {
+        // Get round stats for this team
+        $roundStats = FantasyTeamRoundPoints::where('fantasy_team_id', $team->id)
+            ->orderBy('round')
+            ->get();
+
+        // Get all available rounds for this championship
+        $allRounds = Game::select('round')
+            ->where('championship_id', $team->fantasyLeague->championship_id)
+            ->distinct()
+            ->where('status', 'finished')
+            ->orderBy('round')
+            ->pluck('round');
+
+        return Inertia::render('Statistics/TeamLineup', [
+            'team' => $team->load(['user', 'fantasyLeague.championship']),
+            'roundStats' => $roundStats,
+            'allRounds' => $allRounds,
+        ]);
+    }
+
+    /**
+     * Get detailed stats for a specific fantasy team across all rounds
+     */
+    public function teamStats(FantasyTeam $team)
+    {
+        $roundStats = FantasyTeamRoundPoints::where('fantasy_team_id', $team->id)
+            ->orderBy('round')
+            ->get();
+
+        // Get all available rounds
+        $allRounds = Game::select('round')
+            ->where('championship_id', $team->fantasyLeague->championship_id)
+            ->distinct()
+            ->where('status', 'finished')
+            ->orderBy('round')
+            ->pluck('round');
+
+        return response()->json([
+            'team' => $team->load(['user', 'fantasyLeague.championship']),
+            'round_stats' => $roundStats,
+            'all_rounds' => $allRounds,
+        ]);
+    }
+
+    /**
+     * Get lineup details for a specific team and round
+     */
+    public function teamLineup(FantasyTeam $team, $round)
+    {
+        // Get lineup history for this specific round
+        $lineupHistory = DB::table('fantasy_team_lineup_history')
+            ->where('fantasy_team_id', $team->id)
+            ->where('round', $round)
+            ->get();
+
+        // Get the lineup_type from the first history record (all records have the same lineup_type for a round)
+        $historicalLineupType = $lineupHistory->first()?->lineup_type ?? $team->lineup_type;
+
+        // Get team players with their historical lineup positions for the specific round
+        $teamPlayers = $lineupHistory->map(function ($history) use ($round) {
+            // Get the player through fantasy_team_players
+            $teamPlayer = DB::table('fantasy_team_players')
+                ->where('id', $history->fantasy_team_player_id)
+                ->first();
+
+            if (!$teamPlayer) {
+                return null;
+            }
+
+            // Get player details
+            $player = DB::table('players')
+                ->where('id', $teamPlayer->player_id)
+                ->first();
+
+            if (!$player) {
+                return null;
+            }
+
+            // Get player team
+            $playerTeam = DB::table('teams')
+                ->where('id', $player->team_id)
+                ->first();
+
+            // Get round-specific fantasy points
+            $roundStats = DB::table('player_game_stats')
+                ->join('games', 'player_game_stats.game_id', '=', 'games.id')
+                ->where('player_game_stats.player_id', $player->id)
+                ->where('games.round', $round)
+                ->where('games.status', 'finished')
+                ->select('player_game_stats.fantasy_points')
+                ->first();
+
+            $multiplier = $this->getPositionMultiplier($history->lineup_position, $history->is_captain);
+
+            return [
+                'id' => $teamPlayer->id,
+                'fantasy_team_id' => $teamPlayer->fantasy_team_id,
+                'player_id' => $player->id,
+                'lineup_position' => $history->lineup_position,
+                'is_captain' => $history->is_captain,
+                'purchase_price' => $teamPlayer->purchase_price,
+                'points_earned' => $teamPlayer->points_earned,
+                'round_fantasy_points' => $roundStats ? $roundStats->fantasy_points : 0,
+                'multiplier' => $multiplier,
+                'round_team_points' => $roundStats
+                    ? $roundStats->fantasy_points * $multiplier
+                    : 0,
+                'player' => [
+                    'id' => $player->id,
+                    'name' => $player->name,
+                    'position' => $player->position,
+                    'price' => $player->price,
+                    'photo_url' => $player->photo_url,
+                    'photo_headshot_url' => $player->photo_headshot_url,
+                    'team' => [
+                        'id' => $playerTeam->id,
+                        'name' => $playerTeam->name,
+                    ],
+                ],
+            ];
+        })->filter(); // Remove nulls
+
+        // Get round points
+        $roundPoints = FantasyTeamRoundPoints::where('fantasy_team_id', $team->id)
+            ->where('round', $round)
+            ->first();
+
+        return response()->json([
+            'team' => $team->load(['user', 'fantasyLeague.championship']),
+            'team_players' => $teamPlayers->values(),
+            'lineup_type' => $historicalLineupType,
+            'round_total_points' => $roundPoints ? $roundPoints->points : null,
+        ]);
+    }
+
+    /**
+     * Get position multiplier based on lineup position and captain status
+     */
+    private function getPositionMultiplier($lineupPosition, $isCaptain)
+    {
+        if ($isCaptain) {
+            return 2.0; // Captain gets 200%
+        }
+
+        if ($lineupPosition >= 1 && $lineupPosition <= 5) {
+            return 1.0; // Starters get 100%
+        }
+
+        if ($lineupPosition === 6) {
+            return 0.75; // Sixth man gets 75%
+        }
+
+        return 0.5; // Bench gets 50%
     }
 }

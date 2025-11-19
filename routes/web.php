@@ -11,6 +11,7 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\DraftController;
+use App\Http\Controllers\FantasyLeagueChatController;
 use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
 use App\Http\Controllers\FantasyTeamController;
@@ -69,8 +70,14 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/statistics', [StatisticsController::class, 'index'])
-        ->name('statistics.index');
+    // Statistics
+    Route::prefix('statistics')->name('statistics.')->group(function () {
+        Route::get('/', [StatisticsController::class, 'index'])->name('index');
+        Route::get('/players/{player}', [StatisticsController::class, 'playerStats'])->name('player');
+        Route::get('/teams/{team}', [StatisticsController::class, 'teamStats'])->name('team');
+        Route::get('/teams/{team}/view', [StatisticsController::class, 'showTeamLineup'])->name('team.view');
+        Route::get('/teams/{team}/lineup/{round}', [StatisticsController::class, 'teamLineup'])->name('team.lineup');
+    });
 
     Route::get('/how-it-works', function () {
         return Inertia::render('HowItWorks');
@@ -125,6 +132,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/leagues/{league}/lineup', [\App\Http\Controllers\FantasyLineupController::class, 'update'])->name('lineup.update');
         Route::post('/leagues/{league}/lineup/validate', [\App\Http\Controllers\FantasyLineupController::class, 'validate'])->name('lineup.validate');
         Route::post('/leagues/{league}/lineup/auto-generate', [\App\Http\Controllers\FantasyLineupController::class, 'autoGenerate'])->name('lineup.auto-generate');
+
+        // Chat
+        Route::get('/leagues/{league}/chat', [FantasyLeagueChatController::class, 'index'])->name('chat.index');
+        Route::post('/leagues/{league}/chat', [FantasyLeagueChatController::class, 'store'])->name('chat.store');
     });
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])

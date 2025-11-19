@@ -48,3 +48,9 @@ Broadcast::channel('draft.{leagueId}', function ($user, $leagueId) {
         return false;
     }
 });
+
+// Fantasy League Chat - only league members can listen
+Broadcast::channel('fantasy-league.{leagueId}', function ($user, $leagueId) {
+    $league = \App\Models\FantasyLeague::find($leagueId);
+    return $league && $league->hasUser($user);
+});

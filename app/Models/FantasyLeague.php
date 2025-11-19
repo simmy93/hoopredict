@@ -72,6 +72,11 @@ class FantasyLeague extends Model
         return $this->hasMany(DraftAction::class);
     }
 
+    public function messages(): HasMany
+    {
+        return $this->hasMany(FantasyLeagueMessage::class);
+    }
+
     public function pausedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paused_by_user_id');

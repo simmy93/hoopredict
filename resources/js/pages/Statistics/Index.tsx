@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { Award, DollarSign, Medal, Target, TrendingUp, Trophy } from 'lucide-react';
+import StatsDetailModal from '@/components/StatsDetailModal';
+import axios from 'axios';
 
 interface FantasyTeam {
+    id: number;
     team_name: string;
     user_name: string;
     league_name: string;
@@ -25,6 +29,7 @@ interface PredictionLeader {
 }
 
 interface Player {
+    id: number;
     name: string;
     team: string;
     position: string;
@@ -58,8 +63,34 @@ export default function Index({
     topPlayers,
     bestValuePlayers,
 }: Props) {
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalType, setModalType] = useState<'player' | null>(null);
+    const [modalData, setModalData] = useState<any>(null);
+    const [modalLoading, setModalLoading] = useState(false);
+
     const handleRoundChange = (round: string) => {
         router.get('/statistics', { round }, { preserveState: true, preserveScroll: true });
+    };
+
+    const handlePlayerClick = async (playerId: number) => {
+        setModalType('player');
+        setModalOpen(true);
+        setModalLoading(true);
+        setModalData(null);
+
+        try {
+            const response = await axios.get(`/statistics/players/${playerId}`);
+            setModalData(response.data);
+        } catch (error) {
+            console.error('Failed to load player stats:', error);
+        } finally {
+            setModalLoading(false);
+        }
+    };
+
+    const handleTeamClick = (teamId: number) => {
+        // Navigate to dedicated team lineup page
+        router.visit(`/statistics/teams/${teamId}/view`);
     };
 
     return (
@@ -142,7 +173,8 @@ export default function Index({
                                             {fantasyBudgetLeaders.map((team, index) => (
                                                 <div
                                                     key={index}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-purple-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-purple-400/50 hover:shadow-lg dark:from-slate-900 dark:to-purple-950/20"
+                                                    onClick={() => handleTeamClick(team.id)}
+                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-purple-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-purple-400/50 hover:shadow-lg dark:from-slate-900 dark:to-purple-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-pink-500/0 transition-all duration-500 group-hover:from-purple-500/5 group-hover:to-pink-500/5" />
@@ -205,7 +237,8 @@ export default function Index({
                                             {fantasyDraftLeaders.map((team, index) => (
                                                 <div
                                                     key={index}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-amber-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400/50 hover:shadow-lg dark:from-slate-900 dark:to-amber-950/20"
+                                                    onClick={() => handleTeamClick(team.id)}
+                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-amber-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400/50 hover:shadow-lg dark:from-slate-900 dark:to-amber-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 to-orange-500/0 transition-all duration-500 group-hover:from-amber-500/5 group-hover:to-orange-500/5" />
@@ -328,7 +361,8 @@ export default function Index({
                                             {topPlayers.map((player, index) => (
                                                 <div
                                                     key={index}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-blue-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/50 hover:shadow-lg dark:from-slate-900 dark:to-blue-950/20"
+                                                    onClick={() => handlePlayerClick(player.id)}
+                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-blue-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/50 hover:shadow-lg dark:from-slate-900 dark:to-blue-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-cyan-500/0 transition-all duration-500 group-hover:from-blue-500/5 group-hover:to-cyan-500/5" />
@@ -409,7 +443,8 @@ export default function Index({
                                             {bestValuePlayers.map((player, index) => (
                                                 <div
                                                     key={index}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-emerald-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/50 hover:shadow-lg dark:from-slate-900 dark:to-emerald-950/20"
+                                                    onClick={() => handlePlayerClick(player.id)}
+                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-emerald-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/50 hover:shadow-lg dark:from-slate-900 dark:to-emerald-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-teal-500/0 transition-all duration-500 group-hover:from-emerald-500/5 group-hover:to-teal-500/5" />
@@ -468,6 +503,15 @@ export default function Index({
                     </Tabs>
                 </div>
             </div>
+
+            {/* Stats Detail Modal */}
+            <StatsDetailModal
+                open={modalOpen}
+                onOpenChange={setModalOpen}
+                type={modalType}
+                data={modalData}
+                loading={modalLoading}
+            />
         </AuthenticatedLayout>
     );
 }

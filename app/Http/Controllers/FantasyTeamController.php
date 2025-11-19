@@ -90,12 +90,16 @@ class FantasyTeamController extends Controller
 
         // Get team players with their lineup positions
         // For finished rounds, load from history; otherwise load current lineup
+        $historicalLineupType = null;
         if ($isRoundFinished) {
             // Load historical lineup snapshot for finished round
             $historicalLineup = \App\Models\FantasyTeamLineupHistory::where('fantasy_team_id', $userTeam->id)
                 ->where('round', $selectedRound)
                 ->get()
                 ->keyBy('fantasy_team_player_id');
+
+            // Get the lineup_type from the first history record
+            $historicalLineupType = $historicalLineup->first()?->lineup_type;
 
             $teamPlayers = $userTeam->fantasyTeamPlayers()
                 ->with(['player.team', 'player.gameStats' => function ($query) use ($league, $selectedRound) {
@@ -181,6 +185,11 @@ class FantasyTeamController extends Controller
 
         // Check if lineup is locked for this round (game about to start or in progress)
         $isLineupLocked = \App\Models\Game::isLineupLocked($league->championship_id, $selectedRound);
+
+        // Override userTeam lineup_type with historical one for finished rounds
+        if ($historicalLineupType) {
+            $userTeam->lineup_type = $historicalLineupType;
+        }
 
         return Inertia::render('Fantasy/Team/Show', [
             'league' => $league->load('championship'),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Head, Link, router, useForm } from '@inertiajs/react'
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered, Trash, UserMinus } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
+import FantasyLeagueChat from '@/components/FantasyLeagueChat'
 
 declare global {
     interface Window {
@@ -17,6 +18,12 @@ declare global {
 interface User {
     id: number
     name: string
+}
+
+interface AuthUser {
+    id: number
+    name: string
+    email: string
 }
 
 interface Championship {
@@ -539,6 +546,12 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Floating Chat */}
+            <FantasyLeagueChat
+                leagueId={league.id}
+                currentUserId={(usePage().props.auth as { user: AuthUser }).user.id}
+            />
         </AuthenticatedLayout>
     )
 }
