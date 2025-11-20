@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered, Trash, UserMinus } from 'lucide-react'
+import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered, Trash, UserMinus, X, Crown } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 import FantasyLeagueChat from '@/components/FantasyLeagueChat'
 
@@ -74,6 +74,9 @@ interface Props {
 }
 
 export default function Show({ league: initialLeague, userTeam, leaderboard, inviteUrl }: Props) {
+    const { props } = usePage()
+    const auth = props.auth as { user: AuthUser }
+
     const [copied, setCopied] = useState(false)
     const [startDraftDialogOpen, setStartDraftDialogOpen] = useState(false)
     const [confirmDialog, setConfirmDialog] = useState<{
@@ -132,6 +135,18 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
             variant: 'destructive',
             onConfirm: () => {
                 destroy(`/fantasy/leagues/${league.id}`)
+            }
+        })
+    }
+
+    const kickMember = (userId: number, teamName: string, userName: string) => {
+        setConfirmDialog({
+            open: true,
+            title: 'Kick Member',
+            description: `Are you sure you want to kick ${userName} (${teamName}) out of the league? This action cannot be undone.`,
+            variant: 'destructive',
+            onConfirm: () => {
+                destroy(`/fantasy/leagues/${league.id}/members/${userId}/kick`)
             }
         })
     }
@@ -452,6 +467,7 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                                                         <TableHead className="text-right">Remaining</TableHead>
                                                     </>
                                                 )}
+                                                <TableHead className="w-20"></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
@@ -478,6 +494,23 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                                                             </TableCell>
                                                         </>
                                                     )}
+                                                    <TableCell>
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            {team.user.id === league.owner_id && (
+                                                                <Crown className="h-4 w-4 text-yellow-600" />
+                                                            )}
+                                                            {/* Kick button: only visible if current user is owner AND team owner is not league owner */}
+                                                            {auth.user.id === league.owner_id && team.user.id !== league.owner_id && (
+                                                                <button
+                                                                    onClick={() => kickMember(team.user.id, team.team_name, team.user.name)}
+                                                                    className="rounded-full p-1 text-red-600 transition hover:bg-red-100 dark:hover:bg-red-950"
+                                                                    title="Kick Out"
+                                                                >
+                                                                    <X className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>

@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/leagues/join', [FantasyLeagueController::class, 'join'])->name('leagues.join');
         Route::get('/leagues/join/{inviteCode}', [FantasyLeagueController::class, 'joinByUrl'])->name('leagues.join.url');
         Route::delete('/leagues/{league}/leave', [FantasyLeagueController::class, 'leave'])->name('leagues.leave');
+        Route::delete('/leagues/{league}/members/{member}/kick', [FantasyLeagueController::class, 'kick'])->name('leagues.members.kick');
         Route::delete('/leagues/{league}', [FantasyLeagueController::class, 'destroy'])->name('leagues.destroy');
 
         // Fantasy Team

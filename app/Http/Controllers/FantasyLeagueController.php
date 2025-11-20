@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Championship;
 use App\Models\FantasyLeague;
 use App\Models\FantasyTeam;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -226,6 +227,31 @@ class FantasyLeagueController extends Controller
 
         return redirect()->route('fantasy.leagues.index')
             ->with('success', "You have left {$league->name}.");
+    }
+
+    public function kick(FantasyLeague $league, User $member)
+    {
+        // Only league owner can kick members
+        if ($league->owner_id !== auth()->id()) {
+            abort(403, 'Only the league owner can kick members.');
+        }
+
+        // Prevent owner from being kicked
+        if ($member->id === $league->owner_id) {
+            return back()->withErrors(['error' => 'You cannot kick the league owner.']);
+        }
+
+        // Find and delete member's fantasy team
+        $team = $league->teams()->where('user_id', $member->id)->first();
+
+        if (!$team) {
+            return back()->withErrors(['error' => 'This user is not a member of this league.']);
+        }
+
+        // Delete the fantasy team (this will cascade delete fantasy_team_players)
+        $team->delete();
+
+        return back()->with('success', $member->name.' has been removed from the league.');
     }
 
     public function destroy(FantasyLeague $league)
