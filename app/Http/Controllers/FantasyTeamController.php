@@ -54,25 +54,46 @@ class FantasyTeamController extends Controller
         // Get selected round (default to current/next round)
         $selectedRound = $request->input('round');
 
-        // Get the latest finished round to determine current round
+        // Get the latest FULLY finished round (all games in round are finished)
         $latestFinishedRound = \App\Models\Game::where('championship_id', $league->championship_id)
-            ->where('status', 'finished')
+            ->select('round')
+            ->groupBy('round')
+            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = ? THEN 1 ELSE 0 END)', ['finished'])
             ->max('round');
 
+        // Check if there's an active round (has games but not all finished)
+        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+
         // Get only past and current rounds (exclude future rounds)
+        $maxRoundToShow = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
         $allRounds = \App\Models\Game::where('championship_id', $league->championship_id)
-            ->where('round', '<=', ($latestFinishedRound + 1))
+            ->where('round', '<=', $maxRoundToShow)
             ->select('round')
             ->distinct()
             ->orderBy('round')
             ->pluck('round');
 
-        // If no round selected, default to the current round
+        // If no round selected, default to the current active round or next round after finished
         if (!$selectedRound) {
-            $selectedRound = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
+            // If there's an active round, default to it (don't skip to future round)
+            if ($currentActiveRound) {
+                $selectedRound = $currentActiveRound;
+            } else {
+                // No active round, show next round after latest finished
+                $selectedRound = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
+            }
 
+            // Ensure selected round exists in allRounds
             if (!$allRounds->contains($selectedRound) && $allRounds->isNotEmpty()) {
                 $selectedRound = $latestFinishedRound ?: $allRounds->first();
+            }
+        } else {
+            // User manually entered a round - validate it's within allowed range
+            if (!$allRounds->contains((int) $selectedRound)) {
+                // Round doesn't exist or is too far in the future - redirect to default round
+                $defaultRound = $currentActiveRound ?: ($latestFinishedRound ? $latestFinishedRound + 1 : 1);
+                return redirect()->route('fantasy.team.show', ['league' => $league->id, 'round' => $defaultRound])
+                    ->with('error', 'Round ' . $selectedRound . ' is not available yet.');
             }
         }
 
@@ -84,8 +105,7 @@ class FantasyTeamController extends Controller
         $isRoundFinished = $roundGames->isNotEmpty() &&
             $roundGames->every(fn($game) => $game->status === 'finished');
 
-        // Check if current round is active (locked)
-        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
+        // isRoundLocked is true if ANY round is active (for marketplace locking)
         $isRoundLocked = $currentActiveRound !== null;
 
         // Get team players with their lineup positions

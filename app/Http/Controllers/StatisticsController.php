@@ -358,7 +358,7 @@ class StatisticsController extends Controller
                 'fantasy_team_id' => $teamPlayer->fantasy_team_id,
                 'player_id' => $player->id,
                 'lineup_position' => $history->lineup_position,
-                'is_captain' => $history->is_captain,
+                'is_captain' => (bool) $history->is_captain,
                 'purchase_price' => $teamPlayer->purchase_price,
                 'points_earned' => $teamPlayer->points_earned,
                 'round_fantasy_points' => $roundStats ? $roundStats->fantasy_points : 0,

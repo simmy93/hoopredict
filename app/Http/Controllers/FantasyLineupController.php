@@ -23,9 +23,11 @@ class FantasyLineupController extends Controller
         // Get selected round (default to current/next round)
         $selectedRound = $request->input('round');
 
-        // Get the latest finished round to determine current round
+        // Get the latest FULLY finished round (all games in round must be finished)
         $latestFinishedRound = \App\Models\Game::where('championship_id', $league->championship_id)
-            ->where('status', 'finished')
+            ->select('round')
+            ->groupBy('round')
+            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = ? THEN 1 ELSE 0 END)', ['finished'])
             ->max('round');
 
         // Get only past and current rounds (exclude future rounds)
@@ -55,9 +57,11 @@ class FantasyLineupController extends Controller
         $isRoundFinished = $roundGames->isNotEmpty() &&
             $roundGames->every(fn($game) => $game->status === 'finished');
 
-        // Check if current round is active (started but not finished) - blocks changes
-        $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
-        $isRoundLocked = $currentActiveRound !== null;
+        // Check if lineup is locked for this specific round (game about to start or in progress)
+        $isRoundLocked = \App\Models\Game::isLineupLocked($league->championship_id, $selectedRound);
+
+        // Get next game time for countdown
+        $nextGameTime = \App\Models\Game::getNextGameStart($league->championship_id, $selectedRound);
 
         // Get team players with their stats for the selected round
         $teamPlayers = $userTeam->fantasyTeamPlayers()
@@ -103,7 +107,7 @@ class FantasyLineupController extends Controller
             'isRoundFinished' => $isRoundFinished,
             'roundTotalPoints' => $roundTotalPoints,
             'isRoundLocked' => $isRoundLocked,
-            'currentActiveRound' => $currentActiveRound,
+            'nextGameTime' => $nextGameTime,
         ]);
     }
 
@@ -118,15 +122,31 @@ class FantasyLineupController extends Controller
             return back()->with('error', 'You are not a member of this league');
         }
 
-        // Get current round
+        // Get the latest FULLY finished round (all games in round are finished)
         $latestFinishedRound = \App\Models\Game::where('championship_id', $league->championship_id)
-            ->where('status', 'finished')
+            ->select('round')
+            ->groupBy('round')
+            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = ? THEN 1 ELSE 0 END)', ['finished'])
             ->max('round');
+
         $currentRound = $latestFinishedRound ? $latestFinishedRound + 1 : 1;
 
-        // Check if lineup changes are locked (game about to start or in progress)
+        // CRITICAL: Check if lineup changes are locked for current round
+        // This prevents saving lineups when games are about to start or in progress
         if (\App\Models\Game::isLineupLocked($league->championship_id, $currentRound)) {
             return back()->with('error', 'Lineup is locked. A game is about to start or is in progress.');
+        }
+
+        // ALSO: Prevent saving lineups for past finished rounds
+        $roundBeingSaved = $request->input('round', $currentRound);
+        if ($roundBeingSaved < $currentRound) {
+            return back()->with('error', 'Cannot modify lineups for past rounds.');
+        }
+
+        // ALSO: Prevent saving lineups for future rounds that don't exist yet
+        $maxAllowedRound = $currentRound;
+        if ($roundBeingSaved > $maxAllowedRound) {
+            return back()->with('error', 'Cannot save lineups for future rounds.');
         }
 
         $request->validate([

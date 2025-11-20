@@ -83,7 +83,7 @@ interface Props {
     isRoundFinished: boolean
     roundTotalPoints: number | null
     isRoundLocked: boolean
-    currentActiveRound: number | null
+    nextGameTime: string | null
 }
 
 type LineupType = '2-2-1' | '3-1-1' | '1-3-1' | '1-2-2' | '2-1-2'
@@ -115,8 +115,18 @@ export default function ManageNew({
     isRoundFinished,
     roundTotalPoints,
     isRoundLocked,
-    currentActiveRound,
+    nextGameTime,
 }: Props) {
+    // DEBUG: Log props on component load
+    console.log('🔍 Manage.tsx Props:', {
+        selectedRound,
+        isRoundFinished,
+        isRoundLocked,
+        nextGameTime,
+        availableRounds,
+        roundTotalPoints,
+    })
+
     const [lineupType, setLineupType] = useState<LineupType | null>(
         (userTeam.lineup_type as LineupType) || null
     )
@@ -127,7 +137,47 @@ export default function ManageNew({
     const [validationErrors, setValidationErrors] = useState<string[]>([])
     const [isSaving, setIsSaving] = useState(false)
 
-    // No longer need total points for percentages
+    // Countdown timer state
+    const [timeUntilLock, setTimeUntilLock] = useState<string | null>(null)
+
+    // Countdown timer
+    useEffect(() => {
+        if (!nextGameTime || isRoundFinished || isRoundLocked) {
+            setTimeUntilLock(null)
+            return
+        }
+
+        const updateCountdown = () => {
+            const now = Date.now()
+            const lockTime = new Date(nextGameTime).getTime() - (5 * 60 * 1000) // 5 min before game
+
+            const distance = lockTime - now
+
+            if (distance < 0) {
+                setTimeUntilLock(null)
+                // Refresh the page to get updated lock status
+                router.reload({ only: ['isRoundLocked', 'nextGameTime'] })
+                return
+            }
+
+            const hours = Math.floor(distance / (1000 * 60 * 60))
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+
+            if (hours > 0) {
+                setTimeUntilLock(`${hours}h ${minutes}m`)
+            } else if (minutes > 0) {
+                setTimeUntilLock(`${minutes}m ${seconds}s`)
+            } else {
+                setTimeUntilLock(`${seconds}s`)
+            }
+        }
+
+        updateCountdown()
+        const interval = setInterval(updateCountdown, 1000)
+
+        return () => clearInterval(interval)
+    }, [nextGameTime, isRoundFinished, isRoundLocked])
 
     // Initialize lineup from database
     useEffect(() => {
@@ -193,6 +243,13 @@ export default function ManageNew({
 
     // Handle lineup type change
     const handleLineupTypeChange = (type: string) => {
+        console.log('⚙️ handleLineupTypeChange called:', {
+            newType: type,
+            oldType: lineupType,
+            isRoundLocked,
+            isRoundFinished
+        })
+
         const newType = type as LineupType
         const oldType = lineupType
         setLineupType(newType)
@@ -253,7 +310,17 @@ export default function ManageNew({
 
     // Drag handlers
     const handleDragStart = (player: FantasyTeamPlayer) => {
-        if (isRoundLocked || isRoundFinished) return
+        console.log('🎯 handleDragStart called:', {
+            player: player.player.name,
+            isRoundLocked,
+            isRoundFinished,
+            canDrag: !isRoundLocked && !isRoundFinished
+        })
+        if (isRoundLocked || isRoundFinished) {
+            console.log('❌ Drag blocked - round is locked or finished')
+            return
+        }
+        console.log('✅ Drag allowed - setting dragged player')
         setDraggedPlayer(player)
     }
 
@@ -262,15 +329,30 @@ export default function ManageNew({
     }
 
     const handleDropOnSlot = (slotIndex: number) => {
-        if (!draggedPlayer || !lineupType || isRoundLocked || isRoundFinished) return
+        console.log('📍 handleDropOnSlot called:', {
+            slotIndex,
+            draggedPlayer: draggedPlayer?.player.name,
+            lineupType,
+            isRoundLocked,
+            isRoundFinished,
+            canDrop: !!draggedPlayer && !!lineupType && !isRoundLocked && !isRoundFinished
+        })
+
+        if (!draggedPlayer || !lineupType || isRoundLocked || isRoundFinished) {
+            console.log('❌ Drop blocked')
+            return
+        }
 
         const config = LINEUP_CONFIGS[lineupType]
         const slotPosition = getSlotPosition(slotIndex, config)
 
         // Check if player position matches slot
         if (draggedPlayer.player.position !== slotPosition) {
+            console.log('❌ Drop blocked - position mismatch:', draggedPlayer.player.position, '!=', slotPosition)
             return // Invalid drop
         }
+
+        console.log('✅ Drop allowed')
 
         // Remove from old position
         const newStarters = [...starters]
@@ -511,12 +593,22 @@ export default function ManageNew({
                                 </Alert>
                             )}
 
-                            {/* Round Locked Alert (active round in progress) */}
-                            {isRoundLocked && currentActiveRound && (
+                            {/* Countdown Timer (when lineup not locked but game approaching) */}
+                            {!isRoundLocked && timeUntilLock && (
+                                <Alert className="mb-4 border-yellow-500 bg-yellow-50">
+                                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                    <AlertDescription className="text-yellow-800">
+                                        <strong>Lineup locks in {timeUntilLock}</strong> - Make changes before the next game starts!
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+
+                            {/* Round Locked Alert (game in progress) */}
+                            {isRoundLocked && (
                                 <Alert variant="destructive" className="mb-4">
                                     <AlertCircle className="h-4 w-4" />
                                     <AlertDescription>
-                                        <strong>Round {currentActiveRound} in Progress!</strong> All lineup changes and player transactions are locked until the round finishes.
+                                        <strong>Lineup Locked!</strong> A game is in progress. Lineup changes are locked until this game finishes.
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -571,7 +663,7 @@ export default function ManageNew({
                                 <CardDescription>Choose your starting five combination (Guards-Forwards-Centers)</CardDescription>
                             </CardHeader>
                             <CardContent>
-                            <Select value={lineupType || ''} onValueChange={handleLineupTypeChange}>
+                            <Select value={lineupType || ''} onValueChange={handleLineupTypeChange} disabled={isRoundLocked || isRoundFinished}>
                                 <SelectTrigger className="w-full max-w-md">
                                     <SelectValue placeholder="Select a formation..." />
                                 </SelectTrigger>
@@ -665,10 +757,10 @@ export default function ManageNew({
                                                         >
                                                             {player ? (
                                                                 <div
-                                                                    draggable
+                                                                    draggable={!isRoundLocked && !isRoundFinished}
                                                                     onDragStart={() => handleDragStart(player)}
                                                                     onDragEnd={handleDragEnd}
-                                                                    className="flex flex-col items-center gap-0.5 sm:gap-1 cursor-move w-full p-1 sm:p-2"
+                                                                    className={`flex flex-col items-center gap-0.5 sm:gap-1 w-full p-1 sm:p-2 ${!isRoundLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                                                 >
                                                                     {/* Position badge at top */}
                                                                     <div className={`absolute -top-1 sm:-top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0.5 rounded text-[10px] sm:text-xs font-bold`}>
@@ -733,10 +825,10 @@ export default function ManageNew({
                                             {bench.map((player) => (
                                                 <div
                                                     key={player.player.id}
-                                                    draggable
+                                                    draggable={!isRoundLocked && !isRoundFinished}
                                                     onDragStart={() => handleDragStart(player)}
                                                     onDragEnd={handleDragEnd}
-                                                    className="flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-blue-900/20 dark:to-indigo-900/20 from-blue-50 to-indigo-50 border-blue-300 cursor-move"
+                                                    className={`flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-blue-900/20 dark:to-indigo-900/20 from-blue-50 to-indigo-50 border-blue-300 ${!isRoundLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                                 >
                                                     <div className="flex flex-col items-center gap-1">
                                                         {player.player.photo_url ? (
@@ -800,10 +892,10 @@ export default function ManageNew({
                                         >
                                             {sixthMan ? (
                                                 <div
-                                                    draggable
+                                                    draggable={!isRoundLocked && !isRoundFinished}
                                                     onDragStart={() => handleDragStart(sixthMan)}
                                                     onDragEnd={handleDragEnd}
-                                                    className="flex flex-col items-center gap-1 cursor-move w-full"
+                                                    className={`flex flex-col items-center gap-1 w-full ${!isRoundLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                                 >
                                                     {sixthMan.player.photo_url ? (
                                                         <img
@@ -831,17 +923,19 @@ export default function ManageNew({
                                                             </div>
                                                         )}
                                                     </div>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => {
-                                                            setBench([...bench, sixthMan])
-                                                            setSixthMan(null)
-                                                        }}
-                                                        className="mt-1 text-xs h-6"
-                                                    >
-                                                        Remove
-                                                    </Button>
+                                                    {!isRoundLocked && !isRoundFinished && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                setBench([...bench, sixthMan])
+                                                                setSixthMan(null)
+                                                            }}
+                                                            className="mt-1 text-xs h-6"
+                                                        >
+                                                            Remove
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="text-center text-muted-foreground text-xs h-full flex flex-col items-center justify-center">
@@ -878,10 +972,10 @@ export default function ManageNew({
                                             >
                                                 {sixthMan ? (
                                                     <div
-                                                        draggable
+                                                        draggable={!isRoundLocked && !isRoundFinished}
                                                         onDragStart={() => handleDragStart(sixthMan)}
                                                         onDragEnd={handleDragEnd}
-                                                        className="flex flex-col items-center gap-2 cursor-move w-full p-2"
+                                                        className={`flex flex-col items-center gap-2 w-full p-2 ${!isRoundLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                                     >
                                                         {sixthMan.player.photo_url ? (
                                                             <img
@@ -916,17 +1010,19 @@ export default function ManageNew({
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() => {
-                                                                setBench([...bench, sixthMan])
-                                                                setSixthMan(null)
-                                                            }}
-                                                            className="mt-1 text-xs h-7"
-                                                        >
-                                                            Remove
-                                                        </Button>
+                                                        {!isRoundLocked && !isRoundFinished && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() => {
+                                                                    setBench([...bench, sixthMan])
+                                                                    setSixthMan(null)
+                                                                }}
+                                                                className="mt-1 text-xs h-7"
+                                                            >
+                                                                Remove
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <div className="text-center text-muted-foreground text-sm h-full flex flex-col items-center justify-center">
@@ -961,10 +1057,10 @@ export default function ManageNew({
                                                     bench.map((teamPlayer) => (
                                                         <div
                                                             key={teamPlayer.id}
-                                                            draggable
+                                                            draggable={!isRoundLocked && !isRoundFinished}
                                                             onDragStart={() => handleDragStart(teamPlayer)}
                                                             onDragEnd={handleDragEnd}
-                                                            className="flex items-center gap-3 p-3 border rounded-lg cursor-move hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700"
+                                                            className={`flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700 ${!isRoundLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                                         >
                                                             {teamPlayer.player.photo_url ? (
                                                                 <img

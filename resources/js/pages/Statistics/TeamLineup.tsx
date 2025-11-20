@@ -88,7 +88,6 @@ const LINEUP_CONFIGS: Record<LineupType, LineupConfig> = {
 };
 
 export default function TeamLineup({ team, roundStats, allRounds }: Props) {
-    console.log('TeamLineup props:', { team, roundStats, allRounds });
     const [selectedRound, setSelectedRound] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [lineupData, setLineupData] = useState<LineupData | null>(null);
@@ -318,26 +317,11 @@ export default function TeamLineup({ team, roundStats, allRounds }: Props) {
                                                         </div>
 
                                                         {/* Played indicator */}
-
                                                         <div className="absolute -bottom-2 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded bg-green-500 px-1 py-0.5 text-[8px] font-bold text-white sm:px-2 sm:text-[10px]">
                                                             ✓ {(player.round_fantasy_points ?? 0).toFixed(1)} FP
                                                         </div>
 
-                                                        {/* Captain Star */}
-                                                        <button
-                                                            className="absolute -right-2 -top-2 z-10 cursor-pointer transition-transform hover:scale-110"
-                                                            title={captain?.id === player.id ? 'Remove Captain' : 'Make Captain'}
-                                                        >
-                                                            <Star
-                                                                className={`h-4 w-4 sm:h-5 sm:w-5 ${
-                                                                    captain?.id === player.id
-                                                                        ? 'fill-purple-500 text-purple-500'
-                                                                        : 'fill-gray-300 text-gray-400 hover:fill-purple-300 hover:text-purple-400'
-                                                                }`}
-                                                            />
-                                                        </button>
-
-                                                        {/* Captain indicator for finished/locked rounds */}
+                                                        {/* Captain indicator */}
                                                         {player.is_captain && (
                                                             <div className="absolute -right-1 -top-1 z-10 sm:-right-2 sm:-top-2">
                                                                 <Star className="h-4 w-4 fill-purple-500 text-purple-500 sm:h-5 sm:w-5" />
@@ -376,7 +360,7 @@ export default function TeamLineup({ team, roundStats, allRounds }: Props) {
                                                                 </div>
                                                                 <div className="text-[7px] text-gray-400 sm:text-[8px]">
                                                                     {player.round_fantasy_points?.toFixed(1)} FP ×{' '}
-                                                                    {((player.multiplier || 0.5) * 100).toFixed(0)}%{player.is_captain && ' (C)'}
+                                                                    {((player.multiplier || 0.5) * 100).toFixed(0)}%{player.is_captain ? ' (C)' : ''}
                                                                 </div>
                                                             </div>
                                                         </div>

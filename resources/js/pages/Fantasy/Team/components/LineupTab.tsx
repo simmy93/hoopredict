@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -123,6 +123,7 @@ export default function LineupTab({
     nextGameTime = null,
     isLineupLocked = false,
 }: Props) {
+
     const [lineupType, setLineupType] = useState<LineupType | null>(
         (userTeam.lineup_type as LineupType) || null
     );
@@ -133,6 +134,7 @@ export default function LineupTab({
     const [draggedPlayer, setDraggedPlayer] = useState<FantasyTeamPlayer | null>(null);
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const [dragError, setDragError] = useState<string | null>(null);
 
     // Player stats modal state
     const [statsModalOpen, setStatsModalOpen] = useState(false);
@@ -141,6 +143,13 @@ export default function LineupTab({
 
     // Countdown timer state
     const [timeUntilLock, setTimeUntilLock] = useState<string | null>(null);
+
+    // Scroll to top when drag error appears
+    useEffect(() => {
+        if (dragError) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [dragError]);
 
     // Initialize lineup from database
     useEffect(() => {
@@ -299,7 +308,7 @@ export default function LineupTab({
 
     // Drag handlers
     const handleDragStart = (player: FantasyTeamPlayer) => {
-        if (isRoundLocked || isRoundFinished) return;
+        if (isLineupLocked || isRoundFinished) return;
         setDraggedPlayer(player);
     };
 
@@ -308,7 +317,7 @@ export default function LineupTab({
     };
 
     const handleDropOnSlot = (slotIndex: number) => {
-        if (!draggedPlayer || !lineupType || isRoundLocked || isRoundFinished) return;
+        if (!draggedPlayer || !lineupType || isLineupLocked || isRoundFinished) return;
 
         const config = LINEUP_CONFIGS[lineupType];
         const slotPosition = getSlotPosition(slotIndex, config);
@@ -321,7 +330,7 @@ export default function LineupTab({
         const newPosition = slotIndex + 1; // Convert to position number
         const validation = canMovePlayer(draggedPlayer, newPosition, false);
         if (!validation.valid) {
-            alert(validation.error);
+            setDragError(validation.error || 'Cannot move player to this position');
             setDraggedPlayer(null);
             return;
         }
@@ -356,12 +365,12 @@ export default function LineupTab({
     };
 
     const handleDropOnBench = () => {
-        if (!draggedPlayer || isRoundLocked || isRoundFinished) return;
+        if (!draggedPlayer || isLineupLocked || isRoundFinished) return;
 
         // Validate if player can be moved to bench (position = null, no captain)
         const validation = canMovePlayer(draggedPlayer, null, false);
         if (!validation.valid) {
-            alert(validation.error);
+            setDragError(validation.error || 'Cannot move player to bench');
             setDraggedPlayer(null);
             return;
         }
@@ -391,12 +400,12 @@ export default function LineupTab({
 
     const handleDropOnSixthMan = (e: React.DragEvent) => {
         e.stopPropagation(); // Prevent event from bubbling to bench drop zone
-        if (!draggedPlayer || isRoundLocked || isRoundFinished) return;
+        if (!draggedPlayer || isLineupLocked || isRoundFinished) return;
 
         // Validate if player can be moved to sixth man (position = 6, no captain)
         const validation = canMovePlayer(draggedPlayer, 6, false);
         if (!validation.valid) {
-            alert(validation.error);
+            setDragError(validation.error || 'Cannot move player to sixth man');
             setDraggedPlayer(null);
             return;
         }
@@ -553,7 +562,7 @@ export default function LineupTab({
     };
 
     const handleCaptainToggle = (player: FantasyTeamPlayer) => {
-        if (isRoundLocked || isRoundFinished) return;
+        if (isLineupLocked || isRoundFinished) return;
 
         // Captain can only be selected from starters (positions 1-5)
         const isInStartingLineup = starters.some(s => s?.id === player.id);
@@ -566,7 +575,7 @@ export default function LineupTab({
             // Validate if player can be made captain (they're becoming captain)
             const validation = canMovePlayer(player, player.lineup_position, true);
             if (!validation.valid) {
-                alert(validation.error);
+                setDragError(validation.error || 'Cannot make this player captain');
                 return;
             }
             setCaptain(player);
@@ -586,7 +595,8 @@ export default function LineupTab({
             lineup,
             lineup_type: lineupType,
             sixth_man: sixthMan?.player.id || null,
-            captain_id: captain?.player.id || null
+            captain_id: captain?.player.id || null,
+            round: selectedRound // Pass the round being saved
         }, {
             preserveScroll: true,
             onSuccess: () => {
@@ -630,7 +640,7 @@ export default function LineupTab({
                                 ))}
                             </select>
 
-                            {!isRoundFinished && !isRoundLocked && (
+                            {!isRoundFinished && !isLineupLocked && (
                                 <Button
                                     onClick={handleSave}
                                     disabled={!isValidLineup || isSaving}
@@ -662,7 +672,7 @@ export default function LineupTab({
                         </Alert>
                     )}
 
-                    {isRoundLocked && currentActiveRound && (
+                    {isLineupLocked && currentActiveRound && (
                         <Alert variant="destructive" className="mb-4">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
@@ -671,7 +681,7 @@ export default function LineupTab({
                         </Alert>
                     )}
 
-                    {!hasValidTeamComposition && !isRoundFinished && !isRoundLocked && (
+                    {!hasValidTeamComposition && !isRoundFinished && !isLineupLocked && (
                         <Alert variant="destructive" className="mb-4">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>
@@ -693,7 +703,25 @@ export default function LineupTab({
                         </Alert>
                     )}
 
-                    {isValidLineup && !isRoundFinished && !isRoundLocked && (
+                    {/* Drag error message */}
+                    {dragError && !isRoundFinished && (
+                        <Alert variant="destructive" className="mb-4">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription className="flex items-center justify-between">
+                                <span>{dragError}</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setDragError(null)}
+                                    className="h-6 px-2 text-xs"
+                                >
+                                    Dismiss
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+
+                    {isValidLineup && !isRoundFinished && !isLineupLocked && (
                         <Alert className="mb-4 border-green-500 text-green-700">
                             <CheckCircle2 className="h-4 w-4" />
                             <AlertDescription>
@@ -703,7 +731,7 @@ export default function LineupTab({
                     )}
 
                     {/* Countdown timer for lineup lock */}
-                    {timeUntilLock && !isRoundFinished && !isRoundLocked && (
+                    {timeUntilLock && !isRoundFinished && !isLineupLocked && (
                         <Alert className="mb-4 border-amber-500 bg-amber-50">
                             <AlertCircle className="h-4 w-4 text-amber-600" />
                             <AlertDescription className="text-amber-800">
@@ -713,7 +741,7 @@ export default function LineupTab({
                     )}
 
                     {/* Upcoming games */}
-                    {upcomingGames && upcomingGames.length > 0 && !isRoundFinished && !isRoundLocked && (
+                    {upcomingGames && upcomingGames.length > 0 && !isRoundFinished && !isLineupLocked && (
                         <Alert className="mb-4">
                             <Info className="h-4 w-4" />
                             <AlertDescription>
@@ -732,7 +760,7 @@ export default function LineupTab({
                         </Alert>
                     )}
 
-                    {!isRoundFinished && !isRoundLocked && (
+                    {!isRoundFinished && !isLineupLocked && (
                         <Alert>
                             <Info className="h-4 w-4" />
                             <AlertDescription>
@@ -794,25 +822,72 @@ export default function LineupTab({
 
                         {/* Court */}
                         <div
-                            className="relative rounded-lg overflow-hidden border-4 shadow-2xl dark:border-gray-800 border-gray-300 pt-10"
+                            className="relative rounded-xl overflow-hidden shadow-2xl pt-10 border-4 border-gray-200 dark:border-gray-800"
                             style={{
-                                backgroundImage: 'url(/images/basketball-court-light.png)',
-                                backgroundColor: '#1f2937',
-                                backgroundSize: 'contain',
-                                backgroundRepeat: 'no-repeat',
-                                backgroundPosition: 'center',
                                 paddingBottom: '75%',
                                 position: 'relative'
                             }}
                         >
-                            <div className="absolute inset-0 dark:bg-[url('/images/basketball-court.png')] bg-[url('/images/basketball-court-light.png')]"
+                            {/* Light mode background - mesh gradient */}
+                            <div
+                                className="absolute inset-0 dark:opacity-0 opacity-100"
                                 style={{
-                                    backgroundSize: 'contain',
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'center'
+                                    background: `
+                                        linear-gradient(to right, rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                                        linear-gradient(to bottom, rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                                        radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.12), transparent 50%),
+                                        radial-gradient(ellipse at top right, rgba(168, 85, 247, 0.1), transparent 50%),
+                                        radial-gradient(ellipse at bottom left, rgba(236, 72, 153, 0.1), transparent 50%),
+                                        radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.12), transparent 50%),
+                                        linear-gradient(135deg, #f0f9ff 0%, #faf5ff 50%, #fef2f2 100%)
+                                    `,
+                                    backgroundSize: '40px 40px, 40px 40px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
                                 }}
-                            ></div>
-                            <div className="absolute inset-0 dark:bg-black/20 bg-white/10"></div>
+                            />
+
+                            {/* Dark mode background - mesh gradient */}
+                            <div
+                                className="absolute inset-0 opacity-0 dark:opacity-100"
+                                style={{
+                                    background: `
+                                        linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+                                        linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+                                        radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.3), transparent 50%),
+                                        radial-gradient(ellipse at top right, rgba(168, 85, 247, 0.25), transparent 50%),
+                                        radial-gradient(ellipse at bottom left, rgba(59, 130, 246, 0.25), transparent 50%),
+                                        radial-gradient(ellipse at bottom right, rgba(236, 72, 153, 0.2), transparent 50%),
+                                        linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #581c87 100%)
+                                    `,
+                                    backgroundSize: '40px 40px, 40px 40px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
+                                }}
+                            />
+
+                            {/* Animated gradient orbs */}
+                            <div className="absolute inset-0 overflow-hidden">
+                                <div
+                                    className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 rounded-full opacity-20 dark:opacity-40"
+                                    style={{
+                                        background: 'radial-gradient(circle, rgba(99, 102, 241, 0.6), transparent 70%)',
+                                        filter: 'blur(50px)',
+                                    }}
+                                />
+                                <div
+                                    className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 rounded-full opacity-20 dark:opacity-40"
+                                    style={{
+                                        background: 'radial-gradient(circle, rgba(168, 85, 247, 0.6), transparent 70%)',
+                                        filter: 'blur(50px)',
+                                    }}
+                                />
+                            </div>
+
+                            {/* Subtle shine overlay */}
+                            <div
+                                className="absolute inset-0"
+                                style={{
+                                    background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%)',
+                                    pointerEvents: 'none',
+                                }}
+                            />
 
                             <div className="absolute inset-0 z-10">
                                 {[0, 1, 2, 3, 4].map((slotIndex) => {
@@ -841,10 +916,10 @@ export default function LineupTab({
                                         >
                                             {player ? (
                                                 <div
-                                                    draggable
+                                                    draggable={!isLineupLocked && !isRoundFinished}
                                                     onDragStart={() => handleDragStart(player)}
                                                     onDragEnd={handleDragEnd}
-                                                    className="flex flex-col items-center gap-1 cursor-move w-full p-1 sm:p-4 relative"
+                                                    className={`flex flex-col items-center gap-1 w-full p-1 sm:p-4 relative ${!isLineupLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                                 >
                                                     <div className={`absolute -top-2 left-1/2 -translate-x-1/2 ${getPositionColor(player.player.position)} text-white px-1 sm:px-2 py-0 rounded text-[10px] sm:text-xs font-bold`}>
                                                         {player.player.position}
@@ -858,7 +933,7 @@ export default function LineupTab({
                                                     )}
 
                                                     {/* Captain Star - clickable */}
-                                                    {!isRoundFinished && !isRoundLocked && (
+                                                    {!isRoundFinished && !isLineupLocked && (
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -878,7 +953,7 @@ export default function LineupTab({
                                                     )}
 
                                                     {/* Captain indicator for finished/locked rounds */}
-                                                    {(isRoundFinished || isRoundLocked) && player.is_captain && (
+                                                    {(isRoundFinished || isLineupLocked) && player.is_captain && (
                                                         <div className="absolute -top-1 sm:-top-2 -right-1 sm:-right-2 z-10">
                                                             <Star className="h-4 w-4 sm:h-5 sm:w-5 fill-purple-500 text-purple-500" />
                                                         </div>
@@ -951,10 +1026,10 @@ export default function LineupTab({
                                 {sixthMan ? (
                                     <div
                                         key={`sixth-${sixthMan.player.id}`}
-                                        draggable
+                                        draggable={!isLineupLocked && !isRoundFinished}
                                         onDragStart={() => handleDragStart(sixthMan)}
                                         onDragEnd={handleDragEnd}
-                                        className="flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400 cursor-move"
+                                        className={`flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-yellow-900/20 dark:to-amber-900/20 from-yellow-50 to-amber-50 border-yellow-400 ${!isLineupLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                     >
                                         <div className="flex flex-col items-center gap-1">
                                             {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
@@ -1013,10 +1088,10 @@ export default function LineupTab({
                                 {bench.filter(p => p.id !== sixthMan?.id).map((player) => (
                                     <div
                                         key={player.player.id}
-                                        draggable
+                                        draggable={!isLineupLocked && !isRoundFinished}
                                         onDragStart={() => handleDragStart(player)}
                                         onDragEnd={handleDragEnd}
-                                        className="flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-blue-900/20 dark:to-indigo-900/20 from-blue-50 to-indigo-50 border-blue-300 cursor-move"
+                                        className={`flex-shrink-0 w-28 p-2 border-2 rounded-lg bg-gradient-to-br dark:from-blue-900/20 dark:to-indigo-900/20 from-blue-50 to-indigo-50 border-blue-300 ${!isLineupLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                     >
                                         <div className="flex flex-col items-center gap-1">
                                             {(player.player.photo_headshot_url || player.player.photo_url) ? (
@@ -1116,7 +1191,7 @@ export default function LineupTab({
                                                 </div>
                                             )}
                                         </div>
-                                        {!isRoundFinished && !isRoundLocked && (
+                                        {!isRoundFinished && !isLineupLocked && (
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
@@ -1196,7 +1271,7 @@ export default function LineupTab({
                                                     </div>
                                                 )}
                                             </div>
-                                            {!isRoundFinished && !isRoundLocked && (
+                                            {!isRoundFinished && !isLineupLocked && (
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
@@ -1243,10 +1318,10 @@ export default function LineupTab({
                                     >
                                         {sixthMan ? (
                                             <div
-                                                draggable
+                                                draggable={!isLineupLocked && !isRoundFinished}
                                                 onDragStart={() => handleDragStart(sixthMan)}
                                                 onDragEnd={handleDragEnd}
-                                                className="flex items-center gap-3 cursor-move"
+                                                className={`flex items-center gap-3 ${!isLineupLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                             >
                                                 {(sixthMan.player.photo_headshot_url || sixthMan.player.photo_url) ? (
                                                     <img
@@ -1321,10 +1396,10 @@ export default function LineupTab({
                                         bench.filter(p => p.id !== sixthMan?.id).map((teamPlayer) => (
                                             <div
                                                 key={teamPlayer.id}
-                                                draggable
+                                                draggable={!isLineupLocked && !isRoundFinished}
                                                 onDragStart={() => handleDragStart(teamPlayer)}
                                                 onDragEnd={handleDragEnd}
-                                                className="flex items-center gap-3 p-3 border rounded-lg cursor-move hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700"
+                                                className={`flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-all dark:bg-gray-800/50 bg-white dark:border-gray-700 ${!isLineupLocked && !isRoundFinished ? 'cursor-move' : 'cursor-not-allowed'}`}
                                             >
                                                 {(teamPlayer.player.photo_headshot_url || teamPlayer.player.photo_url) ? (
                                                     <img

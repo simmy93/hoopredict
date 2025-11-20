@@ -129,12 +129,13 @@ class Game extends Model
     {
         $now = now();
         $bufferMinutes = 5; // Lock 5 minutes before scheduled time
+        $lockTime = $now->copy()->addMinutes($bufferMinutes); // Use copy() to avoid mutating $now
 
         return self::where('championship_id', $championshipId)
             ->where('round', $round)
-            ->where(function ($query) use ($now, $bufferMinutes) {
+            ->where(function ($query) use ($lockTime) {
                 // Game is about to start (within buffer window) or has started
-                $query->where('scheduled_at', '<=', $now->addMinutes($bufferMinutes))
+                $query->where('scheduled_at', '<=', $lockTime)
                     ->where('status', '!=', 'finished');
             })
             ->exists();
@@ -148,7 +149,7 @@ class Game extends Model
     {
         $nextGame = self::where('championship_id', $championshipId)
             ->where('round', $round)
-            ->where('status', 'not_started')
+            ->whereIn('status', ['not_started', 'scheduled'])
             ->orderBy('scheduled_at')
             ->first();
 
@@ -156,13 +157,13 @@ class Game extends Model
     }
 
     /**
-     * Get all upcoming games for a round (not started)
+     * Get all upcoming games for a round (not started or scheduled)
      */
     public static function getUpcomingGames(int $championshipId, int $round)
     {
         return self::where('championship_id', $championshipId)
             ->where('round', $round)
-            ->where('status', 'not_started')
+            ->whereIn('status', ['not_started', 'scheduled'])
             ->with(['homeTeam:id,name', 'awayTeam:id,name'])
             ->select('id', 'scheduled_at', 'home_team_id', 'away_team_id', 'status')
             ->orderBy('scheduled_at')

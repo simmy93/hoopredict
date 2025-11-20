@@ -154,3 +154,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('players/bulk-update', [AdminPlayerController::class, 'bulkUpdatePrices'])->name('players.bulkUpdate');
     Route::post('players/reset-prices', [AdminPlayerController::class, 'resetPrices'])->name('players.resetPrices');
 });
+
+
+Route::get('/debug-lineup', [App\Http\Controllers\DebugController::class, 'lineupDebug']);

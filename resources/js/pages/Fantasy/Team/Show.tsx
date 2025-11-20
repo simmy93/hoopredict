@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, ShoppingCart, Users as UsersIcon } from 'lucide-react';
@@ -31,6 +31,7 @@ interface Player {
     jersey_number: number | null;
     price: number;
     photo_url: string | null;
+    photo_headshot_url: string | null;
     country: string | null;
     is_active: boolean;
     team: Team;
@@ -41,6 +42,7 @@ interface FantasyTeamPlayer {
     fantasy_team_id: number;
     player_id: number;
     lineup_position: number | null;
+    is_captain: boolean;
     purchase_price: number;
     points_earned: number;
     player: Player;
@@ -133,7 +135,32 @@ export default function Show({
     isRoundLocked,
     currentActiveRound,
 }: Props) {
-    const [activeTab, setActiveTab] = useState('marketplace');
+    // Initialize tab from URL hash or default to marketplace
+    const getInitialTab = () => {
+        const hash = window.location.hash.replace('#', '');
+        return hash === 'lineup' || hash === 'marketplace' ? hash : 'marketplace';
+    };
+
+    const [activeTab, setActiveTab] = useState(getInitialTab);
+
+    // Update URL hash when tab changes
+    const handleTabChange = (value: string) => {
+        setActiveTab(value);
+        window.location.hash = value;
+    };
+
+    // Listen for hash changes (browser back/forward)
+    useEffect(() => {
+        const handleHashChange = () => {
+            const hash = window.location.hash.replace('#', '');
+            if (hash === 'lineup' || hash === 'marketplace') {
+                setActiveTab(hash);
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
 
     return (
         <AuthenticatedLayout>
@@ -161,7 +188,7 @@ export default function Show({
                     </div>
 
                     {/* Tabs */}
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                         <TabsList className="grid w-full max-w-md grid-cols-2">
                             <TabsTrigger value="marketplace" className="flex items-center gap-2">
                                 <ShoppingCart className="h-4 w-4" />
