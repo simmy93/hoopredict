@@ -270,26 +270,72 @@ export default function TeamLineup({ team, roundStats, allRounds }: Props) {
 
                             {/* Court */}
                             <div
-                                className="relative overflow-hidden rounded-lg border-4 border-gray-300 pt-10 shadow-2xl dark:border-gray-800"
+                                className="relative rounded-xl overflow-hidden shadow-2xl pt-10 border-4 border-gray-200 dark:border-gray-800"
                                 style={{
-                                    backgroundImage: 'url(/images/basketball-court-light.png)',
-                                    backgroundColor: '#1f2937',
-                                    backgroundSize: 'contain',
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: 'center',
                                     paddingBottom: '75%',
-                                    position: 'relative',
+                                    position: 'relative'
                                 }}
                             >
+                                {/* Light mode background - mesh gradient */}
                                 <div
-                                    className="absolute inset-0 bg-[url('/images/basketball-court-light.png')] dark:bg-[url('/images/basketball-court.png')]"
+                                    className="absolute inset-0 dark:opacity-0 opacity-100"
                                     style={{
-                                        backgroundSize: 'contain',
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'center',
+                                        background: `
+                                            linear-gradient(to right, rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                                            linear-gradient(to bottom, rgba(59, 130, 246, 0.02) 1px, transparent 1px),
+                                            radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.12), transparent 50%),
+                                            radial-gradient(ellipse at top right, rgba(168, 85, 247, 0.1), transparent 50%),
+                                            radial-gradient(ellipse at bottom left, rgba(236, 72, 153, 0.1), transparent 50%),
+                                            radial-gradient(ellipse at bottom right, rgba(59, 130, 246, 0.12), transparent 50%),
+                                            linear-gradient(135deg, #f0f9ff 0%, #faf5ff 50%, #fef2f2 100%)
+                                        `,
+                                        backgroundSize: '40px 40px, 40px 40px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
                                     }}
-                                ></div>
-                                <div className="absolute inset-0 bg-white/10 dark:bg-black/20"></div>
+                                />
+
+                                {/* Dark mode background - mesh gradient */}
+                                <div
+                                    className="absolute inset-0 opacity-0 dark:opacity-100"
+                                    style={{
+                                        background: `
+                                            linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+                                            linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+                                            radial-gradient(ellipse at top left, rgba(99, 102, 241, 0.3), transparent 50%),
+                                            radial-gradient(ellipse at top right, rgba(168, 85, 247, 0.25), transparent 50%),
+                                            radial-gradient(ellipse at bottom left, rgba(59, 130, 246, 0.25), transparent 50%),
+                                            radial-gradient(ellipse at bottom right, rgba(236, 72, 153, 0.2), transparent 50%),
+                                            linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #581c87 100%)
+                                        `,
+                                        backgroundSize: '40px 40px, 40px 40px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
+                                    }}
+                                />
+
+                                {/* Animated gradient orbs */}
+                                <div className="absolute inset-0 overflow-hidden">
+                                    <div
+                                        className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 rounded-full opacity-20 dark:opacity-40"
+                                        style={{
+                                            background: 'radial-gradient(circle, rgba(99, 102, 241, 0.6), transparent 70%)',
+                                            filter: 'blur(50px)',
+                                        }}
+                                    />
+                                    <div
+                                        className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 rounded-full opacity-20 dark:opacity-40"
+                                        style={{
+                                            background: 'radial-gradient(circle, rgba(168, 85, 247, 0.6), transparent 70%)',
+                                            filter: 'blur(50px)',
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Subtle shine overlay */}
+                                <div
+                                    className="absolute inset-0"
+                                    style={{
+                                        background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%)',
+                                        pointerEvents: 'none',
+                                    }}
+                                />
 
                                 <div className="absolute inset-0 z-10">
                                     {[0, 1, 2, 3, 4].map((slotIndex) => {
