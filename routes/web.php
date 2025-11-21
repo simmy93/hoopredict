@@ -16,6 +16,7 @@ use App\Http\Controllers\FantasyLeagueController;
 use App\Http\Controllers\FantasyPlayerController;
 use App\Http\Controllers\FantasyTeamController;
 use App\Http\Controllers\GamesController;
+use App\Http\Controllers\InvitationLinkController;
 use App\Http\Controllers\LeagueController;
 use App\Http\Controllers\PlayerStatsController;
 use App\Http\Controllers\PredictionController;
@@ -96,6 +97,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/leagues/{league}/leave', [LeagueController::class, 'leave'])->name('leagues.leave');
     Route::delete('/leagues/{league}/members/{member}/kick', [LeagueController::class, 'kick'])->name('leagues.members.kick');
 
+    // Invitation Links
+    Route::post('/invitation-links', [InvitationLinkController::class, 'store'])->name('invitation-links.store');
+    Route::get('/invitation-links', [InvitationLinkController::class, 'index'])->name('invitation-links.index');
+    Route::delete('/invitation-links/{link}', [InvitationLinkController::class, 'destroy'])->name('invitation-links.destroy');
+    Route::get('/leagues/invite/{code}', [InvitationLinkController::class, 'joinLeague'])->name('leagues.invite');
+
     Route::resource('predictions', PredictionController::class)->only(['index', 'store', 'destroy']);
 
     // Fantasy Leagues
@@ -109,6 +116,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/leagues/{league}/leave', [FantasyLeagueController::class, 'leave'])->name('leagues.leave');
         Route::delete('/leagues/{league}/members/{member}/kick', [FantasyLeagueController::class, 'kick'])->name('leagues.members.kick');
         Route::delete('/leagues/{league}', [FantasyLeagueController::class, 'destroy'])->name('leagues.destroy');
+        Route::get('/leagues/invite/{code}', [InvitationLinkController::class, 'joinFantasyLeague'])->name('leagues.invite');
 
         // Fantasy Team
         Route::get('/leagues/{league}/team', [FantasyTeamController::class, 'show'])->name('team.show');

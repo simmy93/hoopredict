@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class League extends Model
 {
@@ -98,5 +99,24 @@ class League extends Model
     public function getInviteUrl(): string
     {
         return url("/leagues/join/{$this->invite_code}");
+    }
+
+    public function invitationLinks(): MorphMany
+    {
+        return $this->morphMany(InvitationLink::class, 'invitable');
+    }
+
+    public function activeInvitationLinks(): MorphMany
+    {
+        return $this->invitationLinks()
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('max_uses')
+                    ->orWhereRaw('uses < max_uses');
+            });
     }
 }

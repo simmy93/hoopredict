@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Pagination } from '@/components/ui/pagination';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
+import InvitationLinkManager from '@/components/InvitationLinkManager';
 import { Head, Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Calendar, CheckCircle, Clock, Copy, Crown, Link as LinkIcon, MapPin, Star, Trophy, Users, X, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, CheckCircle, Clock, Crown, MapPin, Star, Trophy, Users, X, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -103,7 +104,6 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
     const [gameInputs, setGameInputs] = useState<Record<number, { home: string; away: string }>>({});
     const [processingGames, setProcessingGames] = useState<Set<number>>(new Set());
     const [feedbackMessages, setFeedbackMessages] = useState<Record<number, { type: 'success' | 'error'; message: string }>>({});
-    const [copied, setCopied] = useState<'code' | 'url' | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean;
         title: string;
@@ -130,20 +130,6 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                 });
             }, 3000);
         }
-    };
-
-    const copyInviteCode = () => {
-        navigator.clipboard.writeText(league.invite_code).then(() => {
-            setCopied('code');
-            setTimeout(() => setCopied(null), 2000);
-        });
-    };
-
-    const copyInviteUrl = () => {
-        navigator.clipboard.writeText(inviteUrl).then(() => {
-            setCopied('url');
-            setTimeout(() => setCopied(null), 2000);
-        });
     };
 
     const leaveLeague = () => {
@@ -316,9 +302,6 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                 </div>
                                 <div className="flex gap-2">
                                     {league.is_private && <Badge variant="secondary">Private</Badge>}
-                                    <Badge variant="outline" className="font-mono">
-                                        {league.invite_code}
-                                    </Badge>
                                 </div>
                             </div>
                         </CardHeader>
@@ -332,30 +315,6 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                                     <div>Owner: {league.owner.name}</div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
-                                    {userRole === 'owner' && (
-                                        <>
-                                            <Button
-                                                variant={copied === 'url' ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={copyInviteUrl}
-                                                title="Copy invite link"
-                                                className="w-full sm:w-auto"
-                                            >
-                                                {copied === 'url' ? <CheckCircle className="mr-1 h-4 w-4" /> : <LinkIcon className="mr-1 h-4 w-4" />}
-                                                {copied === 'url' ? 'Copied!' : 'Share Link'}
-                                            </Button>
-                                            <Button
-                                                variant={copied === 'code' ? 'default' : 'outline'}
-                                                size="sm"
-                                                onClick={copyInviteCode}
-                                                title="Copy invite code"
-                                                className="w-full sm:w-auto"
-                                            >
-                                                {copied === 'code' ? <CheckCircle className="mr-1 h-4 w-4" /> : <Copy className="mr-1 h-4 w-4" />}
-                                                {copied === 'code' ? 'Copied!' : 'Code'}
-                                            </Button>
-                                        </>
-                                    )}
                                     {userRole && userRole !== 'owner' && (
                                         <Button variant="destructive" size="sm" onClick={leaveLeague} disabled={processing} className="w-full sm:w-auto">
                                             Leave
@@ -370,6 +329,17 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Invitation Link Manager - Only for owner */}
+                    {userRole === 'owner' && (
+                        <div className="mb-6">
+                            <InvitationLinkManager
+                                leagueId={league.id}
+                                leagueType="league"
+                                isOwner={userRole === 'owner'}
+                            />
+                        </div>
+                    )}
 
                     <div className="grid gap-6 lg:grid-cols-4">
                         {/* Main Content */}

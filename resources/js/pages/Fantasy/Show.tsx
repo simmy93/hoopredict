@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Trophy, Users, ShoppingCart, Share2, Copy, Check, Play, Eye, ListOrdered, Trash, UserMinus, X, Crown } from 'lucide-react'
+import { Trophy, Users, Play, Eye, Trash, UserMinus, X, Crown } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 import FantasyLeagueChat from '@/components/FantasyLeagueChat'
+import InvitationLinkManager from '@/components/InvitationLinkManager'
 
 declare global {
     interface Window {
@@ -77,7 +78,6 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
     const { props } = usePage()
     const auth = props.auth as { user: AuthUser }
 
-    const [copied, setCopied] = useState(false)
     const [startDraftDialogOpen, setStartDraftDialogOpen] = useState(false)
     const [confirmDialog, setConfirmDialog] = useState<{
         open: boolean
@@ -99,12 +99,6 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
 
     const isOwner = userTeam?.user.id === league.owner_id
     const isMember = !!userTeam
-
-    const copyInviteUrl = () => {
-        navigator.clipboard.writeText(inviteUrl)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-    }
 
     const handleStartDraft = () => {
         setStartDraftDialogOpen(true)
@@ -307,27 +301,6 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                                 </div>
                             )}
 
-                            {/* Invite URL */}
-                            <div className="mt-6 flex flex-col sm:flex-row gap-2">
-                                <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted rounded-md overflow-hidden">
-                                    <Share2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                    <code className="flex-1 text-xs sm:text-sm truncate">{inviteUrl}</code>
-                                </div>
-                                <Button variant="outline" onClick={copyInviteUrl} className="w-full sm:w-auto">
-                                    {copied ? (
-                                        <>
-                                            <Check className="h-4 w-4 mr-2" />
-                                            Copied!
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Copy className="h-4 w-4 mr-2" />
-                                            Copy
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-
                             {/* Leave/Delete League */}
                             {isMember && (
                                 <div className="mt-4 flex flex-col sm:flex-row gap-2">
@@ -359,6 +332,17 @@ export default function Show({ league: initialLeague, userTeam, leaderboard, inv
                             )}
                         </CardContent>
                     </Card>
+
+                    {/* Invitation Link Manager - Only for owner */}
+                    {isOwner && (
+                        <div className="mb-6">
+                            <InvitationLinkManager
+                                leagueId={league.id}
+                                leagueType="fantasy_league"
+                                isOwner={isOwner}
+                            />
+                        </div>
+                    )}
 
                     <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6">
                         {/* My Team */}

@@ -138,15 +138,33 @@ class FantasyLeagueController extends Controller
     public function join(Request $request)
     {
         $request->validate([
-            'invite_code' => 'required|string|min:6|max:8',
+            'invite_code' => 'required|string|min:6|max:12',
         ]);
 
-        $league = FantasyLeague::where('invite_code', strtoupper($request->invite_code))
-            ->where('is_active', true)
+        $code = $request->invite_code;
+        $league = null;
+        $invitationLink = null;
+
+        // First, try to find an invitation link with this code
+        $invitationLink = \App\Models\InvitationLink::where('code', $code)
+            ->where('invitable_type', FantasyLeague::class)
             ->first();
 
+        if ($invitationLink && $invitationLink->isValid()) {
+            $league = $invitationLink->invitable;
+        } else {
+            // Fall back to old-style league invite code
+            $league = FantasyLeague::where('invite_code', strtoupper($code))
+                ->where('is_active', true)
+                ->first();
+        }
+
         if (! $league) {
-            return back()->withErrors(['invite_code' => 'Invalid invite code.']);
+            return back()->withErrors(['invite_code' => 'Invalid or expired invite code.']);
+        }
+
+        if (! $league->is_active) {
+            return back()->withErrors(['invite_code' => 'This league is no longer active.']);
         }
 
         if ($league->isFull()) {
@@ -166,6 +184,11 @@ class FantasyLeagueController extends Controller
             'budget_remaining' => $league->budget,
             'total_points' => 0,
         ]);
+
+        // Increment uses if joined via invitation link
+        if ($invitationLink) {
+            $invitationLink->incrementUses();
+        }
 
         return redirect()->route('fantasy.leagues.show', $league)
             ->with('success', 'Successfully joined the league!');

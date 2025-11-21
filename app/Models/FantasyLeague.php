@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class FantasyLeague extends Model
 {
@@ -232,5 +233,24 @@ class FantasyLeague extends Model
     public function canUserPauseResume(User $user): bool
     {
         return $this->owner_id === $user->id;
+    }
+
+    public function invitationLinks(): MorphMany
+    {
+        return $this->morphMany(InvitationLink::class, 'invitable');
+    }
+
+    public function activeInvitationLinks(): MorphMany
+    {
+        return $this->invitationLinks()
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('max_uses')
+                    ->orWhereRaw('uses < max_uses');
+            });
     }
 }
