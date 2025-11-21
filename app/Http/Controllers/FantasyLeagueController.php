@@ -27,6 +27,14 @@ class FantasyLeagueController extends Controller
 
     public function index()
     {
+        $userId = auth()->id();
+
+        // Get IDs of leagues the user has joined
+        $joinedLeagueIds = auth()->user()
+            ->fantasyTeams()
+            ->pluck('fantasy_league_id')
+            ->toArray();
+
         $userLeagues = auth()->user()
             ->fantasyTeams()
             ->with(['fantasyLeague.owner', 'fantasyLeague.championship'])
@@ -39,8 +47,19 @@ class FantasyLeagueController extends Controller
                 return $league;
             });
 
+        // Get public leagues the user hasn't joined
+        $publicLeagues = FantasyLeague::where('is_private', false)
+            ->where('is_active', true)
+            ->whereNotIn('id', $joinedLeagueIds)
+            ->with(['owner', 'championship'])
+            ->withCount('teams')
+            ->orderByDesc('created_at')
+            ->limit(12)
+            ->get();
+
         return Inertia::render('Fantasy/Index', [
             'userLeagues' => $userLeagues,
+            'publicLeagues' => $publicLeagues,
         ]);
     }
 
@@ -287,5 +306,41 @@ class FantasyLeagueController extends Controller
 
         return redirect()->route('fantasy.leagues.index')
             ->with('success', 'League deleted successfully.');
+    }
+
+    public function joinPublic(FantasyLeague $league)
+    {
+        if ($league->is_private) {
+            return redirect()->route('fantasy.leagues.index')
+                ->withErrors(['error' => 'This is a private league. Use an invite code to join.']);
+        }
+
+        if (! $league->is_active) {
+            return redirect()->route('fantasy.leagues.index')
+                ->withErrors(['error' => 'This league is no longer active.']);
+        }
+
+        if ($league->isFull()) {
+            return redirect()->route('fantasy.leagues.index')
+                ->withErrors(['error' => 'This league is full.']);
+        }
+
+        if ($league->hasUser(auth()->user())) {
+            return redirect()->route('fantasy.leagues.show', $league)
+                ->with('info', 'You are already a member of this league.');
+        }
+
+        // Create team for the user
+        FantasyTeam::create([
+            'fantasy_league_id' => $league->id,
+            'user_id' => auth()->id(),
+            'team_name' => auth()->user()->name."'s Team",
+            'budget_spent' => 0,
+            'budget_remaining' => $league->budget,
+            'total_points' => 0,
+        ]);
+
+        return redirect()->route('fantasy.leagues.show', $league)
+            ->with('success', "Welcome to {$league->name}!");
     }
 }

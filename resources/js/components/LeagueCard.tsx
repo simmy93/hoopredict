@@ -17,11 +17,13 @@ interface LeagueCardProps {
     colorTheme?: ColorTheme
     // Optional extras
     isOwner?: boolean
+    isMember?: boolean // Set to false to show "Join" button instead of "View"
     modeBadge?: {
         label: string
         icon?: string
     }
     seasonLabel?: string
+    ownerName?: string
     children?: React.ReactNode
 }
 
@@ -77,11 +79,14 @@ export default function LeagueCard({
     href,
     colorTheme = 'purple',
     isOwner,
+    isMember = true,
     modeBadge,
     seasonLabel,
+    ownerName,
     children,
 }: LeagueCardProps) {
     const theme = themeClasses[colorTheme]
+    const isFull = memberCount >= maxMembers
 
     return (
         <Card
@@ -140,13 +145,19 @@ export default function LeagueCard({
                         </div>
                     )}
                 </div>
+                {ownerName && (
+                    <div className="text-xs text-muted-foreground mb-3">
+                        Owner: {ownerName}
+                    </div>
+                )}
                 <div className="flex gap-2">
                     <Link href={href} className="flex-1">
                         <Button
                             size="sm"
                             className={`w-full bg-gradient-to-r ${theme.gradient} text-white shadow-lg ${theme.buttonShadow} hover:shadow-xl transition-all`}
+                            disabled={!isMember && isFull}
                         >
-                            View League
+                            {isMember ? 'View League' : (isFull ? 'Full' : 'Join League')}
                         </Button>
                     </Link>
                     {children}

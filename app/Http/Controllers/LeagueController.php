@@ -17,14 +17,28 @@ class LeagueController extends Controller
 
     public function index()
     {
+        // Get IDs of leagues the user has joined
+        $joinedLeagueIds = auth()->user()->leagues()->pluck('leagues.id')->toArray();
+
         $userLeagues = auth()->user()->leagues()
             ->with(['owner', 'members'])
             ->withCount('members')
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // Get public leagues the user hasn't joined
+        $publicLeagues = League::where('is_private', false)
+            ->where('is_active', true)
+            ->whereNotIn('id', $joinedLeagueIds)
+            ->with('owner')
+            ->withCount('members')
+            ->orderByDesc('created_at')
+            ->limit(12)
+            ->get();
+
         return Inertia::render('Leagues/Index', [
             'userLeagues' => $userLeagues,
+            'publicLeagues' => $publicLeagues,
         ]);
     }
 
@@ -357,5 +371,38 @@ class LeagueController extends Controller
             ->delete();
 
         return back()->with('success', $member->name.' has been removed from the league.');
+    }
+
+    public function joinPublic(League $league)
+    {
+        if ($league->is_private) {
+            return redirect()->route('leagues.index')
+                ->withErrors(['error' => 'This is a private league. Use an invite code to join.']);
+        }
+
+        if (! $league->is_active) {
+            return redirect()->route('leagues.index')
+                ->withErrors(['error' => 'This league is no longer active.']);
+        }
+
+        if ($league->isFull()) {
+            return redirect()->route('leagues.index')
+                ->withErrors(['error' => 'This league is full.']);
+        }
+
+        if ($league->hasUser(auth()->user())) {
+            return redirect()->route('leagues.show', $league)
+                ->with('info', 'You are already a member of this league.');
+        }
+
+        LeagueMember::create([
+            'league_id' => $league->id,
+            'user_id' => auth()->id(),
+            'role' => 'member',
+            'joined_at' => now(),
+        ]);
+
+        return redirect()->route('leagues.show', $league)
+            ->with('success', "Welcome to {$league->name}!");
     }
 }

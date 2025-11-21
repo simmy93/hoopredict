@@ -32,11 +32,16 @@ interface FantasyLeague {
     teams_count?: number
 }
 
-interface Props {
-    userLeagues: FantasyLeague[]
+interface PublicLeague extends FantasyLeague {
+    teams_count: number
 }
 
-export default function Index({ userLeagues = [] }: Props) {
+interface Props {
+    userLeagues: FantasyLeague[]
+    publicLeagues: PublicLeague[]
+}
+
+export default function Index({ userLeagues = [], publicLeagues = [] }: Props) {
     // Filter out any null/undefined leagues
     const validLeagues = userLeagues.filter(Boolean)
     const [open, setOpen] = useState(false)
@@ -162,6 +167,41 @@ export default function Index({ userLeagues = [] }: Props) {
                                     seasonLabel={league.championship?.season}
                                 />
                             ))}
+                        </div>
+                    )}
+
+                    {/* Public Leagues Section */}
+                    {publicLeagues.length > 0 && (
+                        <div className="mt-12">
+                            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                                <Zap className="h-5 w-5 text-amber-500" />
+                                Browse Public Leagues
+                            </h2>
+                            <p className="text-muted-foreground mb-6">
+                                Join an existing public league and start competing!
+                            </p>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {publicLeagues.map((league) => (
+                                    <LeagueCard
+                                        key={league.id}
+                                        id={league.id}
+                                        name={league.name}
+                                        description={league.description}
+                                        isPrivate={false}
+                                        memberCount={league.teams_count}
+                                        maxMembers={league.max_members}
+                                        href={`/fantasy/leagues/${league.id}/join-public`}
+                                        colorTheme={league.mode === 'budget' ? 'emerald' : 'amber'}
+                                        isMember={false}
+                                        modeBadge={{
+                                            icon: league.mode === 'budget' ? '💰' : '🎲',
+                                            label: league.mode === 'budget' ? 'Budget' : 'Draft',
+                                        }}
+                                        seasonLabel={league.championship?.season}
+                                        ownerName={league.owner?.name}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

@@ -30,11 +30,25 @@ interface League {
     created_at: string
 }
 
-interface Props {
-    userLeagues: League[]
+interface PublicLeague {
+    id: number
+    name: string
+    description: string | null
+    is_private: boolean
+    max_members: number
+    members_count: number
+    owner: {
+        id: number
+        name: string
+    }
 }
 
-export default function Index({ userLeagues }: Props) {
+interface Props {
+    userLeagues: League[]
+    publicLeagues: PublicLeague[]
+}
+
+export default function Index({ userLeagues, publicLeagues }: Props) {
     const { props } = usePage()
     const auth = props.auth as { user: AuthUser }
     const [joinDialogOpen, setJoinDialogOpen] = useState(false)
@@ -201,6 +215,36 @@ export default function Index({ userLeagues }: Props) {
                                     isOwner={league.owner.id === auth.user.id}
                                 />
                             ))}
+                        </div>
+                    )}
+
+                    {/* Public Leagues Section */}
+                    {publicLeagues.length > 0 && (
+                        <div className="mt-12">
+                            <div className="flex items-center gap-2 mb-6">
+                                <Users className="h-6 w-6 text-emerald-500" />
+                                <h2 className="text-2xl font-bold text-foreground">Public Leagues</h2>
+                            </div>
+                            <p className="text-muted-foreground mb-6">
+                                Browse and join public prediction leagues
+                            </p>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {publicLeagues.map((league) => (
+                                    <LeagueCard
+                                        key={league.id}
+                                        id={league.id}
+                                        name={league.name}
+                                        description={league.description}
+                                        isPrivate={false}
+                                        memberCount={league.members_count}
+                                        maxMembers={league.max_members}
+                                        href={`/leagues/${league.id}/join-public`}
+                                        colorTheme="emerald"
+                                        isMember={false}
+                                        ownerName={league.owner.name}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>

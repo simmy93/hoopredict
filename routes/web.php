@@ -92,6 +92,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('leagues', LeagueController::class)->except(['edit', 'update']);
     Route::post('/leagues/join', [LeagueController::class, 'join'])->name('leagues.join');
     Route::get('/leagues/join/{inviteCode}', [LeagueController::class, 'joinByUrl'])->name('leagues.join.url');
+    Route::get('/leagues/{league}/join-public', [LeagueController::class, 'joinPublic'])->name('leagues.join.public');
     Route::get('/leagues/{league}/users/{user}/predictions', [LeagueController::class, 'userPredictions'])->name('leagues.user.predictions');
     Route::get('/leagues/{league}/games/{game}/predictions', [LeagueController::class, 'gamePredictions'])->name('leagues.game.predictions');
     Route::delete('/leagues/{league}/leave', [LeagueController::class, 'leave'])->name('leagues.leave');
@@ -113,6 +114,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/leagues/{league}', [FantasyLeagueController::class, 'show'])->name('leagues.show');
         Route::post('/leagues/join', [FantasyLeagueController::class, 'join'])->name('leagues.join');
         Route::get('/leagues/join/{inviteCode}', [FantasyLeagueController::class, 'joinByUrl'])->name('leagues.join.url');
+        Route::get('/leagues/{league}/join-public', [FantasyLeagueController::class, 'joinPublic'])->name('leagues.join.public');
         Route::delete('/leagues/{league}/leave', [FantasyLeagueController::class, 'leave'])->name('leagues.leave');
         Route::delete('/leagues/{league}/members/{member}/kick', [FantasyLeagueController::class, 'kick'])->name('leagues.members.kick');
         Route::delete('/leagues/{league}', [FantasyLeagueController::class, 'destroy'])->name('leagues.destroy');
