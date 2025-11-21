@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { Award, DollarSign, Medal, Target, TrendingUp, Trophy } from 'lucide-react';
+import { Award, DollarSign, Medal, Target, TrendingUp, Trophy, Flame, Home, Plane, Snowflake } from 'lucide-react';
 import StatsDetailModal from '@/components/StatsDetailModal';
 import axios from 'axios';
 
@@ -43,6 +44,40 @@ interface Player {
     photo_headshot_url: string | null;
 }
 
+interface TeamStat {
+    id: number;
+    name: string;
+    code: string;
+    logo_url: string | null;
+    wins: number;
+    losses: number;
+    games_played: number;
+    win_pct: number;
+    points_for: number;
+    points_against: number;
+    point_diff: number;
+    avg_points_for: number;
+    avg_points_against: number;
+    home_record: string;
+    away_record: string;
+    home_wins: number;
+    home_losses: number;
+    away_wins: number;
+    away_losses: number;
+    form: string[];
+    streak: number;
+    streak_count: number;
+    streak_type: string;
+}
+
+interface TeamStatistics {
+    standings: TeamStat[];
+    hottestTeams: TeamStat[];
+    coldestTeams: TeamStat[];
+    bestHomeTeams: TeamStat[];
+    bestAwayTeams: TeamStat[];
+}
+
 interface Props {
     selectedRound: string | number;
     availableRounds: number[];
@@ -52,6 +87,7 @@ interface Props {
     topPlayers: Player[];
     bestValuePlayers: Player[];
     championship: any;
+    teamStatistics: TeamStatistics;
 }
 
 export default function Index({
@@ -62,6 +98,7 @@ export default function Index({
     predictionLeaders,
     topPlayers,
     bestValuePlayers,
+    teamStatistics,
 }: Props) {
     const [modalOpen, setModalOpen] = useState(false);
     const [modalType, setModalType] = useState<'player' | null>(null);
@@ -129,7 +166,7 @@ export default function Index({
 
                     {/* Tabs for Different Categories */}
                     <Tabs defaultValue="fantasy-budget" className="space-y-6">
-                        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 lg:grid-cols-5">
+                        <TabsList className="grid h-auto w-full grid-cols-2 gap-2 lg:grid-cols-6">
                             <TabsTrigger value="fantasy-budget" className="py-3 text-xs sm:text-sm">
                                 <DollarSign className="mr-1 h-4 w-4 flex-shrink-0 sm:mr-2" />
                                 <span className="truncate">Budget Mode</span>
@@ -149,6 +186,10 @@ export default function Index({
                             <TabsTrigger value="best-value" className="py-3 text-xs sm:text-sm">
                                 <TrendingUp className="mr-1 h-4 w-4 flex-shrink-0 sm:mr-2" />
                                 <span className="truncate">Best Value</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="team-stats" className="py-3 text-xs sm:text-sm">
+                                <Flame className="mr-1 h-4 w-4 flex-shrink-0 sm:mr-2" />
+                                <span className="truncate">Team Stats</span>
                             </TabsTrigger>
                         </TabsList>
 
@@ -499,6 +540,183 @@ export default function Index({
                                     )}
                                 </CardContent>
                             </Card>
+                        </TabsContent>
+
+                        {/* Team Statistics */}
+                        <TabsContent value="team-stats">
+                            <div className="grid gap-6 lg:grid-cols-2">
+                                {/* Hottest Teams */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Flame className="h-5 w-5 text-orange-500" />
+                                            Hottest Teams
+                                        </CardTitle>
+                                        <CardDescription>Teams on winning streaks</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {teamStatistics.hottestTeams.length === 0 ? (
+                                            <p className="py-8 text-center text-muted-foreground">No teams on winning streaks</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {teamStatistics.hottestTeams.map((team, index) => (
+                                                    <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 font-bold dark:bg-orange-900/30">
+                                                                {index + 1}
+                                                            </div>
+                                                            {team.logo_url && (
+                                                                <img src={team.logo_url} alt={team.name} className="h-8 w-8 object-contain" />
+                                                            )}
+                                                            <div>
+                                                                <div className="font-semibold">{team.name}</div>
+                                                                <div className="text-sm text-muted-foreground">{team.wins}-{team.losses}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="min-w-[85px] text-right">
+                                                            <Badge className="bg-green-500 text-white">
+                                                                {team.streak_count}W Streak
+                                                            </Badge>
+                                                            <div className="mt-1 flex gap-0.5 justify-end">
+                                                                {team.form.map((result, i) => (
+                                                                    <span key={i} className={`text-xs font-bold ${result === 'W' ? 'text-green-500' : 'text-red-500'}`}>
+                                                                        {result}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Coldest Teams */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Snowflake className="h-5 w-5 text-blue-500" />
+                                            Coldest Teams
+                                        </CardTitle>
+                                        <CardDescription>Teams on losing streaks</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {teamStatistics.coldestTeams.length === 0 ? (
+                                            <p className="py-8 text-center text-muted-foreground">No teams on losing streaks</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {teamStatistics.coldestTeams.map((team, index) => (
+                                                    <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold dark:bg-blue-900/30">
+                                                                {index + 1}
+                                                            </div>
+                                                            {team.logo_url && (
+                                                                <img src={team.logo_url} alt={team.name} className="h-8 w-8 object-contain" />
+                                                            )}
+                                                            <div>
+                                                                <div className="font-semibold">{team.name}</div>
+                                                                <div className="text-sm text-muted-foreground">{team.wins}-{team.losses}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="min-w-[85px] text-right">
+                                                            <Badge className="bg-red-500 text-white">
+                                                                {team.streak_count}L Streak
+                                                            </Badge>
+                                                            <div className="mt-1 flex gap-0.5 justify-end">
+                                                                {team.form.map((result, i) => (
+                                                                    <span key={i} className={`text-xs font-bold ${result === 'W' ? 'text-green-500' : 'text-red-500'}`}>
+                                                                        {result}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Best Home Teams */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Home className="h-5 w-5 text-green-500" />
+                                            Best Home Teams
+                                        </CardTitle>
+                                        <CardDescription>Strongest at home</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {teamStatistics.bestHomeTeams.length === 0 ? (
+                                            <p className="py-8 text-center text-muted-foreground">Not enough data</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {teamStatistics.bestHomeTeams.map((team, index) => (
+                                                    <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600 font-bold dark:bg-green-900/30">
+                                                                {index + 1}
+                                                            </div>
+                                                            {team.logo_url && (
+                                                                <img src={team.logo_url} alt={team.name} className="h-8 w-8 object-contain" />
+                                                            )}
+                                                            <div>
+                                                                <div className="font-semibold">{team.name}</div>
+                                                                <div className="text-sm text-muted-foreground">Overall: {team.wins}-{team.losses}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="min-w-[85px] text-right">
+                                                            <div className="font-bold text-green-600">{team.home_record}</div>
+                                                            <div className="text-xs text-muted-foreground">Home Record</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Best Away Teams */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Plane className="h-5 w-5 text-purple-500" />
+                                            Best Road Teams
+                                        </CardTitle>
+                                        <CardDescription>Strongest on the road</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {teamStatistics.bestAwayTeams.length === 0 ? (
+                                            <p className="py-8 text-center text-muted-foreground">Not enough data</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {teamStatistics.bestAwayTeams.map((team, index) => (
+                                                    <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold dark:bg-purple-900/30">
+                                                                {index + 1}
+                                                            </div>
+                                                            {team.logo_url && (
+                                                                <img src={team.logo_url} alt={team.name} className="h-8 w-8 object-contain" />
+                                                            )}
+                                                            <div>
+                                                                <div className="font-semibold">{team.name}</div>
+                                                                <div className="text-sm text-muted-foreground">Overall: {team.wins}-{team.losses}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="min-w-[85px] text-right">
+                                                            <div className="font-bold text-purple-600">{team.away_record}</div>
+                                                            <div className="text-xs text-muted-foreground">Away Record</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </TabsContent>
                     </Tabs>
                 </div>

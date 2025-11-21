@@ -7,6 +7,7 @@ use App\Models\FantasyTeamRoundPoints;
 use App\Models\Player;
 use App\Models\Game;
 use App\Models\Championship;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,9 @@ class StatisticsController extends Controller
         $topPlayers = $this->getTopPlayers($selectedRound);
         $bestValuePlayers = $this->getBestValuePlayers($selectedRound);
 
+        // Real Team Statistics (EuroLeague teams)
+        $teamStatistics = $this->getTeamStatistics($championship);
+
         return Inertia::render('Statistics/Index', [
             'selectedRound' => $selectedRound,
             'availableRounds' => $availableRounds,
@@ -46,6 +50,7 @@ class StatisticsController extends Controller
             'topPlayers' => $topPlayers,
             'bestValuePlayers' => $bestValuePlayers,
             'championship' => $championship,
+            'teamStatistics' => $teamStatistics,
         ]);
     }
 
@@ -412,5 +417,186 @@ class StatisticsController extends Controller
         }
 
         return 0.5; // Bench gets 50%
+    }
+
+    /**
+     * Get real team statistics (EuroLeague teams)
+     */
+    private function getTeamStatistics($championship)
+    {
+        if (!$championship) {
+            return [
+                'standings' => [],
+                'hottestTeams' => [],
+                'coldestTeams' => [],
+                'bestHomeTeams' => [],
+                'bestAwayTeams' => [],
+            ];
+        }
+
+        $teams = Team::where('championship_id', $championship->id)->get();
+        $teamStats = [];
+
+        foreach ($teams as $team) {
+            // Get all finished games for this team
+            $homeGames = Game::where('championship_id', $championship->id)
+                ->where('home_team_id', $team->id)
+                ->where('status', 'finished')
+                ->orderBy('scheduled_at', 'desc')
+                ->get();
+
+            $awayGames = Game::where('championship_id', $championship->id)
+                ->where('away_team_id', $team->id)
+                ->where('status', 'finished')
+                ->orderBy('scheduled_at', 'desc')
+                ->get();
+
+            // Calculate home record
+            $homeWins = $homeGames->filter(fn($g) => $g->home_score > $g->away_score)->count();
+            $homeLosses = $homeGames->count() - $homeWins;
+            $homePointsFor = $homeGames->sum('home_score');
+            $homePointsAgainst = $homeGames->sum('away_score');
+
+            // Calculate away record
+            $awayWins = $awayGames->filter(fn($g) => $g->away_score > $g->home_score)->count();
+            $awayLosses = $awayGames->count() - $awayWins;
+            $awayPointsFor = $awayGames->sum('away_score');
+            $awayPointsAgainst = $awayGames->sum('home_score');
+
+            // Overall stats
+            $totalWins = $homeWins + $awayWins;
+            $totalLosses = $homeLosses + $awayLosses;
+            $totalGames = $totalWins + $totalLosses;
+            $totalPointsFor = $homePointsFor + $awayPointsFor;
+            $totalPointsAgainst = $homePointsAgainst + $awayPointsAgainst;
+
+            // Get last 5 games for form
+            $allGames = Game::where('championship_id', $championship->id)
+                ->where('status', 'finished')
+                ->where(function ($q) use ($team) {
+                    $q->where('home_team_id', $team->id)
+                      ->orWhere('away_team_id', $team->id);
+                })
+                ->orderBy('scheduled_at', 'desc')
+                ->take(5)
+                ->get();
+
+            $form = $allGames->map(function ($game) use ($team) {
+                $isHome = $game->home_team_id === $team->id;
+                $won = $isHome
+                    ? $game->home_score > $game->away_score
+                    : $game->away_score > $game->home_score;
+                return $won ? 'W' : 'L';
+            })->reverse()->values()->toArray();
+
+            // Calculate current streak
+            $streak = $this->calculateStreak($allGames, $team->id);
+
+            $teamStats[] = [
+                'id' => $team->id,
+                'name' => $team->name,
+                'code' => $team->code,
+                'logo_url' => $team->logo_url,
+                'wins' => $totalWins,
+                'losses' => $totalLosses,
+                'games_played' => $totalGames,
+                'win_pct' => $totalGames > 0 ? round($totalWins / $totalGames * 100, 1) : 0,
+                'points_for' => $totalPointsFor,
+                'points_against' => $totalPointsAgainst,
+                'point_diff' => $totalPointsFor - $totalPointsAgainst,
+                'avg_points_for' => $totalGames > 0 ? round($totalPointsFor / $totalGames, 1) : 0,
+                'avg_points_against' => $totalGames > 0 ? round($totalPointsAgainst / $totalGames, 1) : 0,
+                'home_record' => "{$homeWins}-{$homeLosses}",
+                'away_record' => "{$awayWins}-{$awayLosses}",
+                'home_wins' => $homeWins,
+                'home_losses' => $homeLosses,
+                'away_wins' => $awayWins,
+                'away_losses' => $awayLosses,
+                'form' => $form,
+                'streak' => $streak,
+                'streak_count' => abs($streak),
+                'streak_type' => $streak > 0 ? 'W' : ($streak < 0 ? 'L' : '-'),
+            ];
+        }
+
+        // Sort by wins (standings)
+        $standings = collect($teamStats)->sortByDesc(function ($team) {
+            return [$team['wins'], $team['point_diff']];
+        })->values();
+
+        // Hottest teams (best current streak)
+        $hottestTeams = collect($teamStats)
+            ->filter(fn($t) => $t['streak'] > 0)
+            ->sortByDesc('streak')
+            ->take(5)
+            ->values();
+
+        // Coldest teams (worst current streak)
+        $coldestTeams = collect($teamStats)
+            ->filter(fn($t) => $t['streak'] < 0)
+            ->sortBy('streak')
+            ->take(5)
+            ->values();
+
+        // Best home teams
+        $bestHomeTeams = collect($teamStats)
+            ->filter(fn($t) => ($t['home_wins'] + $t['home_losses']) >= 3)
+            ->sortByDesc(function ($t) {
+                $homeGames = $t['home_wins'] + $t['home_losses'];
+                return $homeGames > 0 ? $t['home_wins'] / $homeGames : 0;
+            })
+            ->take(5)
+            ->values();
+
+        // Best away teams
+        $bestAwayTeams = collect($teamStats)
+            ->filter(fn($t) => ($t['away_wins'] + $t['away_losses']) >= 3)
+            ->sortByDesc(function ($t) {
+                $awayGames = $t['away_wins'] + $t['away_losses'];
+                return $awayGames > 0 ? $t['away_wins'] / $awayGames : 0;
+            })
+            ->take(5)
+            ->values();
+
+        return [
+            'standings' => $standings,
+            'hottestTeams' => $hottestTeams,
+            'coldestTeams' => $coldestTeams,
+            'bestHomeTeams' => $bestHomeTeams,
+            'bestAwayTeams' => $bestAwayTeams,
+        ];
+    }
+
+    /**
+     * Calculate current winning/losing streak
+     * Returns positive number for win streak, negative for loss streak
+     */
+    private function calculateStreak($games, $teamId)
+    {
+        if ($games->isEmpty()) {
+            return 0;
+        }
+
+        $streak = 0;
+        $firstResult = null;
+
+        foreach ($games as $game) {
+            $isHome = $game->home_team_id === $teamId;
+            $won = $isHome
+                ? $game->home_score > $game->away_score
+                : $game->away_score > $game->home_score;
+
+            if ($firstResult === null) {
+                $firstResult = $won;
+            }
+
+            if ($won === $firstResult) {
+                $streak++;
+            } else {
+                break;
+            }
+        }
+
+        return $firstResult ? $streak : -$streak;
     }
 }
