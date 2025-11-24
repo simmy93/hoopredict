@@ -10,7 +10,8 @@ import InvitationLinkManager from '@/components/InvitationLinkManager';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Calendar, CheckCircle, Clock, Crown, MapPin, Star, Trophy, Users, X, XCircle } from 'lucide-react';
 import React, { useState } from 'react';
-import ConfirmDialog from '@/components/ConfirmDialog';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { useLeagueActions } from '@/hooks/useLeagueActions';
 
 interface User {
     id: number;
@@ -76,6 +77,7 @@ interface League {
     invite_code: string;
     max_members: number;
     is_active: boolean;
+    owner_id: number;
     owner: User;
     members: LeagueMember[];
     leaderboards?: LeaderboardEntry[];
@@ -100,23 +102,17 @@ interface Props {
 }
 
 export default function Show({ league, userRole, members, leaderboard, games, existingPredictions, inviteUrl }: Props) {
-    const { delete: destroy, processing, post, errors } = useForm();
+    const { processing, post, errors } = useForm();
     const [gameInputs, setGameInputs] = useState<Record<number, { home: string; away: string }>>({});
     const [processingGames, setProcessingGames] = useState<Set<number>>(new Set());
     const [feedbackMessages, setFeedbackMessages] = useState<Record<number, { type: 'success' | 'error'; message: string }>>({});
-    const [confirmDialog, setConfirmDialog] = useState<{
-        open: boolean;
-        title: string;
-        description: string;
-        onConfirm: () => void;
-        variant?: 'default' | 'destructive';
-    }>({
-        open: false,
-        title: '',
-        description: '',
-        onConfirm: () => {},
-        variant: 'default'
-    });
+
+    // Use confirmation dialog hook
+    const { showConfirm, ConfirmDialog } = useConfirmDialog();
+
+    // Use league actions hook
+    const isOwner = userRole === 'owner';
+    const leagueActions = useLeagueActions(league, isOwner);
 
     const showFeedback = (gameId: number, type: 'success' | 'error', message: string) => {
         setFeedbackMessages((prev) => ({ ...prev, [gameId]: { type, message } }));
@@ -133,38 +129,32 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
     };
 
     const leaveLeague = () => {
-        setConfirmDialog({
-            open: true,
+        showConfirm({
             title: 'Leave League',
             description: `Are you sure you want to leave "${league.name}"? You can rejoin later if the league is still active.`,
             variant: 'destructive',
-            onConfirm: () => {
-                destroy(`/leagues/${league.id}/leave`);
-            }
+            confirmLabel: 'Leave League',
+            onConfirm: () => leagueActions.leaveLeague(),
         });
     };
 
     const deleteLeague = () => {
-        setConfirmDialog({
-            open: true,
+        showConfirm({
             title: 'Delete League',
             description: `Are you sure you want to delete "${league.name}"? This action cannot be undone and will remove all predictions and data.`,
             variant: 'destructive',
-            onConfirm: () => {
-                destroy(`/leagues/${league.id}`);
-            }
+            confirmLabel: 'Delete League',
+            onConfirm: () => leagueActions.deleteLeague(),
         });
     };
 
     const kickMember = (userId: number, memberName: string) => {
-        setConfirmDialog({
-            open: true,
+        showConfirm({
             title: 'Kick Member',
             description: `Are you sure you want to kick ${memberName} out of the league? This action cannot be undone.`,
             variant: 'destructive',
-            onConfirm: () => {
-                destroy(`/leagues/${league.id}/members/${userId}/kick`);
-            }
+            confirmLabel: 'Kick Member',
+            onConfirm: () => leagueActions.kickMember(userId, memberName),
         });
     };
 
@@ -691,15 +681,8 @@ export default function Show({ league, userRole, members, leaderboard, games, ex
                 </div>
             </div>
 
-            <ConfirmDialog
-                open={confirmDialog.open}
-                onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, open }))}
-                title={confirmDialog.title}
-                description={confirmDialog.description}
-                variant={confirmDialog.variant}
-                onConfirm={confirmDialog.onConfirm}
-                confirmText={confirmDialog.variant === 'destructive' ? 'Remove' : 'Confirm'}
-            />
+            {/* Confirmation Dialog for Leave/Delete/Kick */}
+            <ConfirmDialog />
         </AuthenticatedLayout>
     );
 }

@@ -43,14 +43,6 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    // Add a test route for shadcn login
-    Route::get('login-shadcn', function () {
-        return Inertia::render('Auth/LoginShadcn', [
-            'canResetPassword' => Route::has('password.request'),
-            'status' => session('status'),
-        ]);
-    })->name('login.shadcn');
-
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
@@ -165,6 +157,3 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('players/bulk-update', [AdminPlayerController::class, 'bulkUpdatePrices'])->name('players.bulkUpdate');
     Route::post('players/reset-prices', [AdminPlayerController::class, 'resetPrices'])->name('players.resetPrices');
 });
-
-
-Route::get('/debug-lineup', [App\Http\Controllers\DebugController::class, 'lineupDebug']);

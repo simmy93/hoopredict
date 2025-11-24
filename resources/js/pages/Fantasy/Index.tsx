@@ -1,13 +1,11 @@
 import React, { useState } from 'react'
-import { Head, Link, useForm } from '@inertiajs/react'
+import { Head, Link } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Plus, LogIn, Zap, Trophy } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
 import LeagueCard from '@/components/LeagueCard'
+import JoinLeagueDialog from '@/components/JoinLeagueDialog'
 
 interface Championship {
     id: number
@@ -44,20 +42,7 @@ interface Props {
 export default function Index({ userLeagues = [], publicLeagues = [] }: Props) {
     // Filter out any null/undefined leagues
     const validLeagues = userLeagues.filter(Boolean)
-    const [open, setOpen] = useState(false)
-    const { data, setData, post, processing, errors, reset } = useForm({
-        invite_code: '',
-    })
-
-    const handleJoin = (e: React.FormEvent) => {
-        e.preventDefault()
-        post('/fantasy/leagues/join', {
-            onSuccess: () => {
-                reset()
-                setOpen(false)
-            },
-        })
-    }
+    const [joinDialogOpen, setJoinDialogOpen] = useState(false)
 
     return (
         <AuthenticatedLayout>
@@ -76,51 +61,20 @@ export default function Index({ userLeagues = [], publicLeagues = [] }: Props) {
                             </p>
                         </div>
                         <div className="flex gap-2">
-                            <Dialog open={open} onOpenChange={setOpen}>
-                                <DialogTrigger asChild>
+                            <JoinLeagueDialog
+                                open={joinDialogOpen}
+                                onOpenChange={setJoinDialogOpen}
+                                leagueType="fantasy"
+                                title="Join Fantasy League"
+                                description="Enter the invite code to join an existing league"
+                                trigger={
                                     <Button variant="outline" className="flex items-center justify-center gap-2 flex-1 sm:flex-initial">
                                         <LogIn className="h-4 w-4" />
                                         <span className="hidden sm:inline">Join League</span>
                                         <span className="sm:hidden">Join</span>
                                     </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Join Fantasy League</DialogTitle>
-                                        <DialogDescription>
-                                            Enter the invite code to join an existing league
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <form onSubmit={handleJoin} className="space-y-4">
-                                        <div>
-                                            <Label htmlFor="invite_code">Invite Code</Label>
-                                            <Input
-                                                id="invite_code"
-                                                value={data.invite_code}
-                                                onChange={(e) => setData('invite_code', e.target.value)}
-                                                placeholder="Enter invite code"
-                                                maxLength={12}
-                                            />
-                                            {errors.invite_code && (
-                                                <p className="text-sm text-red-600 mt-1">{errors.invite_code}</p>
-                                            )}
-                                        </div>
-                                        <div className="flex gap-2 justify-end">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => setOpen(false)}
-                                                disabled={processing}
-                                            >
-                                                Cancel
-                                            </Button>
-                                            <Button type="submit" disabled={processing}>
-                                                {processing ? 'Joining...' : 'Join League'}
-                                            </Button>
-                                        </div>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
+                                }
+                            />
                             <Link href="/fantasy/leagues/create" className="flex-1 sm:flex-initial">
                                 <Button className="flex items-center justify-center gap-2 w-full">
                                     <Plus className="h-4 w-4" />
@@ -143,7 +97,14 @@ export default function Index({ userLeagues = [], publicLeagues = [] }: Props) {
                                     <Link href="/fantasy/leagues/create">
                                         <Button>Create League</Button>
                                     </Link>
-                                    <Button variant="outline" onClick={() => setOpen(true)}>Join League</Button>
+                                    <JoinLeagueDialog
+                                        open={joinDialogOpen}
+                                        onOpenChange={setJoinDialogOpen}
+                                        leagueType="fantasy"
+                                        title="Join Fantasy League"
+                                        description="Enter the invite code to join an existing league"
+                                        trigger={<Button variant="outline">Join League</Button>}
+                                    />
                                 </div>
                             </CardContent>
                         </Card>
