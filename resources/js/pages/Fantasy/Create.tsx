@@ -249,15 +249,12 @@ export default function Create({ championships, userCreatedLeaguesCount }: Props
                                             Draft Configuration
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="draft_date">Draft Date & Time</Label>
                                             <DateTimePicker
                                                 value={data.draft_date}
                                                 onChange={(date) => {
                                                     // Convert to ISO string format for Laravel
                                                     setData('draft_date', date ? date.toISOString().slice(0, 16) : '');
                                                 }}
-                                                placeholder="Select draft date and time"
-                                                className={errors.draft_date ? 'border-red-500' : ''}
                                             />
                                             {errors.draft_date && <p className="text-sm text-red-600">{errors.draft_date}</p>}
                                         </div>

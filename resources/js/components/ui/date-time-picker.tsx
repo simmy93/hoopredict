@@ -1,96 +1,91 @@
-import * as React from 'react';
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import * as React from "react"
+import { ChevronDownIcon } from "lucide-react"
 
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface DateTimePickerProps {
     value?: Date | string;
     onChange?: (date: Date | undefined) => void;
-    placeholder?: string;
-    className?: string;
 }
 
-export function DateTimePicker({ value, onChange, placeholder = 'Pick a date and time', className }: DateTimePickerProps) {
-    const [date, setDate] = React.useState<Date | undefined>(value ? new Date(value) : undefined);
-    const [timeValue, setTimeValue] = React.useState<string>(
-        value ? format(new Date(value), 'HH:mm') : '12:00'
-    );
+export function DateTimePicker({ value, onChange }: DateTimePickerProps) {
+  const [open, setOpen] = React.useState(false)
+  const [date, setDate] = React.useState<Date | undefined>(value ? new Date(value) : undefined)
+  const [time, setTime] = React.useState<string>("10:30:00")
 
-    // Get today's date at midnight for comparison
-    const today = React.useMemo(() => {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        return now;
-    }, []);
+  const handleDateSelect = (selectedDate: Date | undefined) => {
+    setDate(selectedDate)
+    setOpen(false)
 
-    React.useEffect(() => {
-        if (value) {
-            const newDate = new Date(value);
-            setDate(newDate);
-            setTimeValue(format(newDate, 'HH:mm'));
-        }
-    }, [value]);
+    if (selectedDate && time) {
+      const [hours, minutes] = time.split(':')
+      selectedDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+      onChange?.(selectedDate)
+    } else {
+      onChange?.(selectedDate)
+    }
+  }
 
-    const handleDateSelect = (selectedDate: Date | undefined) => {
-        if (!selectedDate) {
-            setDate(undefined);
-            onChange?.(undefined);
-            return;
-        }
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = e.target.value
+    setTime(newTime)
 
-        // Preserve the time when selecting a new date
-        const [hours, minutes] = timeValue.split(':').map(Number);
-        selectedDate.setHours(hours, minutes);
-        setDate(selectedDate);
-        onChange?.(selectedDate);
-    };
+    if (date && newTime) {
+      const [hours, minutes] = newTime.split(':')
+      const newDate = new Date(date)
+      newDate.setHours(parseInt(hours), parseInt(minutes), 0, 0)
+      onChange?.(newDate)
+    }
+  }
 
-    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newTime = e.target.value;
-        setTimeValue(newTime);
-
-        if (!date) return;
-
-        const [hours, minutes] = newTime.split(':').map(Number);
-        const newDate = new Date(date);
-        newDate.setHours(hours, minutes);
-        setDate(newDate);
-        onChange?.(newDate);
-    };
-
-    return (
-        <div className={cn('flex gap-2', className)}>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={'outline'}
-                        className={cn('flex-1 justify-start text-left font-normal', !date && 'text-muted-foreground')}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, 'PPP') : <span>{placeholder}</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={handleDateSelect}
-                        disabled={(date) => date < today}
-                        defaultMonth={date || new Date()}
-                    />
-                </PopoverContent>
-            </Popover>
-            <Input
-                type="time"
-                value={timeValue}
-                onChange={handleTimeChange}
-                className="w-[130px] [color-scheme:light] dark:[color-scheme:dark]"
+  return (
+    <div className="flex gap-4">
+      <div className="flex flex-col gap-3">
+        <Label htmlFor="date" className="px-1">
+          Date
+        </Label>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              id="date"
+              className="w-32 justify-between font-normal"
+            >
+              {date ? date.toLocaleDateString() : "Select date"}
+              <ChevronDownIcon />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              captionLayout="dropdown"
+              onSelect={handleDateSelect}
             />
-        </div>
-    );
+          </PopoverContent>
+        </Popover>
+      </div>
+      <div className="flex flex-col gap-3">
+        <Label htmlFor="time" className="px-1">
+          Time
+        </Label>
+        <Input
+          type="time"
+          id="time"
+          step="1"
+          value={time}
+          onChange={handleTimeChange}
+          className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+        />
+      </div>
+    </div>
+  )
 }
