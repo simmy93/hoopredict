@@ -16,7 +16,7 @@ class LeagueMemberController extends Controller
      */
     public function index(Request $request)
     {
-        $query = LeagueMember::with(['league', 'user']);
+        $query = LeagueMember::with(['league', 'user:id,name']);
 
         if ($request->has('league_id')) {
             $query->where('league_id', $request->league_id);
@@ -87,7 +87,7 @@ class LeagueMemberController extends Controller
      */
     public function show(LeagueMember $leagueMember)
     {
-        $leagueMember->load(['league', 'user']);
+        $leagueMember->load(['league', 'user:id,name']);
 
         return Inertia::render('Admin/LeagueMembers/Show', [
             'member' => $leagueMember,
@@ -99,7 +99,7 @@ class LeagueMemberController extends Controller
      */
     public function edit(LeagueMember $leagueMember)
     {
-        $leagueMember->load(['league', 'user']);
+        $leagueMember->load(['league', 'user:id,name']);
         $leagues = League::select('id', 'name')->get();
         $users = User::select('id', 'name', 'email')->get();
 

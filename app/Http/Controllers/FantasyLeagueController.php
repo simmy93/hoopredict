@@ -37,7 +37,7 @@ class FantasyLeagueController extends Controller
 
         $userLeagues = auth()->user()
             ->fantasyTeams()
-            ->with(['fantasyLeague.owner', 'fantasyLeague.championship'])
+            ->with(['fantasyLeague.owner:id,name', 'fantasyLeague.championship'])
             ->get()
             ->map(fn ($team) => $team->fantasyLeague)
             ->unique('id')
@@ -51,7 +51,7 @@ class FantasyLeagueController extends Controller
         $publicLeagues = FantasyLeague::where('is_private', false)
             ->where('is_active', true)
             ->whereNotIn('id', $joinedLeagueIds)
-            ->with(['owner', 'championship'])
+            ->with(['owner:id,name', 'championship'])
             ->withCount('teams')
             ->orderByDesc('created_at')
             ->limit(12)
@@ -132,17 +132,17 @@ class FantasyLeagueController extends Controller
         }
 
         $league->load([
-            'owner',
+            'owner:id,name',
             'championship',
-            'teams.user',
+            'teams.user:id,name',
             'teams.players',
         ]);
 
-        $userTeam = $league->teams()->with('user')->where('user_id', auth()->id())->first();
+        $userTeam = $league->teams()->with('user:id,name')->where('user_id', auth()->id())->first();
 
         // Get leaderboard
         $leaderboard = $league->teams()
-            ->with('user')
+            ->with('user:id,name')
             ->orderBy('total_points', 'desc')
             ->get();
 
@@ -150,7 +150,7 @@ class FantasyLeagueController extends Controller
             'league' => $league,
             'userTeam' => $userTeam,
             'leaderboard' => $leaderboard,
-            'inviteUrl' => $league->getInviteUrl(),
+            'inviteUrl' => $league->owner_id === auth()->id() ? $league->getInviteUrl() : null,
         ]);
     }
 

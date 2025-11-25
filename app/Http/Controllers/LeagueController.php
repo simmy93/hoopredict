@@ -21,7 +21,7 @@ class LeagueController extends Controller
         $joinedLeagueIds = auth()->user()->leagues()->pluck('leagues.id')->toArray();
 
         $userLeagues = auth()->user()->leagues()
-            ->with(['owner', 'members'])
+            ->with(['owner:id,name', 'members'])
             ->withCount('members')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -30,7 +30,7 @@ class LeagueController extends Controller
         $publicLeagues = League::where('is_private', false)
             ->where('is_active', true)
             ->whereNotIn('id', $joinedLeagueIds)
-            ->with('owner')
+            ->with('owner:id,name')
             ->withCount('members')
             ->orderByDesc('created_at')
             ->limit(12)
@@ -92,9 +92,9 @@ class LeagueController extends Controller
         $this->authorize('view', $league);
 
         $league->load([
-            'members.user',
-            'owner',
-            'leaderboards.user',
+            'members.user:id,name',
+            'owner:id,name',
+            'leaderboards.user:id,name',
         ]);
 
         $userRole = $league->getUserRole(auth()->user());
@@ -140,10 +140,10 @@ class LeagueController extends Controller
             'league' => $league,
             'userRole' => $userRole,
             'members' => $league->members,
-            'leaderboard' => $league->leaderboards()->with('user')->orderBy('total_points', 'desc')->get(),
+            'leaderboard' => $league->leaderboards()->with('user:id,name')->orderBy('total_points', 'desc')->get(),
             'games' => $games,
             'existingPredictions' => $existingPredictions,
-            'inviteUrl' => $league->getInviteUrl(),
+            'inviteUrl' => $league->owner_id === auth()->id() ? $league->getInviteUrl() : null,
         ]);
     }
 
@@ -307,7 +307,7 @@ class LeagueController extends Controller
             in_array($game->status, ['finished', 'completed', 'live']);
 
         // Get all league members
-        $leagueMembers = $league->members()->with('user')->get();
+        $leagueMembers = $league->members()->with('user:id,name')->get();
 
         $predictions = collect();
 

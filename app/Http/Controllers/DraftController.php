@@ -30,7 +30,7 @@ class DraftController extends Controller
 
         // Get all teams ordered by draft order
         $teams = $league->teams()
-            ->with('user')
+            ->with('user:id,name')
             ->orderBy('draft_order')
             ->get();
 
@@ -47,7 +47,7 @@ class DraftController extends Controller
 
         // Get all draft picks (after potential auto-pick)
         $draftPicks = $league->draftPicks()
-            ->with(['team.user', 'player'])
+            ->with(['team.user:id,name', 'player'])
             ->orderBy('pick_number')
             ->get();
 
@@ -489,7 +489,7 @@ class DraftController extends Controller
         }
 
         $draftActions = $league->draftActions()
-            ->with(['user', 'fantasyTeam.user', 'player'])
+            ->with(['user:id,name', 'fantasyTeam.user:id,name', 'player'])
             ->orderBy('action_at', 'desc')
             ->get()
             ->map(function ($action) {
