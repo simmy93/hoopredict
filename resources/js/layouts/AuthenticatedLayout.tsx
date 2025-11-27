@@ -100,7 +100,7 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
                         {/* Navigation Items */}
                         <div className="flex items-center space-x-3">
                             {/* Desktop Navigation */}
-                            <nav className="hidden md:flex space-x-1">
+                            <nav className="hidden lg:flex space-x-1">
                                 {navItems.map((item) => {
                                     const isActive = currentPath === item.href || currentPath.startsWith(item.href + '/');
                                     const Icon = item.icon;
@@ -130,12 +130,12 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
                                 })}
                             </nav>
 
-                            <div className="hidden md:block h-6 w-px bg-slate-300 dark:bg-slate-700"></div>
+                            <div className="hidden lg:block h-6 w-px bg-slate-300 dark:bg-slate-700"></div>
 
                             <ThemeToggle />
 
                             {/* Desktop User Menu */}
-                            <div className="hidden md:flex items-center space-x-3">
+                            <div className="hidden lg:flex items-center space-x-3">
                                 <div className="hidden sm:block text-right">
                                     <div className="text-sm font-medium text-slate-900 dark:text-white">{auth.user.name}</div>
                                     <div className="text-xs text-slate-500 dark:text-slate-400">{auth.user.email}</div>
@@ -143,7 +143,7 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
                                 <Button
                                     onClick={handleLogout}
                                     variant="outline"
-                                    size="sm"
+                                    size="default"
                                     className="group hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:border-red-800 dark:hover:text-red-400"
                                 >
                                     <LogOut className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform" />
@@ -154,7 +154,7 @@ export default function AuthenticatedLayout({ children }: AuthenticatedLayoutPro
                             {/* Mobile Hamburger Menu */}
                             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                                 <SheetTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="md:hidden">
+                                    <Button variant="ghost" size="sm" className="lg:hidden">
                                         <Menu className="h-5 w-5" />
                                     </Button>
                                 </SheetTrigger>

@@ -17,11 +17,11 @@ class League extends Model
         'name',
         'description',
         'is_private',
-        'invite_code',
-        'owner_id',
         'max_members',
         'is_active',
     ];
+
+    protected $hidden = ['invite_code'];
 
     protected $casts = [
         'is_private' => 'boolean',

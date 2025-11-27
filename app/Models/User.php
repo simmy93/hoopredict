@@ -24,7 +24,6 @@ class User extends Authenticatable
         'password',
         'google_id',
         'avatar',
-        'is_admin',
     ];
 
     /**
@@ -38,6 +37,7 @@ class User extends Authenticatable
         'email',
         'email_verified_at',
         'google_id',
+        'is_admin',
     ];
 
     /**

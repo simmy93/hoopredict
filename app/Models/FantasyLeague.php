@@ -15,25 +15,18 @@ class FantasyLeague extends Model
     protected $fillable = [
         'name',
         'description',
-        'owner_id',
         'championship_id',
         'mode',
         'budget',
         'team_size',
-        'invite_code',
         'is_active',
         'is_private',
         'max_members',
         'draft_date',
-        'draft_status',
-        'current_pick',
-        'pick_started_at',
         'pick_time_limit',
-        'is_paused',
-        'paused_at',
-        'paused_by_user_id',
-        'pause_time_remaining',
     ];
+
+    protected $hidden = ['invite_code'];
 
     protected function casts(): array
     {

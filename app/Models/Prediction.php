@@ -11,13 +11,10 @@ class Prediction extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
         'league_id',
         'game_id',
         'home_score_prediction',
         'away_score_prediction',
-        'points_earned',
-        'scoring_method',
         'predicted_at',
     ];
 

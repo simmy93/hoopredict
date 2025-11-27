@@ -215,39 +215,47 @@ export default function Index({
                                                 <div
                                                     key={index}
                                                     onClick={() => handleTeamClick(team.id)}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-purple-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-purple-400/50 hover:shadow-lg dark:from-slate-900 dark:to-purple-950/20 cursor-pointer"
+                                                    className="group relative overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-purple-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-purple-400/50 hover:shadow-lg dark:from-slate-900 dark:to-purple-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 to-pink-500/0 transition-all duration-500 group-hover:from-purple-500/5 group-hover:to-pink-500/5" />
 
-                                                    <div className="relative z-10 flex items-center gap-4">
-                                                        <div
-                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
-                                                                index === 0
-                                                                    ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
-                                                                    : index === 1
-                                                                      ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
-                                                                      : index === 2
-                                                                        ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
-                                                                        : 'bg-gradient-to-br from-purple-400 to-blue-500 text-white'
-                                                            }`}
-                                                        >
-                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-semibold transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                                                                {team.team_name}
+                                                    <div className="relative z-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
+                                                                    index === 0
+                                                                        ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
+                                                                        : index === 1
+                                                                          ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
+                                                                          : index === 2
+                                                                            ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                            : 'bg-gradient-to-br from-purple-400 to-blue-500 text-white'
+                                                                }`}
+                                                            >
+                                                                {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                             </div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {team.user_name} • {team.league_name}
+                                                            <div>
+                                                                <div className="font-semibold transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                                                                    {team.team_name}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground sm:hidden">
+                                                                    {team.user_name}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground sm:hidden">
+                                                                    {team.league_name}
+                                                                </div>
+                                                                <div className="hidden text-sm text-muted-foreground sm:block">
+                                                                    {team.user_name} • {team.league_name}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="relative z-10 text-right">
-                                                        <div className="bg-gradient-to-br from-purple-600 to-pink-600 bg-clip-text text-lg font-bold text-transparent">
-                                                            {team.total_points} pts
+                                                        <div className="flex items-baseline justify-between border-t border-gray-200 pt-2 dark:border-gray-700 sm:block sm:border-t-0 sm:pt-0 sm:text-right">
+                                                            <div className="bg-gradient-to-br from-purple-600 to-pink-600 bg-clip-text text-lg font-bold text-transparent">
+                                                                {team.total_points} pts
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">{team.efficiency} pts/€M</div>
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground">{team.efficiency} pts/€M</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -279,37 +287,45 @@ export default function Index({
                                                 <div
                                                     key={index}
                                                     onClick={() => handleTeamClick(team.id)}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-amber-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400/50 hover:shadow-lg dark:from-slate-900 dark:to-amber-950/20 cursor-pointer"
+                                                    className="group relative overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-amber-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400/50 hover:shadow-lg dark:from-slate-900 dark:to-amber-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 to-orange-500/0 transition-all duration-500 group-hover:from-amber-500/5 group-hover:to-orange-500/5" />
 
-                                                    <div className="relative z-10 flex items-center gap-4">
-                                                        <div
-                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
-                                                                index === 0
-                                                                    ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
-                                                                    : index === 1
-                                                                      ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
-                                                                      : index === 2
-                                                                        ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
-                                                                        : 'bg-gradient-to-br from-amber-400 to-orange-500 text-white'
-                                                            }`}
-                                                        >
-                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-semibold transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
-                                                                {team.team_name}
+                                                    <div className="relative z-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
+                                                                    index === 0
+                                                                        ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
+                                                                        : index === 1
+                                                                          ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
+                                                                          : index === 2
+                                                                            ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                            : 'bg-gradient-to-br from-amber-400 to-orange-500 text-white'
+                                                                }`}
+                                                            >
+                                                                {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                             </div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {team.user_name} • {team.league_name}
+                                                            <div>
+                                                                <div className="font-semibold transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                                                                    {team.team_name}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground sm:hidden">
+                                                                    {team.user_name}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground sm:hidden">
+                                                                    {team.league_name}
+                                                                </div>
+                                                                <div className="hidden text-sm text-muted-foreground sm:block">
+                                                                    {team.user_name} • {team.league_name}
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="relative z-10 text-right">
-                                                        <div className="bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-lg font-bold text-transparent">
-                                                            {team.total_points} pts
+                                                        <div className="flex items-baseline justify-between border-t border-gray-200 pt-2 dark:border-gray-700 sm:block sm:border-t-0 sm:pt-0 sm:text-right">
+                                                            <div className="bg-gradient-to-br from-amber-600 to-orange-600 bg-clip-text text-lg font-bold text-transparent">
+                                                                {team.total_points} pts
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -341,37 +357,39 @@ export default function Index({
                                             {predictionLeaders.map((leader, index) => (
                                                 <div
                                                     key={index}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-green-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-green-400/50 hover:shadow-lg dark:from-slate-900 dark:to-green-950/20"
+                                                    className="group relative overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-green-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-green-400/50 hover:shadow-lg dark:from-slate-900 dark:to-green-950/20"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-green-500/0 to-emerald-500/0 transition-all duration-500 group-hover:from-green-500/5 group-hover:to-emerald-500/5" />
 
-                                                    <div className="relative z-10 flex items-center gap-4">
-                                                        <div
-                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
-                                                                index === 0
-                                                                    ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
-                                                                    : index === 1
-                                                                      ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
-                                                                      : index === 2
-                                                                        ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
-                                                                        : 'bg-gradient-to-br from-green-400 to-emerald-500 text-white'
-                                                            }`}
-                                                        >
-                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-semibold transition-colors group-hover:text-green-600 dark:group-hover:text-green-400">
-                                                                {leader.user_name}
+                                                    <div className="relative z-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
+                                                                    index === 0
+                                                                        ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
+                                                                        : index === 1
+                                                                          ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
+                                                                          : index === 2
+                                                                            ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                            : 'bg-gradient-to-br from-green-400 to-emerald-500 text-white'
+                                                                }`}
+                                                            >
+                                                                {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
                                                             </div>
-                                                            <div className="text-sm text-muted-foreground">{leader.league_name}</div>
+                                                            <div>
+                                                                <div className="font-semibold transition-colors group-hover:text-green-600 dark:group-hover:text-green-400">
+                                                                    {leader.user_name}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground">{leader.league_name}</div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="relative z-10 text-right">
-                                                        <div className="bg-gradient-to-br from-green-600 to-emerald-600 bg-clip-text text-lg font-bold text-transparent">
-                                                            {leader.points} pts
+                                                        <div className="flex items-baseline justify-between border-t border-gray-200 pt-2 dark:border-gray-700 sm:block sm:border-t-0 sm:pt-0 sm:text-right">
+                                                            <div className="bg-gradient-to-br from-green-600 to-emerald-600 bg-clip-text text-lg font-bold text-transparent">
+                                                                {leader.points} pts
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">{leader.accuracy}% accuracy</div>
                                                         </div>
-                                                        <div className="text-xs text-muted-foreground">{leader.accuracy}% accuracy</div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -403,58 +421,60 @@ export default function Index({
                                                 <div
                                                     key={index}
                                                     onClick={() => handlePlayerClick(player.id)}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-blue-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/50 hover:shadow-lg dark:from-slate-900 dark:to-blue-950/20 cursor-pointer"
+                                                    className="group relative overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-blue-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-400/50 hover:shadow-lg dark:from-slate-900 dark:to-blue-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 to-cyan-500/0 transition-all duration-500 group-hover:from-blue-500/5 group-hover:to-cyan-500/5" />
 
-                                                    <div className="relative z-10 flex items-center gap-4">
-                                                        <div
-                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
-                                                                index === 0
-                                                                    ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
-                                                                    : index === 1
-                                                                      ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
-                                                                      : index === 2
-                                                                        ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
-                                                                        : 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white'
-                                                            }`}
-                                                        >
-                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
+                                                    <div className="relative z-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className={`mt-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg sm:mt-0 ${
+                                                                    index === 0
+                                                                        ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
+                                                                        : index === 1
+                                                                          ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
+                                                                          : index === 2
+                                                                            ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                            : 'bg-gradient-to-br from-blue-400 to-cyan-500 text-white'
+                                                                }`}
+                                                            >
+                                                                {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
+                                                            </div>
+                                                            <div className="flex-shrink-0">
+                                                                {player.photo_headshot_url || player.photo_url ? (
+                                                                    <img
+                                                                        src={(player.photo_headshot_url || player.photo_url)!}
+                                                                        alt={player.name}
+                                                                        className="h-12 w-12 rounded-full object-cover object-top"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold">
+                                                                        {player.name.charAt(0)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-semibold transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                                                                    {player.name}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground">
+                                                                    {player.team} • {player.position}
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            {player.photo_headshot_url || player.photo_url ? (
-                                                                <img
-                                                                    src={(player.photo_headshot_url || player.photo_url)!}
-                                                                    alt={player.name}
-                                                                    className="h-12 w-12 rounded-full object-cover object-top"
-                                                                />
-                                                            ) : (
-                                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold">
-                                                                    {player.name.charAt(0)}
+                                                        <div className="flex items-baseline justify-between border-t border-gray-200 pt-2 dark:border-gray-700 sm:block sm:border-t-0 sm:pt-0 sm:text-right">
+                                                            <div className="bg-gradient-to-br from-blue-600 to-cyan-600 bg-clip-text text-lg font-bold text-transparent">
+                                                                {selectedRound === 'all'
+                                                                    ? `${player.total_fantasy_points} pts`
+                                                                    : `${player.round_fantasy_points} pts`}
+                                                            </div>
+                                                            {selectedRound === 'all' && (
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    {player.avg_fantasy_points} avg ({player.games_played} games)
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <div>
-                                                            <div className="font-semibold transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                                                                {player.name}
-                                                            </div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {player.team} • {player.position}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="relative z-10 text-right">
-                                                        <div className="bg-gradient-to-br from-blue-600 to-cyan-600 bg-clip-text text-lg font-bold text-transparent">
-                                                            {selectedRound === 'all'
-                                                                ? `${player.total_fantasy_points} pts`
-                                                                : `${player.round_fantasy_points} pts`}
-                                                        </div>
-                                                        {selectedRound === 'all' && (
-                                                            <div className="text-xs text-muted-foreground">
-                                                                {player.avg_fantasy_points} avg ({player.games_played} games)
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -485,53 +505,61 @@ export default function Index({
                                                 <div
                                                     key={index}
                                                     onClick={() => handlePlayerClick(player.id)}
-                                                    className="group relative flex items-center justify-between overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-emerald-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/50 hover:shadow-lg dark:from-slate-900 dark:to-emerald-950/20 cursor-pointer"
+                                                    className="group relative overflow-hidden rounded-lg border-2 bg-gradient-to-r from-white to-emerald-50/30 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-400/50 hover:shadow-lg dark:from-slate-900 dark:to-emerald-950/20 cursor-pointer"
                                                 >
                                                     {/* Gradient overlay */}
                                                     <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-teal-500/0 transition-all duration-500 group-hover:from-emerald-500/5 group-hover:to-teal-500/5" />
 
-                                                    <div className="relative z-10 flex items-center gap-4">
-                                                        <div
-                                                            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg ${
-                                                                index === 0
-                                                                    ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
-                                                                    : index === 1
-                                                                      ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
-                                                                      : index === 2
-                                                                        ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
-                                                                        : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white'
-                                                            }`}
-                                                        >
-                                                            {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
-                                                        </div>
-                                                        <div>
-                                                            {player.photo_headshot_url || player.photo_url ? (
-                                                                <img
-                                                                    src={(player.photo_headshot_url || player.photo_url)!}
-                                                                    alt={player.name}
-                                                                    className="h-12 w-12 rounded-full object-cover object-top"
-                                                                />
-                                                            ) : (
-                                                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold">
-                                                                    {player.name.charAt(0)}
+                                                    <div className="relative z-10 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div
+                                                                className={`mt-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full font-bold shadow-lg sm:mt-0 ${
+                                                                    index === 0
+                                                                        ? 'animate-pulse bg-gradient-to-br from-yellow-400 to-yellow-600 text-white ring-2 ring-yellow-300'
+                                                                        : index === 1
+                                                                          ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white ring-2 ring-gray-200'
+                                                                          : index === 2
+                                                                            ? 'bg-gradient-to-br from-orange-400 to-orange-700 text-white ring-2 ring-orange-300'
+                                                                            : 'bg-gradient-to-br from-emerald-400 to-teal-500 text-white'
+                                                                }`}
+                                                            >
+                                                                {index < 3 ? <Medal className="h-5 w-5" /> : index + 1}
+                                                            </div>
+                                                            <div className="flex-shrink-0">
+                                                                {player.photo_headshot_url || player.photo_url ? (
+                                                                    <img
+                                                                        src={(player.photo_headshot_url || player.photo_url)!}
+                                                                        alt={player.name}
+                                                                        className="h-12 w-12 rounded-full object-cover object-top"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-lg font-bold">
+                                                                        {player.name.charAt(0)}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-semibold transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                                                                    {player.name}
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-semibold transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                                                                {player.name}
+                                                                <div className="text-sm text-muted-foreground sm:hidden">
+                                                                    {player.team}
+                                                                </div>
+                                                                <div className="text-sm text-muted-foreground sm:hidden">
+                                                                    €{(player.price / 1000000).toFixed(1)}M
+                                                                </div>
+                                                                <div className="hidden text-sm text-muted-foreground sm:block">
+                                                                    {player.team} • €{(player.price / 1000000).toFixed(1)}M
+                                                                </div>
                                                             </div>
-                                                            <div className="text-sm text-muted-foreground">
-                                                                {player.team} • €{(player.price / 1000000).toFixed(1)}M
+                                                        </div>
+                                                        <div className="flex items-baseline justify-between border-t border-gray-200 pt-2 dark:border-gray-700 sm:block sm:border-t-0 sm:pt-0 sm:text-right">
+                                                            <div className="bg-gradient-to-br from-emerald-600 to-teal-600 bg-clip-text text-lg font-bold text-transparent">
+                                                                {player.value_rating} pts/€M
                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="relative z-10 text-right">
-                                                        <div className="bg-gradient-to-br from-emerald-600 to-teal-600 bg-clip-text text-lg font-bold text-transparent">
-                                                            {player.value_rating} pts/€M
-                                                        </div>
-                                                        <div className="text-xs text-muted-foreground">
-                                                            {player.total_fantasy_points} pts ({player.games_played} games)
+                                                            <div className="text-xs text-muted-foreground">
+                                                                {player.total_fantasy_points} pts ({player.games_played} games)
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -562,7 +590,7 @@ export default function Index({
                                                 {teamStatistics.hottestTeams.map((team, index) => (
                                                     <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 font-bold dark:bg-orange-900/30">
+                                                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600 font-bold dark:bg-orange-900/30">
                                                                 {index + 1}
                                                             </div>
                                                             {team.logo_url && (
@@ -609,7 +637,7 @@ export default function Index({
                                                 {teamStatistics.coldestTeams.map((team, index) => (
                                                     <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold dark:bg-blue-900/30">
+                                                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 font-bold dark:bg-blue-900/30">
                                                                 {index + 1}
                                                             </div>
                                                             {team.logo_url && (
@@ -656,7 +684,7 @@ export default function Index({
                                                 {teamStatistics.bestHomeTeams.map((team, index) => (
                                                     <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-green-600 font-bold dark:bg-green-900/30">
+                                                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 font-bold dark:bg-green-900/30">
                                                                 {index + 1}
                                                             </div>
                                                             {team.logo_url && (
@@ -695,7 +723,7 @@ export default function Index({
                                                 {teamStatistics.bestAwayTeams.map((team, index) => (
                                                     <div key={team.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold dark:bg-purple-900/30">
+                                                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 text-purple-600 font-bold dark:bg-purple-900/30">
                                                                 {index + 1}
                                                             </div>
                                                             {team.logo_url && (
