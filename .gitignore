@@ -27,3 +27,5 @@ yarn-error.log
 /.zed
 nul
 *.md
+DEPLOYMENT-DOCKER.md
+DEPLOYMENT.md
