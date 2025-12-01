@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Pagination } from '@/components/ui/pagination'
-import { ShoppingCart, Search, ArrowLeft, DollarSign } from 'lucide-react'
+import { ShoppingCart, Search, ArrowLeft, DollarSign, Bookmark } from 'lucide-react'
 import AuthenticatedLayout from '@/layouts/AuthenticatedLayout'
+import { cn } from '@/lib/utils'
 
 interface User {
     id: number
@@ -62,6 +63,7 @@ interface Props {
     userTeam?: FantasyTeam
     players?: PaginatedPlayers
     myPlayers?: Player[]
+    watchlist?: Player[]
     filters?: {
         position?: string
         team_id?: number
@@ -71,7 +73,7 @@ interface Props {
     }
 }
 
-export default function Index({ league, userTeam, players, myPlayers = [], filters = {} }: Props) {
+export default function Index({ league, userTeam, players, myPlayers = [], watchlist = [], filters = {} }: Props) {
     const [search, setSearch] = useState(String(filters?.search || ''))
     const [position, setPosition] = useState(String(filters?.position || 'all'))
     const [sortBy, setSortBy] = useState(String(filters?.sort || 'price'))
@@ -107,18 +109,30 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
         router.post(`/fantasy/leagues/${league.id}/players/${playerId}/buy`)
     }
 
-    const sellPlayer = (playerId: number) => {
+ag,sellPlayer = (playerId: number) => {
         if (!league?.id) return
         router.delete(`/fantasy/leagues/${league.id}/players/${playerId}/sell`)
+    }
+
+    const toggleWatchlist = (playerId: number) => {
+        router.post(route('watchlist.toggle', { player: playerId }), {}, {
+            preserveState: true,
+            preserveScroll: true,
+        })
     }
 
     const isOwned = (playerId: number) => {
         return myPlayers?.some(p => p.id === playerId) || false
     }
 
+    const isWatched = (playerId: number) => {
+        return watchlist?.some(p => p.id === playerId) || false
+    }
+
     const canAfford = (price: number) => {
         return userTeam?.budget_remaining ? Number(userTeam.budget_remaining) >= price : false
     }
+
 
     const isTeamFull = () => {
         return league?.team_size ? (myPlayers?.length || 0) >= league.team_size : false
@@ -242,7 +256,23 @@ export default function Index({ league, userTeam, players, myPlayers = [], filte
                                                 </div>
                                             )}
                                             <div className="flex-1">
-                                                <CardTitle className="text-lg">{player.name}</CardTitle>
+                                                <div className="flex justify-between items-start">
+                                                    <CardTitle className="text-lg">{player.name}</CardTitle>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => toggleWatchlist(player.id)}
+                                                    >
+                                                        <Bookmark
+                                                            className={cn(
+                                                                'h-5 w-5',
+                                                                isWatched(player.id)
+                                                                    ? 'text-yellow-400 fill-yellow-400'
+                                                                    : 'text-muted-foreground',
+                                                            )}
+                                                        />
+                                                    </Button>
+                                                </div>
                                                 <CardDescription>
                                                     {player.team.name}
                                                     {player.jersey_number && ` #${player.jersey_number}`}

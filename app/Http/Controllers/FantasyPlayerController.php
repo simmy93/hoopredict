@@ -45,6 +45,9 @@ class FantasyPlayerController extends Controller
         // Get user's current players
         $myPlayers = $userTeam->players()->with('team')->get();
 
+        // Get user's watchlist
+        $watchlist = auth()->user()->watchlist()->get();
+
         // Check if round is locked
         $currentActiveRound = \App\Models\Game::getCurrentActiveRound($league->championship_id);
         $isRoundLocked = $currentActiveRound !== null;
@@ -54,6 +57,7 @@ class FantasyPlayerController extends Controller
             'userTeam' => $userTeam,
             'players' => $players,
             'myPlayers' => $myPlayers,
+            'watchlist' => $watchlist,
             'filters' => $request->only(['position', 'team_id', 'search', 'sort', 'direction']),
             'isRoundLocked' => $isRoundLocked,
             'currentActiveRound' => $currentActiveRound,

@@ -90,4 +90,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(FantasyLeague::class, 'owner_id');
     }
+
+    public function watchlist()
+    {
+        return $this->belongsToMany(Player::class, 'user_player_watchlist');
+    }
 }

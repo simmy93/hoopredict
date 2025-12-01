@@ -143,6 +143,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
+
+    // User Player Watchlist
+    Route::get('/watchlist', [\App\Http\Controllers\UserPlayerWatchlistController::class, 'index'])->name('watchlist.index');
+    Route::post('/watchlist/{player}', [\App\Http\Controllers\UserPlayerWatchlistController::class, 'toggle'])->name('watchlist.toggle');
 });
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {

@@ -52,9 +52,14 @@ class Player extends Model
         return $this->hasMany(PlayerPriceHistory::class);
     }
 
+    public function watchlistedBy(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_player_watchlist');
+    }
+
     /**
      * Calculate price using weighted average of price history and current round fantasy points
-     *
+     **
      * Formula: (70% × Average of last 4 price history) + (30% × Current round fantasy points × 100k)
      *
      * - Uses up to 4 previous rounds of price history (70% weight)
